@@ -1,7 +1,5 @@
 package lib
 
-import "time"
-
 type JobsResponse struct {
 	Meta struct {
 		Count int `json:"count"`
@@ -11,23 +9,23 @@ type JobsResponse struct {
 		Comment       string `json:"comment"`
 		Components    []struct {
 			CanonicalProjectName string `json:"canonical_project_name"`
-			CreatedAt            string `json:"created_at"`
+			CreatedAt            string `json:"created_at,omitempty"`
 			Data                 struct {
-				Created     time.Time `json:"created"`
-				Digest      []string  `json:"digest"`
-				DisplayName string    `json:"display_name"`
-				PullURL     string    `json:"pull_url"`
-				Tags        []string  `json:"tags"`
-				UID         string    `json:"uid"`
-				URL         string    `json:"url"`
-				Version     string    `json:"version"`
+				// Created     time.Time `json:"created,omitempty"`
+				Digest      []string `json:"digest"`
+				DisplayName string   `json:"display_name"`
+				PullURL     string   `json:"pull_url"`
+				Tags        []string `json:"tags"`
+				UID         string   `json:"uid"`
+				URL         string   `json:"url"`
+				Version     string   `json:"version"`
 			} `json:"data,omitempty"`
 			DisplayName string   `json:"display_name"`
 			Etag        string   `json:"etag"`
 			ID          string   `json:"id"`
 			Message     string   `json:"message"`
 			Name        string   `json:"name"`
-			ReleasedAt  string   `json:"released_at"`
+			ReleasedAt  string   `json:"released_at,omitempty"`
 			State       string   `json:"state"`
 			Tags        []string `json:"tags"`
 			TeamID      any      `json:"team_id"`
@@ -35,12 +33,12 @@ type JobsResponse struct {
 			TopicID     string   `json:"topic_id"`
 			Type        string   `json:"type"`
 			UID         string   `json:"uid"`
-			UpdatedAt   string   `json:"updated_at"`
+			UpdatedAt   string   `json:"updated_at,omitempty"`
 			URL         string   `json:"url"`
 			Version     string   `json:"version"`
 		} `json:"components"`
 		Configuration string `json:"configuration"`
-		CreatedAt     string `json:"created_at"`
+		CreatedAt     string `json:"created_at,omitempty"`
 		Duration      int    `json:"duration"`
 		Etag          string `json:"etag"`
 		ID            string `json:"id"`
@@ -51,20 +49,20 @@ type JobsResponse struct {
 		} `json:"keys_values"`
 		Name     string `json:"name"`
 		Pipeline struct {
-			CreatedAt string `json:"created_at"`
+			CreatedAt string `json:"created_at,omitempty"`
 			Etag      string `json:"etag"`
 			ID        string `json:"id"`
 			Name      string `json:"name"`
 			State     string `json:"state"`
 			TeamID    string `json:"team_id"`
-			UpdatedAt string `json:"updated_at"`
+			UpdatedAt string `json:"updated_at,omitempty"`
 		} `json:"pipeline"`
 		PipelineID    string `json:"pipeline_id"`
 		PreviousJobID any    `json:"previous_job_id"`
 		ProductID     string `json:"product_id"`
 		Remoteci      struct {
 			APISecret string `json:"api_secret"`
-			CreatedAt string `json:"created_at"`
+			CreatedAt string `json:"created_at,omitempty"`
 			Data      struct {
 			} `json:"data"`
 			Etag      string `json:"etag"`
@@ -73,7 +71,7 @@ type JobsResponse struct {
 			Public    bool   `json:"public"`
 			State     string `json:"state"`
 			TeamID    string `json:"team_id"`
-			UpdatedAt string `json:"updated_at"`
+			UpdatedAt string `json:"updated_at,omitempty"`
 		} `json:"remoteci"`
 		RemoteciID   string   `json:"remoteci_id"`
 		Results      []any    `json:"results"`
@@ -83,20 +81,20 @@ type JobsResponse struct {
 		Tags         []string `json:"tags"`
 		Team         struct {
 			Country             any    `json:"country"`
-			CreatedAt           string `json:"created_at"`
+			CreatedAt           string `json:"created_at,omitempty"`
 			Etag                string `json:"etag"`
 			External            bool   `json:"external"`
 			HasPreReleaseAccess bool   `json:"has_pre_release_access"`
 			ID                  string `json:"id"`
 			Name                string `json:"name"`
 			State               string `json:"state"`
-			UpdatedAt           string `json:"updated_at"`
+			UpdatedAt           string `json:"updated_at,omitempty"`
 		} `json:"team"`
 		TeamID string `json:"team_id"`
 		Topic  struct {
 			ComponentTypes         []string `json:"component_types"`
 			ComponentTypesOptional []any    `json:"component_types_optional"`
-			CreatedAt              string   `json:"created_at"`
+			CreatedAt              string   `json:"created_at,omitempty"`
 			Data                   struct {
 				PullSecret struct {
 					Auths struct {
@@ -129,11 +127,11 @@ type JobsResponse struct {
 			NextTopicID   string `json:"next_topic_id"`
 			ProductID     string `json:"product_id"`
 			State         string `json:"state"`
-			UpdatedAt     string `json:"updated_at"`
+			UpdatedAt     string `json:"updated_at,omitempty"`
 		} `json:"topic"`
 		TopicID             string `json:"topic_id"`
 		UpdatePreviousJobID any    `json:"update_previous_job_id"`
-		UpdatedAt           string `json:"updated_at"`
+		UpdatedAt           string `json:"updated_at,omitempty"`
 		URL                 string `json:"url"`
 		UserAgent           string `json:"user_agent"`
 	} `json:"jobs"`

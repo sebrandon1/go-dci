@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -38,13 +39,14 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	// Default values to page through the results
 	requestLimit := 100
 	offset := 0
-	maxRecords := 10000
+	maxRecords := 50000
 
 	for {
 		outOfDateRangeJobReturned := false
 
 		httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 		if err != nil {
+			fmt.Printf("Error getting jobs: %s\n", err)
 			return nil, err
 		}
 
@@ -53,6 +55,7 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 		var jobs JobsResponse
 		err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
 		if err != nil {
+			fmt.Printf("Error decoding the response: %s\n", err)
 			return nil, err
 		}
 
@@ -66,7 +69,8 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 			// Parse the created at date
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
-				return nil, err
+				fmt.Printf("Error parsing the created at date: %s\n", err)
+				continue
 			}
 
 			// If the job is out of the date range, we can stop the loop
@@ -115,6 +119,9 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 	q.Add("offset", strconv.Itoa(offset))
 	q.Add("sort", "-created_at") // Sort by created_at in descending order
 	req.URL.RawQuery = q.Encode()
+
+	// Print the request
+	// fmt.Println(req)
 
 	// Sign the request
 	_, err = signer.Sign(req, nil, serviceName, region, time.Now())
