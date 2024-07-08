@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -91,7 +92,12 @@ var getJobsCmd = &cobra.Command{
 			fmt.Printf("Total DCI Jobs: %d\n", totalJobsCtr)
 			fmt.Printf("Total go-dci runtime: %v\n", time.Since(startRun))
 		} else {
-			fmt.Println(jsonOutput.Jobs)
+			// marshal the jsonOutput
+			jsonOutputBytes, err := json.Marshal(jsonOutput)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(jsonOutputBytes))
 		}
 	},
 }
