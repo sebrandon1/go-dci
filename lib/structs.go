@@ -1,5 +1,14 @@
 package lib
 
+type JsonTNFInfo struct {
+	ID         string `json:"id"`
+	TNFVersion string `json:"tnf_version"`
+}
+
+type JobsJsonOutput struct {
+	Jobs []JsonTNFInfo `json:"jobs"`
+}
+
 type JobsResponse struct {
 	Meta struct {
 		Count int `json:"count"`

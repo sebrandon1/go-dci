@@ -13,6 +13,7 @@ import (
 var accessKey string
 var secretKey string
 var ageInDays string
+var outputFormat string
 
 const (
 	dateFormat = "2006-01-02T15:04:05.999999"
@@ -26,6 +27,9 @@ var getJobsCmd = &cobra.Command{
 		accessKey = GetConfigValue("accesskey")
 		secretKey = GetConfigValue("secretkey")
 
+		var jsonOutput lib.JobsJsonOutput
+
+		// Initialize the counters
 		tnfJobsCtr := 0
 		totalJobsCtr := 0
 		startRun := time.Now()
@@ -39,9 +43,9 @@ var getJobsCmd = &cobra.Command{
 		// Use the client to get all jobs from DCI
 		client := lib.NewClient(accessKey, secretKey)
 
-		fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
-		// fmt.Printf("Access Key: %s\n", accessKey)
-		// fmt.Printf("Secret Key: %s\n", secretKey)
+		if outputFormat != "json" {
+			fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
+		}
 
 		// Convert ageInDays to an integer
 		daysBackLimit, err := strconv.Atoi(ageInDays)
@@ -67,16 +71,28 @@ var getJobsCmd = &cobra.Command{
 						// find out how long ago this job ran
 						daysAgo, _ := time.Parse(dateFormat, j.CreatedAt)
 						daysSince := time.Since(daysAgo).Hours() / 24
-						fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, tag, daysSince)
+						if outputFormat != "json" {
+							fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, tag, daysSince)
+						}
+
+						jo := lib.JsonTNFInfo{
+							ID:         j.ID,
+							TNFVersion: tag,
+						}
+						jsonOutput.Jobs = append(jsonOutput.Jobs, jo)
 						tnfJobsCtr++
 					}
 				}
 			}
 		}
 
-		fmt.Printf("Total TNF Jobs: %d\n", tnfJobsCtr)
-		fmt.Printf("Total DCI Jobs: %d\n", totalJobsCtr)
-		fmt.Printf("Total go-dci runtime: %v\n", time.Since(startRun))
+		if outputFormat != "json" {
+			fmt.Printf("Total TNF Jobs: %d\n", tnfJobsCtr)
+			fmt.Printf("Total DCI Jobs: %d\n", totalJobsCtr)
+			fmt.Printf("Total go-dci runtime: %v\n", time.Since(startRun))
+		} else {
+			fmt.Println(jsonOutput.Jobs)
+		}
 	},
 }
 
@@ -85,4 +101,5 @@ func init() {
 
 	// Bind the access key and secret key to the variables
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
+	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "stdout", "Output format (json) - default is stdout")
 }
