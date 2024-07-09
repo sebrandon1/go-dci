@@ -120,9 +120,6 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 	q.Add("sort", "-created_at") // Sort by created_at in descending order
 	req.URL.RawQuery = q.Encode()
 
-	// Print the request
-	// fmt.Println(req)
-
 	// Sign the request
 	_, err = signer.Sign(req, nil, serviceName, region, time.Now())
 	if err != nil {
@@ -131,9 +128,6 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 
 	// Send the request
 	client := &http.Client{}
-
-	// print the request
-	// fmt.Println(req)
 
 	// Perform the requests and adjust the offset based on the response
 	return client.Do(req)
