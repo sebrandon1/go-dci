@@ -53,7 +53,10 @@ func ConfigKeyValuePairUpdate(key string, value string) {
 
 func writeKeyValuePair(key string, value interface{}) {
 	viper.Set(key, value)
-	viper.WriteConfig()
+	err := viper.WriteConfig()
+	if err != nil {
+		panic(err)
+	}
 	fmt.Printf("Wrote the %s pair.\n", key)
 }
 
