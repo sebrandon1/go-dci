@@ -33,6 +33,50 @@ func NewClient(accessKey, secretKey string) *Client {
 	}
 }
 
+func (c *Client) GetTopics() ([]TopicsResponse, error) {
+	var topicsCollection []TopicsResponse
+
+	requestLimit := 100
+	offset := 0
+	maxRecords := 50000
+
+	for {
+		httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/topics", awsRegion, serviceName, c.AccessKey, c.SecretKey, 100, 0)
+		if err != nil {
+			fmt.Printf("Error getting topics: %s\n", err)
+			return nil, err
+		}
+
+		defer httpResponse.Body.Close()
+
+		var topics TopicsResponse
+		err = json.NewDecoder(httpResponse.Body).Decode(&topics)
+		if err != nil {
+			fmt.Printf("Error decoding the response: %s\n", err)
+			return nil, err
+		}
+
+		topicsCollection = append(topicsCollection, topics)
+
+		offset += requestLimit
+
+		// If the number of topics returned is less than the request limit, we have reached the end
+		if len(topics.Topics) < requestLimit {
+			break
+		}
+
+		// If we have reached the maximum number of records, we can stop the loop
+		if len(topics.Topics) >= maxRecords {
+			break
+		}
+
+		// Increment the offset
+		offset += requestLimit
+	}
+
+	return topicsCollection, nil
+}
+
 func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	var jobCollection []JobsResponse
 
