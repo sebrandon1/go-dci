@@ -18,6 +18,7 @@ var outputFormat string
 
 const (
 	dateFormat = "2006-01-02T15:04:05.999999"
+	tnfRegex   = `v(\d+\.)?(\d+\.)?(\*|\d+)$`
 )
 
 var getJobsCmd = &cobra.Command{
@@ -65,22 +66,18 @@ var getJobsCmd = &cobra.Command{
 			for _, j := range job.Jobs {
 				totalJobsCtr++ // Keep track of the total number of jobs
 
-				// fmt.Printf("Job Name: %s - Created At: %s\n", j.Name, j.CreatedAt)
+				for _, c := range j.Components {
+					if strings.Contains(c.Name, "cnf-certification-test") {
+						// get the commit/version from the component name
+						commit := strings.Split(c.Name, " ")[1]
 
-				for _, tag := range j.Tags {
-					if strings.Contains(tag, "tnf") {
 						// find out how long ago this job ran
 						daysAgo, _ := time.Parse(dateFormat, j.CreatedAt)
 						daysSince := time.Since(daysAgo).Hours() / 24
 						if outputFormat != "json" {
-							fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, tag, daysSince)
+							fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 						}
 
-						jo := lib.JsonTNFInfo{
-							ID:         j.ID,
-							TNFVersion: tag,
-						}
-						jsonOutput.Jobs = append(jsonOutput.Jobs, jo)
 						tnfJobsCtr++
 					}
 				}
