@@ -78,6 +78,12 @@ var getJobsCmd = &cobra.Command{
 							fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 						}
 
+						jo := lib.JsonTNFInfo{
+							ID:         j.ID,
+							TNFVersion: commit,
+						}
+						jsonOutput.Jobs = append(jsonOutput.Jobs, jo)
+
 						tnfJobsCtr++
 					}
 				}
