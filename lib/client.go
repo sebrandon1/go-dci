@@ -17,6 +17,7 @@ const (
 	awsRegion   = "BHS3"
 	serviceName = "api"
 	dateFormat  = "2006-01-02T15:04:05.999999"
+	maxRecords  = 50000
 )
 
 type Client struct {
@@ -83,7 +84,6 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	// Default values to page through the results
 	requestLimit := 100
 	offset := 0
-	maxRecords := 50000
 
 	for {
 		outOfDateRangeJobReturned := false
