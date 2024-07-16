@@ -21,6 +21,97 @@ const (
 	tnfRegex   = `v(\d+\.)?(\d+\.)?(\*|\d+)$`
 )
 
+var (
+	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17"}
+)
+
+var getOcpCountCmd = &cobra.Command{
+	Use:   "ocpcount",
+	Short: "Get the count of jobs for each OCP version",
+	Run: func(cmd *cobra.Command, args []string) {
+		// Pull the access key and secret key from the config file
+		accessKey = GetConfigValue("accesskey")
+		secretKey = GetConfigValue("secretkey")
+
+		// Check if the values are empty
+		if accessKey == "" || secretKey == "" {
+			fmt.Println("Please set the access key and secret key using the 'config set' command")
+			return
+		}
+
+		var jsonOutput lib.OcpJsonOutput
+
+		if outputFormat != "json" {
+			fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
+		}
+
+		// Convert ageInDays to an integer
+		daysBackLimit, err := strconv.Atoi(ageInDays)
+		if err != nil {
+			panic(err)
+		}
+
+		// Use the client to get all jobs from DCI
+		client := lib.NewClient(accessKey, secretKey)
+
+		jobsResponses, err := client.GetJobs(daysBackLimit)
+		if err != nil {
+			// fmt.Printf("responses: %v\n", jobsResponses)
+			panic(err)
+		}
+
+		// Create a count of the number of jobs for each OCP version
+		ocpVersionCount := make(map[string]int)
+		for _, job := range jobsResponses {
+			for _, j := range job.Jobs {
+				if isTnfJob(j.Components) {
+
+					// Get the OCP version from the components
+					ocpVersion := findOcpVersionFromComponents(j.Components)
+
+					// Check if the OCP version is in the list of versions to look for
+					if ocpVersion != "" {
+						// Check if the OCP version is in the list of versions to look for
+						for _, v := range ocpVersionsToLookFor {
+							if strings.Contains(ocpVersion, v) {
+								ocpVersionCount[v]++
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Print the OCP version count
+		if outputFormat != "json" {
+			for _, ocpVersion := range ocpVersionsToLookFor {
+
+				for k, v := range ocpVersionCount {
+					if ocpVersion == k {
+						fmt.Printf("OCP Version: %s - Run Count: %d\n", k, v)
+					}
+				}
+			}
+		} else {
+			// marshal the jsonOutput
+			for _, ocpVersion := range ocpVersionsToLookFor {
+				jo := lib.JsonOcpVersionCount{
+					OcpVersion: ocpVersion,
+					RunCount:   ocpVersionCount[ocpVersion],
+				}
+
+				jsonOutput.OcpVersions = append(jsonOutput.OcpVersions, jo)
+			}
+
+			jsonOutputBytes, err := json.Marshal(jsonOutput)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(jsonOutputBytes))
+		}
+	},
+}
+
 var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
 	Short: "Get all jobs with a specific age in days",
@@ -29,18 +120,18 @@ var getJobsCmd = &cobra.Command{
 		accessKey = GetConfigValue("accesskey")
 		secretKey = GetConfigValue("secretkey")
 
+		// Check if the values are empty
+		if accessKey == "" || secretKey == "" {
+			fmt.Println("Please set the access key and secret key using the 'config set' command")
+			return
+		}
+
 		var jsonOutput lib.JobsJsonOutput
 
 		// Initialize the counters
 		tnfJobsCtr := 0
 		totalJobsCtr := 0
 		startRun := time.Now()
-
-		// Check if the values are empty
-		if accessKey == "" || secretKey == "" {
-			fmt.Println("Please set the access key and secret key using the 'config set' command")
-			return
-		}
 
 		// Use the client to get all jobs from DCI
 		client := lib.NewClient(accessKey, secretKey)
@@ -105,10 +196,34 @@ var getJobsCmd = &cobra.Command{
 	},
 }
 
+func isTnfJob(components []lib.Components) bool {
+	for _, c := range components {
+		if strings.Contains(c.Name, "cnf-certification-test") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func findOcpVersionFromComponents(components []lib.Components) string {
+	for _, c := range components {
+		if strings.Contains(c.Name, "OpenShift") {
+			return strings.Split(c.Name, " ")[1]
+		}
+	}
+
+	return ""
+}
+
 func init() {
 	rootCmd.AddCommand(getJobsCmd)
+	rootCmd.AddCommand(getOcpCountCmd)
 
 	// Bind the access key and secret key to the variables
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "stdout", "Output format (json) - default is stdout")
+
+	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
+	getOcpCountCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "stdout", "Output format (json) - default is stdout")
 }

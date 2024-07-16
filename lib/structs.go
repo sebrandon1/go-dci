@@ -3,10 +3,51 @@ package lib
 type JsonTNFInfo struct {
 	ID         string `json:"id"`
 	TNFVersion string `json:"tnf_version"`
+	OCPVersion string `json:"ocp_version"`
+}
+
+type JsonOcpVersionCount struct {
+	OcpVersion string `json:"ocp_version"`
+	RunCount   int    `json:"run_count"`
+}
+
+type OcpJsonOutput struct {
+	OcpVersions []JsonOcpVersionCount `json:"ocp_versions"`
 }
 
 type JobsJsonOutput struct {
 	Jobs []JsonTNFInfo `json:"jobs"`
+}
+
+type Components struct {
+	CanonicalProjectName string `json:"canonical_project_name"`
+	CreatedAt            string `json:"created_at,omitempty"`
+	Data                 struct {
+		// Created     time.Time `json:"created,omitempty"`
+		Digest      []string `json:"digest"`
+		DisplayName string   `json:"display_name"`
+		PullURL     string   `json:"pull_url"`
+		Tags        []string `json:"tags"`
+		UID         string   `json:"uid"`
+		URL         string   `json:"url"`
+		Version     string   `json:"version"`
+	} `json:"data,omitempty"`
+	DisplayName string   `json:"display_name"`
+	Etag        string   `json:"etag"`
+	ID          string   `json:"id"`
+	Message     string   `json:"message"`
+	Name        string   `json:"name"`
+	ReleasedAt  string   `json:"released_at,omitempty"`
+	State       string   `json:"state"`
+	Tags        []string `json:"tags"`
+	TeamID      any      `json:"team_id"`
+	Title       string   `json:"title"`
+	TopicID     string   `json:"topic_id"`
+	Type        string   `json:"type"`
+	UID         string   `json:"uid"`
+	UpdatedAt   string   `json:"updated_at,omitempty"`
+	URL         string   `json:"url"`
+	Version     string   `json:"version"`
 }
 
 type JobsResponse struct {
@@ -14,43 +55,14 @@ type JobsResponse struct {
 		Count int `json:"count"`
 	} `json:"_meta"`
 	Jobs []struct {
-		ClientVersion string `json:"client_version"`
-		Comment       string `json:"comment"`
-		Components    []struct {
-			CanonicalProjectName string `json:"canonical_project_name"`
-			CreatedAt            string `json:"created_at,omitempty"`
-			Data                 struct {
-				// Created     time.Time `json:"created,omitempty"`
-				Digest      []string `json:"digest"`
-				DisplayName string   `json:"display_name"`
-				PullURL     string   `json:"pull_url"`
-				Tags        []string `json:"tags"`
-				UID         string   `json:"uid"`
-				URL         string   `json:"url"`
-				Version     string   `json:"version"`
-			} `json:"data,omitempty"`
-			DisplayName string   `json:"display_name"`
-			Etag        string   `json:"etag"`
-			ID          string   `json:"id"`
-			Message     string   `json:"message"`
-			Name        string   `json:"name"`
-			ReleasedAt  string   `json:"released_at,omitempty"`
-			State       string   `json:"state"`
-			Tags        []string `json:"tags"`
-			TeamID      any      `json:"team_id"`
-			Title       string   `json:"title"`
-			TopicID     string   `json:"topic_id"`
-			Type        string   `json:"type"`
-			UID         string   `json:"uid"`
-			UpdatedAt   string   `json:"updated_at,omitempty"`
-			URL         string   `json:"url"`
-			Version     string   `json:"version"`
-		} `json:"components"`
-		Configuration string `json:"configuration"`
-		CreatedAt     string `json:"created_at,omitempty"`
-		Duration      int    `json:"duration"`
-		Etag          string `json:"etag"`
-		ID            string `json:"id"`
+		ClientVersion string       `json:"client_version"`
+		Comment       string       `json:"comment"`
+		Components    []Components `json:"components"`
+		Configuration string       `json:"configuration"`
+		CreatedAt     string       `json:"created_at,omitempty"`
+		Duration      int          `json:"duration"`
+		Etag          string       `json:"etag"`
+		ID            string       `json:"id"`
 		KeysValues    []struct {
 			JobID string  `json:"job_id"`
 			Key   string  `json:"key"`
@@ -175,199 +187,5 @@ type TopicsResponse struct {
 		ProductID string `json:"product_id,omitempty"`
 		State     string `json:"state,omitempty"`
 		UpdatedAt string `json:"updated_at,omitempty"`
-		Data0     struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data1 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data2 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data3 struct {
-			CkiJobURL string `json:"cki_job_url,omitempty"`
-		} `json:"data,omitempty"`
-		Data4 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data5 struct {
-			CkiJobURL string `json:"cki_job_url,omitempty"`
-		} `json:"data,omitempty"`
-		Data6 struct {
-			Registry struct {
-				Login    string `json:"login,omitempty"`
-				Password string `json:"password,omitempty"`
-			} `json:"registry,omitempty"`
-			Releasename string `json:"releasename,omitempty"`
-		} `json:"data,omitempty"`
-		Data7 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data8 struct {
-			Registry struct {
-				Login    string `json:"login,omitempty"`
-				Password string `json:"password,omitempty"`
-			} `json:"registry,omitempty"`
-		} `json:"data,omitempty"`
-		Data9 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
-		Data10 struct {
-			PullSecret struct {
-				Auths struct {
-					CloudOpenshiftCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"cloud.openshift.com,omitempty"`
-					QuayIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"quay.io,omitempty"`
-					RegistryCiOpenshiftOrg struct {
-						Auth string `json:"auth,omitempty"`
-					} `json:"registry.ci.openshift.org,omitempty"`
-					RegistryConnectRedhatCom struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.connect.redhat.com,omitempty"`
-					RegistryRedhatIo struct {
-						Auth  string `json:"auth,omitempty"`
-						Email string `json:"email,omitempty"`
-					} `json:"registry.redhat.io,omitempty"`
-				} `json:"auths,omitempty"`
-			} `json:"pull_secret,omitempty"`
-		} `json:"data,omitempty"`
 	} `json:"topics,omitempty"`
 }
