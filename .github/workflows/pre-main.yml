@@ -1,0 +1,33 @@
+name: Test Incoming Changes
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Run Linters and Vet
+    runs-on: ubuntu-22.04
+    env:
+      SHELL: /bin/bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+
+      - name: Golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.59
+          args: --timeout 10m0s
+
+      - name: Run go vet
+        run: go vet ./...
