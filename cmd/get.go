@@ -18,7 +18,6 @@ var outputFormat string
 
 const (
 	dateFormat = "2006-01-02T15:04:05.999999"
-	tnfRegex   = `v(\d+\.)?(\d+\.)?(\*|\d+)$`
 )
 
 var (
@@ -64,7 +63,7 @@ var getOcpCountCmd = &cobra.Command{
 		ocpVersionCount := make(map[string]int)
 		for _, job := range jobsResponses {
 			for _, j := range job.Jobs {
-				if isTnfJob(j.Components) {
+				if isCertsuiteJob(j.Components) {
 
 					// Get the OCP version from the components
 					ocpVersion := findOcpVersionFromComponents(j.Components)
@@ -129,7 +128,7 @@ var getJobsCmd = &cobra.Command{
 		var jsonOutput lib.JobsJsonOutput
 
 		// Initialize the counters
-		tnfJobsCtr := 0
+		certsuiteJobsCtr := 0
 		totalJobsCtr := 0
 		startRun := time.Now()
 
@@ -158,7 +157,7 @@ var getJobsCmd = &cobra.Command{
 				totalJobsCtr++ // Keep track of the total number of jobs
 
 				for _, c := range j.Components {
-					if strings.Contains(c.Name, "cnf-certification-test") {
+					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 						// get the commit/version from the component name
 						commit := strings.Split(c.Name, " ")[1]
 
@@ -166,23 +165,23 @@ var getJobsCmd = &cobra.Command{
 						daysAgo, _ := time.Parse(dateFormat, j.CreatedAt)
 						daysSince := time.Since(daysAgo).Hours() / 24
 						if outputFormat != "json" {
-							fmt.Printf("Job ID: %s  -  TNF Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
+							fmt.Printf("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 						}
 
-						jo := lib.JsonTNFInfo{
-							ID:         j.ID,
-							TNFVersion: commit,
+						jo := lib.JsonCertsuiteInfo{
+							ID:               j.ID,
+							CertsuiteVersion: commit,
 						}
 						jsonOutput.Jobs = append(jsonOutput.Jobs, jo)
 
-						tnfJobsCtr++
+						certsuiteJobsCtr++
 					}
 				}
 			}
 		}
 
 		if outputFormat != "json" {
-			fmt.Printf("Total TNF Jobs: %d\n", tnfJobsCtr)
+			fmt.Printf("Total Certsuite Jobs: %d\n", certsuiteJobsCtr)
 			fmt.Printf("Total DCI Jobs: %d\n", totalJobsCtr)
 			fmt.Printf("Total go-dci runtime: %v\n", time.Since(startRun))
 		} else {
@@ -196,9 +195,9 @@ var getJobsCmd = &cobra.Command{
 	},
 }
 
-func isTnfJob(components []lib.Components) bool {
+func isCertsuiteJob(components []lib.Components) bool {
 	for _, c := range components {
-		if strings.Contains(c.Name, "cnf-certification-test") {
+		if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 			return true
 		}
 	}

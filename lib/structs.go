@@ -1,9 +1,9 @@
 package lib
 
-type JsonTNFInfo struct {
-	ID         string `json:"id"`
-	TNFVersion string `json:"tnf_version"`
-	OCPVersion string `json:"ocp_version"`
+type JsonCertsuiteInfo struct {
+	ID               string `json:"id"`
+	CertsuiteVersion string `json:"certsuite_version"`
+	OCPVersion       string `json:"ocp_version"`
 }
 
 type JsonOcpVersionCount struct {
@@ -16,7 +16,7 @@ type OcpJsonOutput struct {
 }
 
 type JobsJsonOutput struct {
-	Jobs []JsonTNFInfo `json:"jobs"`
+	Jobs []JsonCertsuiteInfo `json:"jobs"`
 }
 
 type Components struct {
