@@ -94,8 +94,23 @@ type JobsResponse struct {
 			TeamID    string `json:"team_id"`
 			UpdatedAt string `json:"updated_at,omitempty"`
 		} `json:"remoteci"`
-		RemoteciID   string   `json:"remoteci_id"`
-		Results      []any    `json:"results"`
+		RemoteciID string `json:"remoteci_id"`
+		Results    []struct {
+			CreatedAt    string `json:"created_at"`
+			Errors       int    `json:"errors"`
+			Failures     int    `json:"failures"`
+			FileID       string `json:"file_id"`
+			ID           string `json:"id"`
+			JobID        string `json:"job_id"`
+			Name         string `json:"name"`
+			Regressions  int    `json:"regressions"`
+			Skips        int    `json:"skips"`
+			Success      int    `json:"success"`
+			Successfixes int    `json:"successfixes"`
+			Time         int    `json:"time"`
+			Total        int    `json:"total"`
+			UpdatedAt    string `json:"updated_at"`
+		} `json:"results"`
 		State        string   `json:"state"`
 		Status       string   `json:"status"`
 		StatusReason string   `json:"status_reason"`
