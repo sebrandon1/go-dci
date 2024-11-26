@@ -159,7 +159,10 @@ var getJobsCmd = &cobra.Command{
 				for _, c := range j.Components {
 					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 						// get the commit/version from the component name
-						commit := strings.Split(c.Name, " ")[1]
+						commit := "unknown"
+						if parts := strings.Split(c.Name, " "); len(parts) > 1 {
+							commit = parts[1]
+						}
 
 						// find out how long ago this job ran
 						daysAgo, _ := time.Parse(dateFormat, j.CreatedAt)
