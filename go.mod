@@ -1,6 +1,6 @@
 module github.com/sebrandon1/go-dci
 
-go 1.23.5
+go 1.23.6
 
 require (
 	github.com/aws/aws-sdk-go v1.55.6
