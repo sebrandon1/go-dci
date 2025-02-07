@@ -1,0 +1,53 @@
+name: DCI Verification
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify-dci:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Build binary
+      run: make build
+
+    - name: Verify config functionality
+      run: |
+        ./go-dci config set -a ${{ secrets.DCI_ACCESS_KEY }} -s ${{ secrets.DCI_SECRET_KEY }}
+
+        if [ $? -ne 0 ]; then
+          echo "Failed to set config"
+          exit 1
+        fi
+
+    - name: Verify Jobs functionality
+      run: |
+        ./go-dci jobs -d 1 > /dev/null
+
+        if [ $? -ne 0 ]; then
+          echo "Failed to get jobs"
+          exit 1
+        fi
+
+    - name: Verify OCPCount functionality
+      run: |
+        ./go-dci ocpcount -d 1 > /dev/null
+
+        if [ $? -ne 0 ]; then
+          echo "Failed to get ocpcount"
+          exit 1
+        fi

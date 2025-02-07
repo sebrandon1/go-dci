@@ -1,5 +1,8 @@
 # go-dci
 
+![Test Incoming Changes](https://github.com/sebrandon1/go-quay/actions/workflows/pre-main.yml/badge.svg)
+![Nightly](https://github.com/sebrandon1/go-quay/actions/workflows/nightly.yml/badge.svg)
+
 ## Overview
 
 A Golang based wrapper around the Red Hat Distributed CI API:
@@ -27,7 +30,7 @@ Flags:
   -s, --secretkey string   The secret key to set in the configuration.
 ```
 
-The configuration accepts both `--accesskey` and `--secretkey` fields.  These refer to the DCI RemoteCI credentials.
+The configuration accepts both `--accesskey (-a)` and `--secretkey (-s)` fields.  These refer to the DCI RemoteCI credentials.
 
 Query the `jobs` from the API:
 
@@ -43,4 +46,4 @@ Job ID: f5a29537-a2b6-4312-a54d-e5da7e60114a  -  TNF Version: tnf-v5.1.1 (Days S
 Job ID: 821ad00a-2cf5-4875-b308-4e37cbe8b7ab  -  TNF Version: tnf-v5.1.1 (Days Since: 28.121251)
 ```
 
-Note: These jobs only pertain to those running the [test-network-function/cnf-certification-test](https://github.com/test-network-function/cnf-certification-test) suite.
+Note: These jobs only pertain to those running the [redhat-best-practices-for-k8s/certsuite](https://github.com/redhat-best-practices-for-k8s/certsuite) suite.
