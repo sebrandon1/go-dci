@@ -1,7 +1,7 @@
 # go-dci
 
-![Test Incoming Changes](https://github.com/sebrandon1/go-quay/actions/workflows/pre-main.yml/badge.svg)
-![Nightly](https://github.com/sebrandon1/go-quay/actions/workflows/nightly.yml/badge.svg)
+![Test Incoming Changes](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml/badge.svg)
+![Nightly](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml/badge.svg)
 
 ## Overview
 
