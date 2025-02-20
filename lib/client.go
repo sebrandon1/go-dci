@@ -94,6 +94,11 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 			return nil, err
 		}
 
+		if httpResponse.StatusCode != 200 {
+			fmt.Printf("error getting jobs: %s\n", httpResponse.Status)
+			return nil, fmt.Errorf("error getting jobs: %s", httpResponse.Status)
+		}
+
 		defer httpResponse.Body.Close()
 
 		var jobs JobsResponse
