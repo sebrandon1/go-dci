@@ -147,9 +147,11 @@ var getJobsCmd = &cobra.Command{
 
 		jobsResponses, err := client.GetJobs(daysBackLimit)
 		if err != nil {
-			// fmt.Printf("responses: %v\n", jobsResponses)
-			panic(err)
+			fmt.Printf("failed to get jobs: %v\n", err)
+			return
 		}
+
+		fmt.Printf("Total Jobs: %d\n", len(jobsResponses))
 
 		// Print the job IDs gathered from the response
 		for _, job := range jobsResponses {
