@@ -48,7 +48,12 @@ func (c *Client) GetTopics() ([]TopicsResponse, error) {
 			return nil, err
 		}
 
-		defer httpResponse.Body.Close()
+		defer func() {
+			err := httpResponse.Body.Close()
+			if err != nil {
+				fmt.Printf("Error closing the response body: %s\n", err)
+			}
+		}()
 
 		var topics TopicsResponse
 		err = json.NewDecoder(httpResponse.Body).Decode(&topics)
@@ -99,7 +104,12 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 			return nil, fmt.Errorf("error getting jobs: %s", httpResponse.Status)
 		}
 
-		defer httpResponse.Body.Close()
+		defer func() {
+			err := httpResponse.Body.Close()
+			if err != nil {
+				fmt.Printf("Error closing the response body: %s\n", err)
+			}
+		}()
 
 		var jobs JobsResponse
 		err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
