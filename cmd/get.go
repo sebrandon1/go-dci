@@ -151,8 +151,6 @@ var getJobsCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("Total Jobs: %d\n", len(jobsResponses))
-
 		// Print the job IDs gathered from the response
 		for _, job := range jobsResponses {
 			for _, j := range job.Jobs {
