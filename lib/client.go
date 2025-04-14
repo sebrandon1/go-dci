@@ -93,28 +93,8 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	for {
 		outOfDateRangeJobReturned := false
 
-		httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+		jobs, err := c.fetchJobs(requestLimit, offset)
 		if err != nil {
-			fmt.Printf("Error getting jobs: %s\n", err)
-			return nil, err
-		}
-
-		if httpResponse.StatusCode != 200 {
-			fmt.Printf("error getting jobs: %s\n", httpResponse.Status)
-			return nil, fmt.Errorf("error getting jobs: %s", httpResponse.Status)
-		}
-
-		defer func() {
-			err := httpResponse.Body.Close()
-			if err != nil {
-				fmt.Printf("Error closing the response body: %s\n", err)
-			}
-		}()
-
-		var jobs JobsResponse
-		err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
-		if err != nil {
-			fmt.Printf("Error decoding the response: %s\n", err)
 			return nil, err
 		}
 
@@ -146,6 +126,51 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 
 		// If we have reached the end, we can stop the loop
 		if outOfDateRangeJobReturned {
+			break
+		}
+
+		// If we have reached the maximum number of records, we can stop the loop
+		if len(jobCollection) >= maxRecords {
+			break
+		}
+	}
+
+	return jobCollection, nil
+}
+
+func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, error) {
+	var jobCollection []JobsResponse
+
+	// Default values to page through the results
+	requestLimit := 100
+	offset := 0
+
+	for {
+		jobs, err := c.fetchJobs(requestLimit, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, job := range jobs.Jobs {
+			// Parse the created at date
+			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
+			if err != nil {
+				fmt.Printf("Error parsing the created at date: %s\n", err)
+				continue
+			}
+
+			// If the job is within the date range, add it to jobCollection
+			if createdAt.After(startDate) && createdAt.Before(endDate) {
+				jobCollection = append(jobCollection, jobs)
+				break
+			}
+		}
+
+		// Increment the offset for the next page
+		offset += requestLimit
+
+		// If the number of jobs returned is less than the request limit, we have reached the end
+		if len(jobs.Jobs) < requestLimit {
 			break
 		}
 
@@ -190,4 +215,29 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 
 	// Perform the requests and adjust the offset based on the response
 	return client.Do(req)
+}
+
+func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
+	// Get jobs from the API
+	httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	if err != nil {
+		fmt.Printf("Error getting jobs: %s\n", err)
+		return JobsResponse{}, err
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()	
+
+	// Decode the response into JobsResponse
+	var jobs JobsResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
+	if err != nil {
+		fmt.Printf("Error decoding the response: %s\n", err)
+		return JobsResponse{}, err
+	}
+
+	return jobs, nil
 }
