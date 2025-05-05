@@ -1,5 +1,34 @@
 package lib
 
+// Shared structs
+
+type Meta struct {
+	Count int `json:"count,omitempty"`
+}
+
+type Product struct {
+	CreatedAt   string `json:"created_at,omitempty"`
+	Description string `json:"description,omitempty"`
+	Etag        string `json:"etag,omitempty"`
+	ID          string `json:"id,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Name        string `json:"name,omitempty"`
+	State       string `json:"state,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+}
+
+type Data struct {
+	Digest      []string `json:"digest"`
+	DisplayName string   `json:"display_name"`
+	PullURL     string   `json:"pull_url"`
+	Tags        []string `json:"tags"`
+	UID         string   `json:"uid"`
+	URL         string   `json:"url"`
+	Version     string   `json:"version"`
+}
+
+// Refactored structs
+
 type JsonCertsuiteInfo struct {
 	ID               string `json:"id"`
 	CertsuiteVersion string `json:"certsuite_version"`
@@ -20,34 +49,25 @@ type JobsJsonOutput struct {
 }
 
 type Components struct {
-	CanonicalProjectName string `json:"canonical_project_name"`
-	CreatedAt            string `json:"created_at,omitempty"`
-	Data                 struct {
-		// Created     time.Time `json:"created,omitempty"`
-		Digest      []string `json:"digest"`
-		DisplayName string   `json:"display_name"`
-		PullURL     string   `json:"pull_url"`
-		Tags        []string `json:"tags"`
-		UID         string   `json:"uid"`
-		URL         string   `json:"url"`
-		Version     string   `json:"version"`
-	} `json:"data,omitempty"`
-	DisplayName string   `json:"display_name"`
-	Etag        string   `json:"etag"`
-	ID          string   `json:"id"`
-	Message     string   `json:"message"`
-	Name        string   `json:"name"`
-	ReleasedAt  string   `json:"released_at,omitempty"`
-	State       string   `json:"state"`
-	Tags        []string `json:"tags"`
-	TeamID      any      `json:"team_id"`
-	Title       string   `json:"title"`
-	TopicID     string   `json:"topic_id"`
-	Type        string   `json:"type"`
-	UID         string   `json:"uid"`
-	UpdatedAt   string   `json:"updated_at,omitempty"`
-	URL         string   `json:"url"`
-	Version     string   `json:"version"`
+	CanonicalProjectName string   `json:"canonical_project_name"`
+	CreatedAt            string   `json:"created_at,omitempty"`
+	Data                 Data     `json:"data,omitempty"`
+	DisplayName          string   `json:"display_name"`
+	Etag                 string   `json:"etag"`
+	ID                   string   `json:"id"`
+	Message              string   `json:"message"`
+	Name                 string   `json:"name"`
+	ReleasedAt           string   `json:"released_at,omitempty"`
+	State                string   `json:"state"`
+	Tags                 []string `json:"tags"`
+	TeamID               any      `json:"team_id"`
+	Title                string   `json:"title"`
+	TopicID              string   `json:"topic_id"`
+	Type                 string   `json:"type"`
+	UID                  string   `json:"uid"`
+	UpdatedAt            string   `json:"updated_at,omitempty"`
+	URL                  string   `json:"url"`
+	Version              string   `json:"version"`
 }
 
 type Job struct {
@@ -169,40 +189,27 @@ type Job struct {
 }
 
 type JobsResponse struct {
-	Meta struct {
-		Count int `json:"count"`
-	} `json:"_meta"`
+	Meta Meta  `json:"_meta"`
 	Jobs []Job `json:"jobs"`
 }
 
 type TopicsResponse struct {
-	Meta struct {
-		Count int `json:"count,omitempty"`
-	} `json:"_meta,omitempty"`
+	Meta   Meta `json:"_meta,omitempty"`
 	Topics []struct {
 		ComponentTypes         []string `json:"component_types,omitempty"`
 		ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
 		CreatedAt              string   `json:"created_at,omitempty"`
 		Data                   struct {
 		} `json:"data,omitempty"`
-		Etag          string `json:"etag,omitempty"`
-		ExportControl bool   `json:"export_control,omitempty"`
-		ID            string `json:"id,omitempty"`
-		Name          string `json:"name,omitempty"`
-		NextTopic     any    `json:"next_topic,omitempty"`
-		NextTopicID   any    `json:"next_topic_id,omitempty"`
-		Product       struct {
-			CreatedAt   string `json:"created_at,omitempty"`
-			Description string `json:"description,omitempty"`
-			Etag        string `json:"etag,omitempty"`
-			ID          string `json:"id,omitempty"`
-			Label       string `json:"label,omitempty"`
-			Name        string `json:"name,omitempty"`
-			State       string `json:"state,omitempty"`
-			UpdatedAt   string `json:"updated_at,omitempty"`
-		} `json:"product,omitempty"`
-		ProductID string `json:"product_id,omitempty"`
-		State     string `json:"state,omitempty"`
-		UpdatedAt string `json:"updated_at,omitempty"`
+		Etag          string  `json:"etag,omitempty"`
+		ExportControl bool    `json:"export_control,omitempty"`
+		ID            string  `json:"id,omitempty"`
+		Name          string  `json:"name,omitempty"`
+		NextTopic     any     `json:"next_topic,omitempty"`
+		NextTopicID   any     `json:"next_topic_id,omitempty"`
+		Product       Product `json:"product,omitempty"`
+		ProductID     string  `json:"product_id,omitempty"`
+		State         string  `json:"state,omitempty"`
+		UpdatedAt     string  `json:"updated_at,omitempty"`
 	} `json:"topics,omitempty"`
 }
