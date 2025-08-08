@@ -1,14 +1,15 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	signerv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	signerv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 )
 
 const (
@@ -18,6 +19,8 @@ const (
 	serviceName = "api"
 	dateFormat  = "2006-01-02T15:04:05.999999"
 	maxRecords  = 50000
+	// SHA-256 of empty string for unsigned GET requests
+	emptyStringSHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
 type Client struct {
@@ -184,12 +187,8 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 }
 
 func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
-	// Created a signed request with aws-sdk-go
-	// https://docs.aws.amazon.com/sdk-for-go/api/aws/signer/v4/
-
-	// Create a new signer
-	creds := credentials.NewStaticCredentials(accessKey, secretKey, "")
-	signer := signerv4.NewSigner(creds)
+	// Create signer using aws-sdk-go-v2 v4 signer
+	signer := signerv4.NewSigner()
 
 	// Create a new request
 	req, err := http.NewRequest("GET", url, nil)
@@ -205,8 +204,9 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 	req.URL.RawQuery = q.Encode()
 
 	// Sign the request
-	_, err = signer.Sign(req, nil, serviceName, region, time.Now())
-	if err != nil {
+	// For GET with empty body use the precomputed empty payload hash
+	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, region, time.Now()); err != nil {
 		return nil, err
 	}
 
@@ -229,7 +229,7 @@ func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 		if cerr := httpResponse.Body.Close(); cerr != nil {
 			fmt.Printf("Error closing response body: %v\n", cerr)
 		}
-	}()	
+	}()
 
 	// Decode the response into JobsResponse
 	var jobs JobsResponse
