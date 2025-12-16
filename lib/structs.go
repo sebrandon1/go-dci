@@ -239,3 +239,19 @@ type Identity struct {
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
+
+// ComponentTypesResponse represents the response from the /api/v1/componenttypes endpoint
+type ComponentTypesResponse struct {
+	Meta           Meta            `json:"_meta,omitempty"`
+	ComponentTypes []ComponentType `json:"componenttypes,omitempty"`
+}
+
+// ComponentType represents a single component type in DCI
+type ComponentType struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Etag      string `json:"etag,omitempty"`
+	State     string `json:"state,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
