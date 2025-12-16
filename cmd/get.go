@@ -27,6 +27,32 @@ var (
 	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
 )
 
+var getIdentityCmd = &cobra.Command{
+	Use:   "identity",
+	Short: "Verify authentication and display current identity information",
+	Run: func(cmd *cobra.Command, args []string) {
+		accessKey, secretKey, err := getCredentials()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client := lib.NewClient(accessKey, secretKey)
+
+		identity, err := client.GetIdentity()
+		if err != nil {
+			fmt.Printf("Authentication failed: %v\n", err)
+			return
+		}
+
+		if outputFormat == OutputFormatJSON {
+			printIdentityJSON(identity)
+		} else {
+			printIdentityStdout(identity)
+		}
+	},
+}
+
 var getOcpCountCmd = &cobra.Command{
 	Use:   "ocpcount",
 	Short: "Get the count of jobs for each OCP version",
@@ -295,10 +321,42 @@ func printComponentsJSON(componentsResponses []lib.ComponentsResponse) {
 	fmt.Println(string(jsonBytes))
 }
 
+func printIdentityStdout(identity *lib.IdentityResponse) {
+	fmt.Println("Authentication successful!")
+	fmt.Println("---")
+	fmt.Printf("ID:       %s\n", identity.Identity.ID)
+	fmt.Printf("Name:     %s\n", identity.Identity.Name)
+	fmt.Printf("Type:     %s\n", identity.Identity.Type)
+	if identity.Identity.Email != "" {
+		fmt.Printf("Email:    %s\n", identity.Identity.Email)
+	}
+	if identity.Identity.Fullname != "" {
+		fmt.Printf("Fullname: %s\n", identity.Identity.Fullname)
+	}
+	if identity.Identity.TeamName != "" {
+		fmt.Printf("Team:     %s\n", identity.Identity.TeamName)
+	}
+	if identity.Identity.TeamID != "" {
+		fmt.Printf("Team ID:  %s\n", identity.Identity.TeamID)
+	}
+	if identity.Identity.State != "" {
+		fmt.Printf("State:    %s\n", identity.Identity.State)
+	}
+}
+
+func printIdentityJSON(identity *lib.IdentityResponse) {
+	jsonBytes, err := json.Marshal(identity)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+	fmt.Println(string(jsonBytes))
+}
+
 func init() {
 	rootCmd.AddCommand(getJobsCmd)
 	rootCmd.AddCommand(getOcpCountCmd)
 	rootCmd.AddCommand(getComponentsCmd)
+	rootCmd.AddCommand(getIdentityCmd)
 
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
@@ -308,4 +366,6 @@ func init() {
 
 	getComponentsCmd.PersistentFlags().StringVarP(&topicID, "topic", "t", "", "Filter components by topic ID")
 	getComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
+
+	getIdentityCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

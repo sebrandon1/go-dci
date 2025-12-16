@@ -259,3 +259,56 @@ func TestPrintComponentsJSON_MultipleResponses(t *testing.T) {
 		printComponentsJSON(componentsResponses)
 	})
 }
+
+func TestPrintIdentityStdout(t *testing.T) {
+	identity := &lib.IdentityResponse{
+		Identity: lib.Identity{
+			ID:       "remoteci-123",
+			Name:     "test-remoteci",
+			Type:     "remoteci",
+			TeamID:   "team-456",
+			TeamName: "Test Team",
+			State:    "active",
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printIdentityStdout(identity)
+	})
+}
+
+func TestPrintIdentityStdout_WithAllFields(t *testing.T) {
+	identity := &lib.IdentityResponse{
+		Identity: lib.Identity{
+			ID:       "user-789",
+			Name:     "testuser",
+			Type:     "user",
+			Email:    "test@example.com",
+			Fullname: "Test User",
+			TeamID:   "team-456",
+			TeamName: "Test Team",
+			State:    "active",
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printIdentityStdout(identity)
+	})
+}
+
+func TestPrintIdentityJSON(t *testing.T) {
+	identity := &lib.IdentityResponse{
+		Identity: lib.Identity{
+			ID:       "remoteci-123",
+			Name:     "test-remoteci",
+			Type:     "remoteci",
+			TeamID:   "team-456",
+			TeamName: "Test Team",
+			State:    "active",
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printIdentityJSON(identity)
+	})
+}

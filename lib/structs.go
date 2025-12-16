@@ -218,3 +218,24 @@ type ComponentsResponse struct {
 	Meta       Meta         `json:"_meta,omitempty"`
 	Components []Components `json:"components,omitempty"`
 }
+
+// IdentityResponse represents the response from the /api/v1/identity endpoint
+type IdentityResponse struct {
+	Identity Identity `json:"identity"`
+}
+
+// Identity represents the authenticated user/remoteci information
+type Identity struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	Email     string `json:"email,omitempty"`
+	Etag      string `json:"etag,omitempty"`
+	Fullname  string `json:"fullname,omitempty"`
+	State     string `json:"state,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	TeamName  string `json:"team_name,omitempty"`
+	Timezone  string `json:"timezone,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}

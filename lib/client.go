@@ -37,6 +37,53 @@ func NewClient(accessKey, secretKey string) *Client {
 	}
 }
 
+// GetIdentity retrieves the authenticated user/remoteci identity from the DCI API
+func (c *Client) GetIdentity() (*IdentityResponse, error) {
+	httpResponse, err := httpGetSimpleWithAWSAuth(c.BaseURL+"/identity", awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		fmt.Printf("Error getting identity: %s\n", err)
+		return nil, err
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("authentication failed with status code: %d", httpResponse.StatusCode)
+	}
+
+	var identity IdentityResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&identity)
+	if err != nil {
+		fmt.Printf("Error decoding the response: %s\n", err)
+		return nil, err
+	}
+
+	return &identity, nil
+}
+
+// httpGetSimpleWithAWSAuth performs an authenticated GET request without pagination parameters
+func httpGetSimpleWithAWSAuth(url, region, svcName, accessKey, secretKey string) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, svcName, region, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
 func (c *Client) GetTopics() ([]TopicsResponse, error) {
 	var topicsCollection []TopicsResponse
 
