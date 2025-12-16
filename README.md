@@ -17,7 +17,7 @@ https://doc.distributed-ci.io/dci-control-server/docs/API/
 | `/api/v1/jobs` | GET | ✅ Implemented | `jobs`, `ocpcount` |
 | `/api/v1/components` | GET | ✅ Implemented | `components` |
 | `/api/v1/identity` | GET | ✅ Implemented | `identity` |
-| `/api/v1/componenttypes` | GET | ❌ Not Implemented | - |
+| `/api/v1/componenttypes` | GET | ✅ Implemented | `componenttypes` |
 | `/api/v1/jobs` | POST | ❌ Not Implemented | - |
 | `/api/v1/jobstates` | POST | ❌ Not Implemented | - |
 | `/api/v1/files` | POST | ❌ Not Implemented | - |
@@ -134,6 +134,37 @@ Flags:
   -d, --age string      Age in days
   -h, --help            help for ocpcount
   -o, --output string   Output format (json) - default is stdout (default "stdout")
+```
+
+#### `componenttypes` - List Component Types
+
+Get all available component types from DCI.
+
+```bash
+# Get all component types
+./go-dci componenttypes
+
+# Output as JSON
+./go-dci componenttypes --output json
+```
+
+```
+Usage:
+  dci componenttypes [flags]
+
+Flags:
+  -h, --help            help for componenttypes
+  -o, --output string   Output format (json) - default is stdout (default "stdout")
+```
+
+Example output:
+
+```
+Getting all component types from DCI
+ID: ct-123 | Name: ocp | State: active
+ID: ct-456 | Name: certsuite | State: active
+ID: ct-789 | Name: rhel | State: active
+Total Component Types: 3
 ```
 
 #### `components` - Query Components

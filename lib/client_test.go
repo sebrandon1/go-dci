@@ -344,3 +344,147 @@ func TestIdentityResponse_Struct(t *testing.T) {
 	assert.Equal(t, original.Identity.TeamName, decoded.Identity.TeamName)
 }
 
+func TestGetComponentTypes_EmptyResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Contains(t, r.URL.Path, "/componenttypes")
+
+		response := ComponentTypesResponse{
+			Meta:           Meta{Count: 0},
+			ComponentTypes: []ComponentType{},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	componentTypes, err := client.GetComponentTypes()
+	assert.NoError(t, err)
+	assert.NotNil(t, componentTypes)
+	assert.Len(t, componentTypes, 1)
+	assert.Empty(t, componentTypes[0].ComponentTypes)
+}
+
+func TestGetComponentTypes_WithData(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/componenttypes", r.URL.Path)
+		assert.Equal(t, "GET", r.Method)
+
+		response := ComponentTypesResponse{
+			Meta: Meta{Count: 3},
+			ComponentTypes: []ComponentType{
+				{
+					ID:    "ct-1",
+					Name:  "ocp",
+					State: "active",
+				},
+				{
+					ID:    "ct-2",
+					Name:  "certsuite",
+					State: "active",
+				},
+				{
+					ID:    "ct-3",
+					Name:  "rhel",
+					State: "active",
+				},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	componentTypes, err := client.GetComponentTypes()
+	assert.NoError(t, err)
+	assert.NotNil(t, componentTypes)
+	assert.Len(t, componentTypes, 1)
+	assert.Len(t, componentTypes[0].ComponentTypes, 3)
+	assert.Equal(t, "ct-1", componentTypes[0].ComponentTypes[0].ID)
+	assert.Equal(t, "ocp", componentTypes[0].ComponentTypes[0].Name)
+	assert.Equal(t, "certsuite", componentTypes[0].ComponentTypes[1].Name)
+}
+
+func TestFetchComponentTypes_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	componentTypes, err := client.fetchComponentTypes(100, 0)
+	assert.Error(t, err)
+	assert.Empty(t, componentTypes.ComponentTypes)
+}
+
+func TestFetchComponentTypes_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte("invalid json"))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	componentTypes, err := client.fetchComponentTypes(100, 0)
+	assert.Error(t, err)
+	assert.Empty(t, componentTypes.ComponentTypes)
+}
+
+func TestComponentTypesResponse_Struct(t *testing.T) {
+	original := ComponentTypesResponse{
+		Meta: Meta{Count: 2},
+		ComponentTypes: []ComponentType{
+			{
+				ID:        "ct-1",
+				Name:      "ocp",
+				Etag:      "etag-123",
+				State:     "active",
+				CreatedAt: "2024-01-01T00:00:00.000000",
+				UpdatedAt: "2024-01-02T00:00:00.000000",
+			},
+			{
+				ID:    "ct-2",
+				Name:  "certsuite",
+				State: "active",
+			},
+		},
+	}
+
+	jsonBytes, err := json.Marshal(original)
+	assert.NoError(t, err)
+
+	var decoded ComponentTypesResponse
+	err = json.Unmarshal(jsonBytes, &decoded)
+	assert.NoError(t, err)
+
+	assert.Equal(t, original.Meta.Count, decoded.Meta.Count)
+	assert.Len(t, decoded.ComponentTypes, 2)
+	assert.Equal(t, original.ComponentTypes[0].ID, decoded.ComponentTypes[0].ID)
+	assert.Equal(t, original.ComponentTypes[0].Name, decoded.ComponentTypes[0].Name)
+	assert.Equal(t, original.ComponentTypes[1].Name, decoded.ComponentTypes[1].Name)
+}
+

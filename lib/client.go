@@ -84,6 +84,62 @@ func httpGetSimpleWithAWSAuth(url, region, svcName, accessKey, secretKey string)
 	return client.Do(req)
 }
 
+// GetComponentTypes retrieves all component types from the DCI API with pagination
+func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
+	var componentTypesCollection []ComponentTypesResponse
+
+	requestLimit := 100
+	offset := 0
+
+	for {
+		componentTypes, err := c.fetchComponentTypes(requestLimit, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		componentTypesCollection = append(componentTypesCollection, componentTypes)
+
+		// If the number of component types returned is less than the request limit, we have reached the end
+		if len(componentTypes.ComponentTypes) < requestLimit {
+			break
+		}
+
+		// If we have reached the maximum number of records, we can stop the loop
+		if offset >= maxRecords {
+			break
+		}
+
+		// Increment the offset
+		offset += requestLimit
+	}
+
+	return componentTypesCollection, nil
+}
+
+// fetchComponentTypes is an internal helper to fetch component types with pagination
+func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesResponse, error) {
+	httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/componenttypes", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	if err != nil {
+		fmt.Printf("Error getting component types: %s\n", err)
+		return ComponentTypesResponse{}, err
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	var componentTypes ComponentTypesResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&componentTypes)
+	if err != nil {
+		fmt.Printf("Error decoding the response: %s\n", err)
+		return ComponentTypesResponse{}, err
+	}
+
+	return componentTypes, nil
+}
+
 func (c *Client) GetTopics() ([]TopicsResponse, error) {
 	var topicsCollection []TopicsResponse
 

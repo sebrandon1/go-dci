@@ -312,3 +312,79 @@ func TestPrintIdentityJSON(t *testing.T) {
 		printIdentityJSON(identity)
 	})
 }
+
+func TestPrintComponentTypesStdout(t *testing.T) {
+	componentTypesResponses := []lib.ComponentTypesResponse{
+		{
+			Meta: lib.Meta{Count: 2},
+			ComponentTypes: []lib.ComponentType{
+				{
+					ID:    "ct-1",
+					Name:  "ocp",
+					State: "active",
+				},
+				{
+					ID:    "ct-2",
+					Name:  "certsuite",
+					State: "active",
+				},
+			},
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printComponentTypesStdout(componentTypesResponses)
+	})
+}
+
+func TestPrintComponentTypesStdout_EmptyResponse(t *testing.T) {
+	componentTypesResponses := []lib.ComponentTypesResponse{}
+
+	assert.NotPanics(t, func() {
+		printComponentTypesStdout(componentTypesResponses)
+	})
+}
+
+func TestPrintComponentTypesJSON(t *testing.T) {
+	componentTypesResponses := []lib.ComponentTypesResponse{
+		{
+			Meta: lib.Meta{Count: 2},
+			ComponentTypes: []lib.ComponentType{
+				{
+					ID:    "ct-1",
+					Name:  "ocp",
+					State: "active",
+				},
+				{
+					ID:    "ct-2",
+					Name:  "certsuite",
+					State: "active",
+				},
+			},
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printComponentTypesJSON(componentTypesResponses)
+	})
+}
+
+func TestPrintComponentTypesJSON_MultipleResponses(t *testing.T) {
+	componentTypesResponses := []lib.ComponentTypesResponse{
+		{
+			ComponentTypes: []lib.ComponentType{
+				{ID: "ct-1", Name: "ocp"},
+			},
+		},
+		{
+			ComponentTypes: []lib.ComponentType{
+				{ID: "ct-2", Name: "certsuite"},
+				{ID: "ct-3", Name: "rhel"},
+			},
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printComponentTypesJSON(componentTypesResponses)
+	})
+}
