@@ -241,3 +241,125 @@ func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 
 	return jobs, nil
 }
+
+// GetComponents retrieves all components from the DCI API with pagination
+func (c *Client) GetComponents() ([]ComponentsResponse, error) {
+	var componentsCollection []ComponentsResponse
+
+	requestLimit := 100
+	offset := 0
+
+	for {
+		components, err := c.fetchComponents("", requestLimit, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		componentsCollection = append(componentsCollection, components)
+
+		// If the number of components returned is less than the request limit, we have reached the end
+		if len(components.Components) < requestLimit {
+			break
+		}
+
+		// If we have reached the maximum number of records, we can stop the loop
+		if offset >= maxRecords {
+			break
+		}
+
+		// Increment the offset
+		offset += requestLimit
+	}
+
+	return componentsCollection, nil
+}
+
+// GetComponentsByTopicID retrieves components filtered by topic ID
+func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, error) {
+	var componentsCollection []ComponentsResponse
+
+	requestLimit := 100
+	offset := 0
+
+	for {
+		components, err := c.fetchComponents(topicID, requestLimit, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		componentsCollection = append(componentsCollection, components)
+
+		// If the number of components returned is less than the request limit, we have reached the end
+		if len(components.Components) < requestLimit {
+			break
+		}
+
+		// If we have reached the maximum number of records, we can stop the loop
+		if offset >= maxRecords {
+			break
+		}
+
+		// Increment the offset
+		offset += requestLimit
+	}
+
+	return componentsCollection, nil
+}
+
+// fetchComponents is an internal helper to fetch components with optional topic filtering
+func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
+	url := c.BaseURL + "/components"
+
+	httpResponse, err := httpGetComponentsWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, topicID, requestLimit, offset)
+	if err != nil {
+		fmt.Printf("Error getting components: %s\n", err)
+		return ComponentsResponse{}, err
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	var components ComponentsResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&components)
+	if err != nil {
+		fmt.Printf("Error decoding the response: %s\n", err)
+		return ComponentsResponse{}, err
+	}
+
+	return components, nil
+}
+
+// httpGetComponentsWithAWSAuth performs an authenticated GET request for components with optional topic filtering
+func httpGetComponentsWithAWSAuth(url, region, svcName, accessKey, secretKey, topicID string, limit, offset int) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the query string
+	q := req.URL.Query()
+	q.Add("limit", strconv.Itoa(limit))
+	q.Add("offset", strconv.Itoa(offset))
+	q.Add("sort", "-created_at")
+
+	// Add topic_id filter if provided
+	if topicID != "" {
+		q.Add("where", "topic_id:"+topicID)
+	}
+
+	req.URL.RawQuery = q.Encode()
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, svcName, region, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}

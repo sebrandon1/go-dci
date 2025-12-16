@@ -15,6 +15,7 @@ import (
 
 var ageInDays string
 var outputFormat string
+var topicID string
 
 const (
 	dateFormat         = "2006-01-02T15:04:05.999999"
@@ -58,6 +59,51 @@ var getOcpCountCmd = &cobra.Command{
 			printOcpVersionCount(ocpVersionCount)
 		} else {
 			printOcpVersionCountJSON(ocpVersionCount)
+		}
+	},
+}
+
+var getComponentsCmd = &cobra.Command{
+	Use:   "components",
+	Short: "Get all components, optionally filtered by topic ID",
+	Run: func(cmd *cobra.Command, args []string) {
+		accessKey, secretKey, err := getCredentials()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client := lib.NewClient(accessKey, secretKey)
+
+		var componentsResponses []lib.ComponentsResponse
+
+		if topicID != "" {
+			if outputFormat != OutputFormatJSON {
+				fmt.Printf("Getting components for topic ID: %s\n", topicID)
+			}
+			componentsResponses, err = client.GetComponentsByTopicID(topicID)
+		} else {
+			if outputFormat != OutputFormatJSON {
+				fmt.Println("Getting all components from DCI")
+			}
+			componentsResponses, err = client.GetComponents()
+		}
+
+		if err != nil {
+			fmt.Printf("failed to get components: %v\n", err)
+			return
+		}
+
+		totalComponents := 0
+		for _, cr := range componentsResponses {
+			totalComponents += len(cr.Components)
+		}
+
+		if outputFormat == OutputFormatJSON {
+			printComponentsJSON(componentsResponses)
+		} else {
+			printComponentsStdout(componentsResponses)
+			fmt.Printf("Total Components: %d\n", totalComponents)
 		}
 	},
 }
@@ -220,13 +266,46 @@ func calculateDaysSince(createdAt string) float64 {
 	return time.Since(createdTime).Hours() / 24
 }
 
+func printComponentsStdout(componentsResponses []lib.ComponentsResponse) {
+	for _, cr := range componentsResponses {
+		for _, c := range cr.Components {
+			fmt.Printf("ID: %s | Name: %s | Type: %s | Version: %s | TopicID: %s\n",
+				c.ID, c.Name, c.Type, c.Version, c.TopicID)
+		}
+	}
+}
+
+func printComponentsJSON(componentsResponses []lib.ComponentsResponse) {
+	// Flatten all components into a single slice
+	var allComponents []lib.Components
+	for _, cr := range componentsResponses {
+		allComponents = append(allComponents, cr.Components...)
+	}
+
+	output := struct {
+		Components []lib.Components `json:"components"`
+	}{
+		Components: allComponents,
+	}
+
+	jsonBytes, err := json.Marshal(output)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+	fmt.Println(string(jsonBytes))
+}
+
 func init() {
 	rootCmd.AddCommand(getJobsCmd)
 	rootCmd.AddCommand(getOcpCountCmd)
+	rootCmd.AddCommand(getComponentsCmd)
 
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getOcpCountCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
+
+	getComponentsCmd.PersistentFlags().StringVarP(&topicID, "topic", "t", "", "Filter components by topic ID")
+	getComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

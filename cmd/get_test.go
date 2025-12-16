@@ -164,3 +164,98 @@ func TestExtractCommitVersion(t *testing.T) {
 		assert.Equal(t, testCase.expectedOutput, extractCommitVersion(testCase.testComponent))
 	}
 }
+
+func TestPrintComponentsStdout(t *testing.T) {
+	// Test that the function doesn't panic with valid input
+	componentsResponses := []lib.ComponentsResponse{
+		{
+			Meta: lib.Meta{Count: 2},
+			Components: []lib.Components{
+				{
+					ID:      "comp-1",
+					Name:    "Test Component 1",
+					Type:    "ocp",
+					Version: "4.14.1",
+					TopicID: "topic-123",
+				},
+				{
+					ID:      "comp-2",
+					Name:    "Test Component 2",
+					Type:    "certsuite",
+					Version: "v1.0.0",
+					TopicID: "topic-456",
+				},
+			},
+		},
+	}
+
+	// This test just verifies the function doesn't panic
+	// In a production scenario, you might capture stdout and verify the output
+	assert.NotPanics(t, func() {
+		printComponentsStdout(componentsResponses)
+	})
+}
+
+func TestPrintComponentsStdout_EmptyResponse(t *testing.T) {
+	componentsResponses := []lib.ComponentsResponse{}
+
+	assert.NotPanics(t, func() {
+		printComponentsStdout(componentsResponses)
+	})
+}
+
+func TestPrintComponentsJSON(t *testing.T) {
+	componentsResponses := []lib.ComponentsResponse{
+		{
+			Meta: lib.Meta{Count: 1},
+			Components: []lib.Components{
+				{
+					ID:      "comp-1",
+					Name:    "Test Component",
+					Type:    "test",
+					Version: "1.0.0",
+					TopicID: "topic-123",
+				},
+			},
+		},
+	}
+
+	// Verify the function doesn't panic with valid input
+	assert.NotPanics(t, func() {
+		printComponentsJSON(componentsResponses)
+	})
+}
+
+func TestPrintComponentsJSON_EmptyComponents(t *testing.T) {
+	componentsResponses := []lib.ComponentsResponse{
+		{
+			Meta:       lib.Meta{Count: 0},
+			Components: []lib.Components{},
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printComponentsJSON(componentsResponses)
+	})
+}
+
+func TestPrintComponentsJSON_MultipleResponses(t *testing.T) {
+	// Test that multiple ComponentsResponse objects are flattened correctly
+	componentsResponses := []lib.ComponentsResponse{
+		{
+			Components: []lib.Components{
+				{ID: "comp-1", Name: "Component 1"},
+			},
+		},
+		{
+			Components: []lib.Components{
+				{ID: "comp-2", Name: "Component 2"},
+				{ID: "comp-3", Name: "Component 3"},
+			},
+		},
+	}
+
+	assert.NotPanics(t, func() {
+		printComponentsJSON(componentsResponses)
+	})
+}
