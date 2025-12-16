@@ -16,7 +16,7 @@ https://doc.distributed-ci.io/dci-control-server/docs/API/
 | `/api/v1/topics` | GET | ✅ Implemented | `topics` (via lib) |
 | `/api/v1/jobs` | GET | ✅ Implemented | `jobs`, `ocpcount` |
 | `/api/v1/components` | GET | ✅ Implemented | `components` |
-| `/api/v1/identity` | GET | ❌ Not Implemented | - |
+| `/api/v1/identity` | GET | ✅ Implemented | `identity` |
 | `/api/v1/componenttypes` | GET | ❌ Not Implemented | - |
 | `/api/v1/jobs` | POST | ❌ Not Implemented | - |
 | `/api/v1/jobstates` | POST | ❌ Not Implemented | - |
@@ -49,6 +49,40 @@ Flags:
 ```
 
 ### Available Commands
+
+#### `identity` - Verify Authentication
+
+Verify your DCI credentials are configured correctly and display identity information.
+
+```bash
+# Check authentication
+./go-dci identity
+
+# Output as JSON
+./go-dci identity --output json
+```
+
+```
+Usage:
+  dci identity [flags]
+
+Flags:
+  -h, --help            help for identity
+  -o, --output string   Output format (json) - default is stdout (default "stdout")
+```
+
+Example output:
+
+```
+Authentication successful!
+---
+ID:       abc123-def456-ghi789
+Name:     my-remoteci
+Type:     remoteci
+Team:     My Team
+Team ID:  team-123
+State:    active
+```
 
 #### `jobs` - Query Jobs
 

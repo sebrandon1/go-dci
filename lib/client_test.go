@@ -201,3 +201,146 @@ func TestComponentsResponse_Struct(t *testing.T) {
 	assert.Equal(t, original.Components[0].Type, decoded.Components[0].Type)
 }
 
+func TestGetIdentity_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify the request path
+		assert.Equal(t, "/identity", r.URL.Path)
+		assert.Equal(t, "GET", r.Method)
+
+		response := IdentityResponse{
+			Identity: Identity{
+				ID:       "remoteci-123",
+				Name:     "test-remoteci",
+				Type:     "remoteci",
+				TeamID:   "team-456",
+				TeamName: "Test Team",
+				State:    "active",
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	identity, err := client.GetIdentity()
+	assert.NoError(t, err)
+	assert.NotNil(t, identity)
+	assert.Equal(t, "remoteci-123", identity.Identity.ID)
+	assert.Equal(t, "test-remoteci", identity.Identity.Name)
+	assert.Equal(t, "remoteci", identity.Identity.Type)
+	assert.Equal(t, "team-456", identity.Identity.TeamID)
+	assert.Equal(t, "Test Team", identity.Identity.TeamName)
+	assert.Equal(t, "active", identity.Identity.State)
+}
+
+func TestGetIdentity_UserType(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := IdentityResponse{
+			Identity: Identity{
+				ID:       "user-789",
+				Name:     "testuser",
+				Type:     "user",
+				Email:    "testuser@example.com",
+				Fullname: "Test User",
+				TeamID:   "team-456",
+				TeamName: "Test Team",
+				State:    "active",
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	identity, err := client.GetIdentity()
+	assert.NoError(t, err)
+	assert.NotNil(t, identity)
+	assert.Equal(t, "user", identity.Identity.Type)
+	assert.Equal(t, "testuser@example.com", identity.Identity.Email)
+	assert.Equal(t, "Test User", identity.Identity.Fullname)
+}
+
+func TestGetIdentity_AuthenticationFailed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "badKey",
+		SecretKey: "badSecret",
+	}
+
+	identity, err := client.GetIdentity()
+	assert.Error(t, err)
+	assert.Nil(t, identity)
+	assert.Contains(t, err.Error(), "authentication failed")
+}
+
+func TestGetIdentity_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte("invalid json"))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	identity, err := client.GetIdentity()
+	assert.Error(t, err)
+	assert.Nil(t, identity)
+}
+
+func TestIdentityResponse_Struct(t *testing.T) {
+	// Test JSON marshaling/unmarshaling of IdentityResponse
+	original := IdentityResponse{
+		Identity: Identity{
+			ID:        "test-id",
+			Name:      "test-name",
+			Type:      "remoteci",
+			Email:     "test@example.com",
+			Etag:      "etag-123",
+			Fullname:  "Test Fullname",
+			State:     "active",
+			TeamID:    "team-id",
+			TeamName:  "Team Name",
+			Timezone:  "UTC",
+			CreatedAt: "2024-01-01T00:00:00.000000",
+			UpdatedAt: "2024-01-02T00:00:00.000000",
+		},
+	}
+
+	jsonBytes, err := json.Marshal(original)
+	assert.NoError(t, err)
+
+	var decoded IdentityResponse
+	err = json.Unmarshal(jsonBytes, &decoded)
+	assert.NoError(t, err)
+
+	assert.Equal(t, original.Identity.ID, decoded.Identity.ID)
+	assert.Equal(t, original.Identity.Name, decoded.Identity.Name)
+	assert.Equal(t, original.Identity.Type, decoded.Identity.Type)
+	assert.Equal(t, original.Identity.Email, decoded.Identity.Email)
+	assert.Equal(t, original.Identity.TeamName, decoded.Identity.TeamName)
+}
+
