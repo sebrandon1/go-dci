@@ -488,3 +488,273 @@ func TestComponentTypesResponse_Struct(t *testing.T) {
 	assert.Equal(t, original.ComponentTypes[1].Name, decoded.ComponentTypes[1].Name)
 }
 
+// POST operation tests
+
+func TestCreateJob_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/jobs", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		// Verify request body
+		var reqBody CreateJobRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "topic-123", reqBody.TopicID)
+
+		response := CreateJobResponse{
+			Job: Job{
+				ID:        "job-456",
+				TopicID:   "topic-123",
+				Status:    "new",
+				State:     "active",
+				CreatedAt: "2024-01-01T00:00:00.000000",
+			},
+		}
+		w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.CreateJob("topic-123", []string{"comp-1", "comp-2"}, "test comment")
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "job-456", response.Job.ID)
+	assert.Equal(t, "topic-123", response.Job.TopicID)
+	assert.Equal(t, "new", response.Job.Status)
+}
+
+func TestCreateJob_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte(`{"error": "invalid topic_id"}`))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.CreateJob("invalid-topic", nil, "")
+	assert.Error(t, err)
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "failed to create job")
+}
+
+func TestUpdateJobState_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/jobstates", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+
+		var reqBody UpdateJobStateRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "job-123", reqBody.JobID)
+		assert.Equal(t, "running", reqBody.Status)
+
+		response := JobStateResponse{}
+		response.JobState.ID = "jobstate-789"
+		response.JobState.JobID = "job-123"
+		response.JobState.Status = "running"
+		response.JobState.CreatedAt = "2024-01-01T00:00:00.000000"
+
+		w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.UpdateJobState("job-123", JobStateRunning, "starting test run")
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "jobstate-789", response.JobState.ID)
+	assert.Equal(t, "job-123", response.JobState.JobID)
+	assert.Equal(t, "running", response.JobState.Status)
+}
+
+func TestUpdateJobState_ToSuccess(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var reqBody UpdateJobStateRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "success", reqBody.Status)
+
+		response := JobStateResponse{}
+		response.JobState.ID = "jobstate-101"
+		response.JobState.JobID = reqBody.JobID
+		response.JobState.Status = "success"
+
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.UpdateJobState("job-123", JobStateSuccess, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "success", response.JobState.Status)
+}
+
+func TestUpdateJobState_ToFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var reqBody UpdateJobStateRequest
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "failure", reqBody.Status)
+
+		response := JobStateResponse{}
+		response.JobState.ID = "jobstate-102"
+		response.JobState.JobID = reqBody.JobID
+		response.JobState.Status = "failure"
+		response.JobState.Comment = reqBody.Comment
+
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.UpdateJobState("job-123", JobStateFailure, "tests failed")
+	assert.NoError(t, err)
+	assert.Equal(t, "failure", response.JobState.Status)
+}
+
+func TestUpdateJobState_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, err := w.Write([]byte(`{"error": "job not found"}`))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.UpdateJobState("nonexistent-job", JobStateRunning, "")
+	assert.Error(t, err)
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "failed to update job state")
+}
+
+func TestUploadFileContent_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/files", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "job-123", r.Header.Get("DCI-JOB-ID"))
+		assert.Equal(t, "test-results.xml", r.Header.Get("DCI-NAME"))
+		assert.Equal(t, "application/junit", r.Header.Get("DCI-MIME"))
+
+		response := UploadFileResponse{}
+		response.File.ID = "file-456"
+		response.File.JobID = "job-123"
+		response.File.Name = "test-results.xml"
+		response.File.Mime = "application/junit"
+		response.File.Size = "1024"
+		response.File.CreatedAt = "2024-01-01T00:00:00.000000"
+
+		w.WriteHeader(http.StatusCreated)
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	content := []byte("<testsuites><testsuite></testsuite></testsuites>")
+	response, err := client.UploadFileContent("job-123", "test-results.xml", "application/junit", content)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	assert.Equal(t, "file-456", response.File.ID)
+	assert.Equal(t, "job-123", response.File.JobID)
+	assert.Equal(t, "test-results.xml", response.File.Name)
+	assert.Equal(t, "application/junit", response.File.Mime)
+}
+
+func TestUploadFileContent_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write([]byte(`{"error": "invalid job_id"}`))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{
+		BaseURL:   server.URL,
+		AccessKey: "testKey",
+		SecretKey: "testSecret",
+	}
+
+	response, err := client.UploadFileContent("invalid-job", "test.xml", "application/junit", []byte("content"))
+	assert.Error(t, err)
+	assert.Nil(t, response)
+	assert.Contains(t, err.Error(), "failed to upload file")
+}
+
+func TestCreateJobRequest_Struct(t *testing.T) {
+	original := CreateJobRequest{
+		TopicID:    "topic-123",
+		Components: []string{"comp-1", "comp-2"},
+		Comment:    "test comment",
+	}
+
+	jsonBytes, err := json.Marshal(original)
+	assert.NoError(t, err)
+
+	var decoded CreateJobRequest
+	err = json.Unmarshal(jsonBytes, &decoded)
+	assert.NoError(t, err)
+
+	assert.Equal(t, original.TopicID, decoded.TopicID)
+	assert.Equal(t, original.Components, decoded.Components)
+	assert.Equal(t, original.Comment, decoded.Comment)
+}
+
+func TestJobStateConstants(t *testing.T) {
+	assert.Equal(t, JobState("new"), JobStateNew)
+	assert.Equal(t, JobState("pre-run"), JobStatePreRun)
+	assert.Equal(t, JobState("running"), JobStateRunning)
+	assert.Equal(t, JobState("post-run"), JobStatePostRun)
+	assert.Equal(t, JobState("success"), JobStateSuccess)
+	assert.Equal(t, JobState("failure"), JobStateFailure)
+	assert.Equal(t, JobState("killed"), JobStateKilled)
+	assert.Equal(t, JobState("error"), JobStateError)
+}
+
