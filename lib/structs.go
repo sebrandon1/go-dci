@@ -213,3 +213,8 @@ type TopicsResponse struct {
 		UpdatedAt     string  `json:"updated_at,omitempty"`
 	} `json:"topics,omitempty"`
 }
+
+type ComponentsResponse struct {
+	Meta       Meta         `json:"_meta,omitempty"`
+	Components []Components `json:"components,omitempty"`
+}
