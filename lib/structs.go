@@ -255,3 +255,65 @@ type ComponentType struct {
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
+
+// POST request/response structs
+
+// CreateJobRequest represents the request body for creating a new job
+type CreateJobRequest struct {
+	TopicID    string   `json:"topic_id"`
+	Components []string `json:"components,omitempty"`
+	Comment    string   `json:"comment,omitempty"`
+}
+
+// CreateJobResponse represents the response from creating a new job
+type CreateJobResponse struct {
+	Job Job `json:"job"`
+}
+
+// JobState represents the valid job states
+type JobState string
+
+const (
+	JobStateNew     JobState = "new"
+	JobStatePreRun  JobState = "pre-run"
+	JobStateRunning JobState = "running"
+	JobStatePostRun JobState = "post-run"
+	JobStateSuccess JobState = "success"
+	JobStateFailure JobState = "failure"
+	JobStateKilled  JobState = "killed"
+	JobStateError   JobState = "error"
+)
+
+// UpdateJobStateRequest represents the request body for updating a job's state
+type UpdateJobStateRequest struct {
+	JobID   string `json:"job_id"`
+	Status  string `json:"status"`
+	Comment string `json:"comment,omitempty"`
+}
+
+// JobStateResponse represents the response from updating a job's state
+type JobStateResponse struct {
+	JobState struct {
+		ID        string `json:"id"`
+		JobID     string `json:"job_id"`
+		Status    string `json:"status"`
+		Comment   string `json:"comment,omitempty"`
+		CreatedAt string `json:"created_at,omitempty"`
+	} `json:"jobstate"`
+}
+
+// UploadFileResponse represents the response from uploading a file
+type UploadFileResponse struct {
+	File struct {
+		ID        string `json:"id"`
+		JobID     string `json:"job_id"`
+		Name      string `json:"name"`
+		Mime      string `json:"mime"`
+		Size      string `json:"size"`
+		Etag      string `json:"etag,omitempty"`
+		State     string `json:"state,omitempty"`
+		TeamID    string `json:"team_id,omitempty"`
+		CreatedAt string `json:"created_at,omitempty"`
+		UpdatedAt string `json:"updated_at,omitempty"`
+	} `json:"file"`
+}

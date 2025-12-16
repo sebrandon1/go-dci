@@ -1,10 +1,16 @@
 package lib
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -460,6 +466,194 @@ func httpGetComponentsWithAWSAuth(url, region, svcName, accessKey, secretKey, to
 	// Sign the request
 	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
 	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, svcName, region, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+// CreateJob creates a new job in DCI
+func (c *Client) CreateJob(topicID string, componentIDs []string, comment string) (*CreateJobResponse, error) {
+	reqBody := CreateJobRequest{
+		TopicID:    topicID,
+		Components: componentIDs,
+		Comment:    comment,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/jobs", jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to create job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response CreateJobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UpdateJobState updates the state of a job (pre-run, running, success, failure, etc.)
+func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (*JobStateResponse, error) {
+	reqBody := UpdateJobStateRequest{
+		JobID:   jobID,
+		Status:  string(status),
+		Comment: comment,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/jobstates", jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating job state: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update job state with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response JobStateResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UploadFile uploads a file (e.g., test results) to a job in DCI
+func (c *Client) UploadFile(jobID, filePath, mimeType string) (*UploadFileResponse, error) {
+	// Read the file
+	fileContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+
+	fileName := filepath.Base(filePath)
+
+	httpResponse, err := c.httpPostFileWithAWSAuth(c.BaseURL+"/files", fileContent, jobID, fileName, mimeType)
+	if err != nil {
+		return nil, fmt.Errorf("error uploading file: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to upload file with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response UploadFileResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UploadFileContent uploads file content directly (without reading from disk) to a job in DCI
+func (c *Client) UploadFileContent(jobID, fileName, mimeType string, content []byte) (*UploadFileResponse, error) {
+	httpResponse, err := c.httpPostFileWithAWSAuth(c.BaseURL+"/files", content, jobID, fileName, mimeType)
+	if err != nil {
+		return nil, fmt.Errorf("error uploading file: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to upload file with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response UploadFileResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// httpPostWithAWSAuth performs an authenticated POST request with JSON body
+func (c *Client) httpPostWithAWSAuth(url string, jsonBody []byte) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Calculate SHA256 hash of the body for signing
+	hash := sha256.Sum256(jsonBody)
+	payloadHash := hex.EncodeToString(hash[:])
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+// httpPostFileWithAWSAuth performs an authenticated POST request for file uploads
+func (c *Client) httpPostFileWithAWSAuth(url string, content []byte, jobID, fileName, mimeType string) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+
+	// Set DCI-specific headers for file upload
+	req.Header.Set("DCI-JOB-ID", jobID)
+	req.Header.Set("DCI-NAME", fileName)
+	req.Header.Set("DCI-MIME", mimeType)
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	// Calculate SHA256 hash of the body for signing
+	hash := sha256.Sum256(content)
+	payloadHash := hex.EncodeToString(hash[:])
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
 		return nil, err
 	}
 
