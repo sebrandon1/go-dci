@@ -297,6 +297,30 @@ type UpdateTopicRequest struct {
 	State                  string   `json:"state,omitempty"`
 }
 
+// ComponentResponse represents a single component response from the API
+type ComponentResponse struct {
+	Component Components `json:"component"`
+}
+
+// CreateComponentRequest represents the request body for creating a new component
+type CreateComponentRequest struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	TopicID string `json:"topic_id"`
+	Version string `json:"version,omitempty"`
+	URL     string `json:"url,omitempty"`
+	State   string `json:"state,omitempty"`
+}
+
+// UpdateComponentRequest represents the request body for updating a component
+type UpdateComponentRequest struct {
+	Name    string   `json:"name,omitempty"`
+	State   string   `json:"state,omitempty"`
+	URL     string   `json:"url,omitempty"`
+	Version string   `json:"version,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+}
+
 // JobResponse represents a single job response from the API
 type JobResponse struct {
 	Job Job `json:"job"`

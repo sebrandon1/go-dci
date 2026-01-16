@@ -720,6 +720,126 @@ func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, e
 	return componentsCollection, nil
 }
 
+// GetComponent retrieves a single component by ID from the DCI API
+func (c *Client) GetComponent(componentID string) (*ComponentResponse, error) {
+	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting component: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get component with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var component ComponentResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&component); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &component, nil
+}
+
+// CreateComponent creates a new component in DCI
+func (c *Client) CreateComponent(name, componentType, topicID, version string) (*ComponentResponse, error) {
+	reqBody := CreateComponentRequest{
+		Name:    name,
+		Type:    componentType,
+		TopicID: topicID,
+		Version: version,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/components", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating component: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to create component with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response ComponentResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UpdateComponent updates an existing component in DCI
+func (c *Client) UpdateComponent(componentID string, updates UpdateComponentRequest) (*ComponentResponse, error) {
+	jsonBody, err := json.Marshal(updates)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating component: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update component with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response ComponentResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteComponent deletes a component from DCI
+func (c *Client) DeleteComponent(componentID string) error {
+	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting component: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete component with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // fetchComponents is an internal helper to fetch components with optional topic filtering
 func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
 	url := c.BaseURL + "/components"
