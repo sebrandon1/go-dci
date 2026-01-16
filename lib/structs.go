@@ -297,6 +297,22 @@ type UpdateTopicRequest struct {
 	State                  string   `json:"state,omitempty"`
 }
 
+// ComponentTypeResponse represents a single component type response from the API
+type ComponentTypeResponse struct {
+	ComponentType ComponentType `json:"componenttype"`
+}
+
+// CreateComponentTypeRequest represents the request body for creating a component type
+type CreateComponentTypeRequest struct {
+	Name string `json:"name"`
+}
+
+// UpdateComponentTypeRequest represents the request body for updating a component type
+type UpdateComponentTypeRequest struct {
+	Name  string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
 // ComponentResponse represents a single component response from the API
 type ComponentResponse struct {
 	Component Components `json:"component"`

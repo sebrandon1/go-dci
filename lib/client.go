@@ -146,6 +146,123 @@ func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesRe
 	return componentTypes, nil
 }
 
+// GetComponentType retrieves a single component type by ID from the DCI API
+func (c *Client) GetComponentType(componentTypeID string) (*ComponentTypeResponse, error) {
+	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting component type: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get component type with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var componentType ComponentTypeResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&componentType); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &componentType, nil
+}
+
+// CreateComponentType creates a new component type in DCI
+func (c *Client) CreateComponentType(name string) (*ComponentTypeResponse, error) {
+	reqBody := CreateComponentTypeRequest{
+		Name: name,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/componenttypes", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating component type: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to create component type with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response ComponentTypeResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UpdateComponentType updates an existing component type in DCI
+func (c *Client) UpdateComponentType(componentTypeID string, updates UpdateComponentTypeRequest) (*ComponentTypeResponse, error) {
+	jsonBody, err := json.Marshal(updates)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating component type: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update component type with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response ComponentTypeResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteComponentType deletes a component type from DCI
+func (c *Client) DeleteComponentType(componentTypeID string) error {
+	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting component type: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete component type with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 func (c *Client) GetTopics() ([]TopicsResponse, error) {
 	var topicsCollection []TopicsResponse
 
