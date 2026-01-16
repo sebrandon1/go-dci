@@ -1,0 +1,248 @@
+# DCI API Endpoints
+# Source: https://doc.distributed-ci.io/dci-control-server/docs/API/
+# This file defines all known DCI API endpoints for alignment checking.
+
+version: "v1"
+base_path: "/api/v1"
+
+endpoints:
+  # Identity
+  - path: /identity
+    method: GET
+    description: Check if the request is authenticated
+    category: identity
+
+  # Topics
+  - path: /topics
+    method: GET
+    description: Get all topics
+    category: topics
+
+  - path: /topics/{topic_id}
+    method: GET
+    description: Get a specific topic
+    category: topics
+
+  - path: /topics
+    method: POST
+    description: Create a new topic
+    category: topics
+
+  - path: /topics/{topic_id}
+    method: PUT
+    description: Update a topic
+    category: topics
+
+  - path: /topics/{topic_id}
+    method: DELETE
+    description: Delete a topic
+    category: topics
+
+  - path: /topics/{topic_id}/components
+    method: GET
+    description: Get components for a topic
+    category: topics
+
+  # Jobs
+  - path: /jobs
+    method: GET
+    description: Get all jobs
+    category: jobs
+
+  - path: /jobs
+    method: POST
+    description: Create a new job
+    category: jobs
+
+  - path: /jobs/{job_id}
+    method: GET
+    description: Get a specific job
+    category: jobs
+
+  - path: /jobs/{job_id}
+    method: PUT
+    description: Update a job
+    category: jobs
+
+  - path: /jobs/{job_id}
+    method: DELETE
+    description: Delete a job
+    category: jobs
+
+  - path: /jobs/schedule
+    method: POST
+    description: Schedule a job with auto-selected components
+    category: jobs
+
+  - path: /jobs/{job_id}/files
+    method: GET
+    description: Get files for a job
+    category: jobs
+
+  # Job States
+  - path: /jobstates
+    method: POST
+    description: Change job state (pre-run, running, success, failure)
+    category: jobstates
+
+  - path: /jobstates
+    method: GET
+    description: Get job states
+    category: jobstates
+
+  # Files
+  - path: /files
+    method: POST
+    description: Upload test results/files
+    category: files
+
+  - path: /files/{file_id}
+    method: GET
+    description: Download a file
+    category: files
+
+  - path: /files/{file_id}
+    method: DELETE
+    description: Delete a file
+    category: files
+
+  # Component Types
+  - path: /componenttypes
+    method: GET
+    description: Get all component types
+    category: componenttypes
+
+  - path: /componenttypes
+    method: POST
+    description: Create a component type
+    category: componenttypes
+
+  - path: /componenttypes/{componenttype_id}
+    method: GET
+    description: Retrieve a component type
+    category: componenttypes
+
+  - path: /componenttypes/{componenttype_id}
+    method: PUT
+    description: Update a component type
+    category: componenttypes
+
+  - path: /componenttypes/{componenttype_id}
+    method: DELETE
+    description: Delete a component type
+    category: componenttypes
+
+  # Components
+  - path: /components
+    method: GET
+    description: Get all components
+    category: components
+
+  - path: /components
+    method: POST
+    description: Create a component
+    category: components
+
+  - path: /components/{component_id}
+    method: GET
+    description: Retrieve a component
+    category: components
+
+  - path: /components/{component_id}
+    method: PUT
+    description: Update a component
+    category: components
+
+  - path: /components/{component_id}
+    method: DELETE
+    description: Delete a component
+    category: components
+
+  # RemoteCIs
+  - path: /remotecis
+    method: GET
+    description: Get all remote CIs
+    category: remotecis
+
+  - path: /remotecis/{remoteci_id}
+    method: GET
+    description: Get a specific remote CI
+    category: remotecis
+
+  - path: /remotecis
+    method: POST
+    description: Create a remote CI
+    category: remotecis
+
+  - path: /remotecis/{remoteci_id}
+    method: PUT
+    description: Update a remote CI
+    category: remotecis
+
+  - path: /remotecis/{remoteci_id}
+    method: DELETE
+    description: Delete a remote CI
+    category: remotecis
+
+  # Teams
+  - path: /teams
+    method: GET
+    description: Get all teams
+    category: teams
+
+  - path: /teams/{team_id}
+    method: GET
+    description: Get a specific team
+    category: teams
+
+  - path: /teams
+    method: POST
+    description: Create a team
+    category: teams
+
+  - path: /teams/{team_id}
+    method: PUT
+    description: Update a team
+    category: teams
+
+  - path: /teams/{team_id}
+    method: DELETE
+    description: Delete a team
+    category: teams
+
+  # Users
+  - path: /users
+    method: GET
+    description: Get all users
+    category: users
+
+  - path: /users/{user_id}
+    method: GET
+    description: Get a specific user
+    category: users
+
+  - path: /users
+    method: POST
+    description: Create a user
+    category: users
+
+  - path: /users/{user_id}
+    method: PUT
+    description: Update a user
+    category: users
+
+  - path: /users/{user_id}
+    method: DELETE
+    description: Delete a user
+    category: users
+
+  # Products
+  - path: /products
+    method: GET
+    description: Get all products
+    category: products
+
+  - path: /products/{product_id}
+    method: GET
+    description: Get a specific product
+    category: products
