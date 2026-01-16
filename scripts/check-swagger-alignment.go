@@ -141,7 +141,7 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 				funcLower := strings.ToLower(currentFunc)
 				if strings.HasPrefix(funcLower, "get") || strings.HasPrefix(funcLower, "fetch") {
 					currentMethod = "GET"
-				} else if strings.HasPrefix(funcLower, "create") || strings.HasPrefix(funcLower, "upload") {
+				} else if strings.HasPrefix(funcLower, "create") || strings.HasPrefix(funcLower, "upload") || strings.HasPrefix(funcLower, "schedule") {
 					currentMethod = "POST"
 				} else if strings.HasPrefix(funcLower, "update") {
 					currentMethod = "PUT"

@@ -195,6 +195,167 @@ func (c *Client) GetTopics() ([]TopicsResponse, error) {
 	return topicsCollection, nil
 }
 
+// GetTopic retrieves a single topic by ID from the DCI API
+func (c *Client) GetTopic(topicID string) (*TopicResponse, error) {
+	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting topic: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get topic with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var topic TopicResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&topic); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &topic, nil
+}
+
+// CreateTopic creates a new topic in DCI
+func (c *Client) CreateTopic(name, productID string, componentTypes []string) (*TopicResponse, error) {
+	reqBody := CreateTopicRequest{
+		Name:           name,
+		ProductID:      productID,
+		ComponentTypes: componentTypes,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/topics", jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating topic: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to create topic with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response TopicResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// UpdateTopic updates an existing topic in DCI
+func (c *Client) UpdateTopic(topicID string, updates UpdateTopicRequest) (*TopicResponse, error) {
+	jsonBody, err := json.Marshal(updates)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating topic: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update topic with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response TopicResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteTopic deletes a topic from DCI
+func (c *Client) DeleteTopic(topicID string) error {
+	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting topic: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete topic with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// GetTopicComponents retrieves all components for a specific topic using the topic components endpoint
+func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error) {
+	var componentsCollection []ComponentsResponse
+
+	requestLimit := 100
+	offset := 0
+
+	for {
+		url := fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID)
+		httpResponse, err := HttpGetWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+		if err != nil {
+			return nil, fmt.Errorf("error getting topic components: %w", err)
+		}
+
+		defer func() {
+			if cerr := httpResponse.Body.Close(); cerr != nil {
+				fmt.Printf("Error closing response body: %v\n", cerr)
+			}
+		}()
+
+		var components ComponentsResponse
+		if err := json.NewDecoder(httpResponse.Body).Decode(&components); err != nil {
+			return nil, fmt.Errorf("error decoding response: %w", err)
+		}
+
+		componentsCollection = append(componentsCollection, components)
+
+		// If fewer results than limit, we've reached the end
+		if len(components.Components) < requestLimit {
+			break
+		}
+
+		// If we've reached max records, stop
+		if offset >= maxRecords {
+			break
+		}
+
+		offset += requestLimit
+	}
+
+	return componentsCollection, nil
+}
+
 func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	var jobCollection []JobsResponse
 
@@ -293,6 +454,150 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 	}
 
 	return jobCollection, nil
+}
+
+// GetJob retrieves a single job by ID from the DCI API
+func (c *Client) GetJob(jobID string) (*JobResponse, error) {
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var job JobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&job); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &job, nil
+}
+
+// UpdateJob updates an existing job in DCI
+func (c *Client) UpdateJob(jobID string, updates UpdateJobRequest) (*JobResponse, error) {
+	jsonBody, err := json.Marshal(updates)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response JobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteJob deletes a job from DCI
+func (c *Client) DeleteJob(jobID string) error {
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ScheduleJob schedules a job with auto-selected components for a topic
+func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
+	reqBody := ScheduleJobRequest{
+		TopicID: topicID,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/jobs/schedule", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error scheduling job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to schedule job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response CreateJobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetJobFiles retrieves all files for a specific job
+func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
+	url := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting job files: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get job files with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response FilesResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
 }
 
 func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
@@ -625,6 +930,50 @@ func (c *Client) httpPostWithAWSAuth(url string, jsonBody []byte) (*http.Respons
 	// Sign the request
 	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
 	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+// httpPutWithAWSAuth performs an authenticated PUT request with JSON body
+func (c *Client) httpPutWithAWSAuth(url string, jsonBody []byte) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Calculate SHA256 hash of the body for signing
+	hash := sha256.Sum256(jsonBody)
+	payloadHash := hex.EncodeToString(hash[:])
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+// httpDeleteWithAWSAuth performs an authenticated DELETE request
+func (c *Client) httpDeleteWithAWSAuth(url string) (*http.Response, error) {
+	signer := signerv4.NewSigner()
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sign the request
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
 		return nil, err
 	}
 

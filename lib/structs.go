@@ -256,6 +256,83 @@ type ComponentType struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
+// Topic represents a single topic in DCI
+type Topic struct {
+	ID                     string   `json:"id,omitempty"`
+	Name                   string   `json:"name,omitempty"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ProductID              string   `json:"product_id,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+	ExportControl          bool     `json:"export_control,omitempty"`
+	State                  string   `json:"state,omitempty"`
+	Etag                   string   `json:"etag,omitempty"`
+	CreatedAt              string   `json:"created_at,omitempty"`
+	UpdatedAt              string   `json:"updated_at,omitempty"`
+	Product                Product  `json:"product,omitempty"`
+}
+
+// TopicResponse represents a single topic response from the API
+type TopicResponse struct {
+	Topic Topic `json:"topic"`
+}
+
+// CreateTopicRequest represents the request body for creating a new topic
+type CreateTopicRequest struct {
+	Name                   string   `json:"name"`
+	ProductID              string   `json:"product_id"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ExportControl          bool     `json:"export_control,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+}
+
+// UpdateTopicRequest represents the request body for updating a topic
+type UpdateTopicRequest struct {
+	Name                   string   `json:"name,omitempty"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ExportControl          *bool    `json:"export_control,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+	State                  string   `json:"state,omitempty"`
+}
+
+// JobResponse represents a single job response from the API
+type JobResponse struct {
+	Job Job `json:"job"`
+}
+
+// UpdateJobRequest represents the request body for updating a job
+type UpdateJobRequest struct {
+	Comment string   `json:"comment,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+}
+
+// ScheduleJobRequest represents the request body for scheduling a job
+type ScheduleJobRequest struct {
+	TopicID string `json:"topic_id"`
+}
+
+// FilesResponse represents the response from getting files
+type FilesResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Files []File `json:"files,omitempty"`
+}
+
+// File represents a file in DCI
+type File struct {
+	ID        string `json:"id"`
+	JobID     string `json:"job_id"`
+	Name      string `json:"name"`
+	Mime      string `json:"mime"`
+	Size      int64  `json:"size"`
+	Etag      string `json:"etag,omitempty"`
+	State     string `json:"state,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
 // POST request/response structs
 
 // CreateJobRequest represents the request body for creating a new job
