@@ -449,3 +449,130 @@ type UploadFileResponse struct {
 		UpdatedAt string `json:"updated_at,omitempty"`
 	} `json:"file"`
 }
+
+// RemoteCI represents a remote CI in DCI
+type RemoteCI struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	APISecret string `json:"api_secret,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	State     string `json:"state,omitempty"`
+	Public    bool   `json:"public,omitempty"`
+	Etag      string `json:"etag,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+// RemoteCIsResponse represents the response from getting remote CIs
+type RemoteCIsResponse struct {
+	Meta      Meta       `json:"_meta,omitempty"`
+	RemoteCIs []RemoteCI `json:"remotecis,omitempty"`
+}
+
+// RemoteCIResponse represents a single remote CI response
+type RemoteCIResponse struct {
+	RemoteCI RemoteCI `json:"remoteci"`
+}
+
+// CreateRemoteCIRequest represents the request body for creating a remote CI
+type CreateRemoteCIRequest struct {
+	Name   string `json:"name"`
+	TeamID string `json:"team_id"`
+}
+
+// UpdateRemoteCIRequest represents the request body for updating a remote CI
+type UpdateRemoteCIRequest struct {
+	Name  string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
+// Team represents a team in DCI
+type Team struct {
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+	Country             string `json:"country,omitempty"`
+	External            bool   `json:"external,omitempty"`
+	HasPreReleaseAccess bool   `json:"has_pre_release_access,omitempty"`
+	State               string `json:"state,omitempty"`
+	Etag                string `json:"etag,omitempty"`
+	CreatedAt           string `json:"created_at,omitempty"`
+	UpdatedAt           string `json:"updated_at,omitempty"`
+}
+
+// TeamsResponse represents the response from getting teams
+type TeamsResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Teams []Team `json:"teams,omitempty"`
+}
+
+// TeamResponse represents a single team response
+type TeamResponse struct {
+	Team Team `json:"team"`
+}
+
+// CreateTeamRequest represents the request body for creating a team
+type CreateTeamRequest struct {
+	Name    string `json:"name"`
+	Country string `json:"country,omitempty"`
+}
+
+// UpdateTeamRequest represents the request body for updating a team
+type UpdateTeamRequest struct {
+	Name    string `json:"name,omitempty"`
+	Country string `json:"country,omitempty"`
+	State   string `json:"state,omitempty"`
+}
+
+// User represents a user in DCI
+type User struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Fullname  string `json:"fullname,omitempty"`
+	Email     string `json:"email,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	Timezone  string `json:"timezone,omitempty"`
+	State     string `json:"state,omitempty"`
+	Etag      string `json:"etag,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+// UsersResponse represents the response from getting users
+type UsersResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Users []User `json:"users,omitempty"`
+}
+
+// UserResponse represents a single user response
+type UserResponse struct {
+	User User `json:"user"`
+}
+
+// CreateUserRequest represents the request body for creating a user
+type CreateUserRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Fullname string `json:"fullname,omitempty"`
+	TeamID   string `json:"team_id"`
+	Password string `json:"password"`
+}
+
+// UpdateUserRequest represents the request body for updating a user
+type UpdateUserRequest struct {
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Fullname string `json:"fullname,omitempty"`
+	Timezone string `json:"timezone,omitempty"`
+	State    string `json:"state,omitempty"`
+}
+
+// ProductsResponse represents the response from getting products
+type ProductsResponse struct {
+	Meta     Meta      `json:"_meta,omitempty"`
+	Products []Product `json:"products,omitempty"`
+}
+
+// ProductResponse represents a single product response
+type ProductResponse struct {
+	Product Product `json:"product"`
+}
