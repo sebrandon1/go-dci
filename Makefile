@@ -20,3 +20,12 @@ clean:
 
 run: build
 	./$(APP_NAME)
+
+check-swagger-alignment:
+	@echo "Checking API alignment with DCI API spec..."
+	@go run ./scripts/check-swagger-alignment.go \
+		--endpoints-file="./scripts/dci-endpoints.yaml" \
+		--lib-path="./lib" \
+		--base-url-var="DCIURL|BaseURL"
+
+.PHONY: vet build lint test clean run check-swagger-alignment
