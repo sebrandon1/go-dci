@@ -9,6 +9,93 @@ A Golang based wrapper around the Red Hat Distributed CI API:
 
 https://doc.distributed-ci.io/dci-control-server/docs/API/
 
+## Quick Start
+
+### As a CLI Tool
+
+```bash
+# Build the CLI
+make build
+
+# Configure credentials
+./go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
+
+# Verify authentication
+./go-dci identity
+
+# List topics
+./go-dci topics
+
+# Get recent jobs
+./go-dci jobs -d 30
+```
+
+### As a Go Library
+
+```bash
+go get github.com/sebrandon1/go-dci
+```
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "os"
+
+    "github.com/sebrandon1/go-dci/lib"
+)
+
+func main() {
+    // Initialize client with AWS SigV4 authentication
+    client := lib.NewClient(
+        os.Getenv("GO_DCI_ACCESSKEY"),
+        os.Getenv("GO_DCI_SECRETKEY"),
+    )
+
+    // Verify authentication
+    identity, err := client.GetIdentity()
+    if err != nil {
+        log.Fatalf("Authentication failed: %v", err)
+    }
+    fmt.Printf("Authenticated as: %s\n", identity.Identity.Name)
+
+    // List topics
+    topics, err := client.GetTopics()
+    if err != nil {
+        log.Fatal(err)
+    }
+    for _, resp := range topics {
+        for _, topic := range resp.Topics {
+            fmt.Printf("Topic: %s (%s)\n", topic.Name, topic.ID)
+        }
+    }
+}
+```
+
+## Documentation
+
+### Tutorials
+
+Step-by-step guides for common workflows:
+
+- [Getting Started](docs/tutorials/01-getting-started.md) - Installation, authentication, first API calls
+- [Certification Workflow](docs/tutorials/02-certification-workflow.md) - Complete job lifecycle
+- [Component Analysis](docs/tutorials/03-component-analysis.md) - Query and analyze components
+
+### Examples
+
+Runnable example programs in the [examples/](examples/) directory:
+
+- [basic-usage](examples/basic-usage/) - Authentication, topics, components, jobs
+- [certification-workflow](examples/certification-workflow/) - Complete certification job lifecycle
+- [component-query](examples/component-query/) - Component filtering and version analysis
+
+### Library Reference
+
+- [Library Guide](docs/library-guide.md) - Complete API reference for Go library usage
+
 ## Supported DCI API Endpoints
 
 | Endpoint | Method | Status | CLI Command |
