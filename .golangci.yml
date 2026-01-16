@@ -13,6 +13,12 @@ linters:
     - unused
     - misspell
 
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+
   settings:
     govet:
       disable:
@@ -20,11 +26,3 @@ linters:
         - shadow
     misspell:
       locale: US
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-  max-issues-per-linter: 0
-  max-same-issues: 0
