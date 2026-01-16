@@ -2,26 +2,24 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func SetConfigValue(key, value string) {
+func SetConfigValue(key, value string) error {
 	viper.Set(key, value)
-	err := viper.WriteConfig()
-	if err != nil {
-		panic(err)
+	if err := viper.WriteConfig(); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
 	}
+	return nil
 }
 
-func ConfigKeyValuePairAdd(key string, value string) {
+func ConfigKeyValuePairAdd(key string, value string) error {
 	if validateKeyValuePair(key, value) {
-		log.Printf("Validation not met for %s.", key)
-	} else {
-		writeKeyValuePair(key, value)
+		return fmt.Errorf("validation not met for %s", key)
 	}
+	return writeKeyValuePair(key, value)
 }
 
 func validateKeyValuePair(key string, value string) bool {
@@ -47,29 +45,29 @@ func findExistingKey(theKey string) bool {
 	return existingKey
 }
 
-func ConfigKeyValuePairUpdate(key string, value string) {
-	writeKeyValuePair(key, value)
+func ConfigKeyValuePairUpdate(key string, value string) error {
+	return writeKeyValuePair(key, value)
 }
 
-func writeKeyValuePair(key string, value interface{}) {
+func writeKeyValuePair(key string, value interface{}) error {
 	viper.Set(key, value)
-	err := viper.WriteConfig()
-	if err != nil {
-		panic(err)
+	if err := viper.WriteConfig(); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
 	}
 	fmt.Printf("Wrote the %s pair.\n", key)
+	return nil
 }
 
 func GetConfigValue(key string) string {
 	return viper.GetString(key)
 }
 
-func UpdateConfigValue(key, value string) {
+func UpdateConfigValue(key, value string) error {
 	viper.Set(key, value)
-	err := viper.WriteConfig()
-	if err != nil {
-		panic(err)
+	if err := viper.WriteConfig(); err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
 	}
+	return nil
 }
 
 var configCmd = &cobra.Command{
@@ -85,11 +83,19 @@ var setCmd = &cobra.Command{
 		secretkey, _ := cmd.Flags().GetString("secretkey")
 
 		if accesskey != "" {
-			UpdateConfigValue("accesskey", accesskey)
+			if err := UpdateConfigValue("accesskey", accesskey); err != nil {
+				fmt.Printf("Error setting accesskey: %v\n", err)
+				return
+			}
+			fmt.Println("Access key updated successfully")
 		}
 
 		if secretkey != "" {
-			UpdateConfigValue("secretkey", secretkey)
+			if err := UpdateConfigValue("secretkey", secretkey); err != nil {
+				fmt.Printf("Error setting secretkey: %v\n", err)
+				return
+			}
+			fmt.Println("Secret key updated successfully")
 		}
 	},
 }
@@ -98,12 +104,24 @@ var unsetCmd = &cobra.Command{
 	Use:   "unset",
 	Short: "Unset a key value pair from the configuration",
 	Run: func(cmd *cobra.Command, args []string) {
-		key, _ := cmd.Flags().GetString("")
+		key, _ := cmd.Flags().GetString("key")
+		if key == "" {
+			fmt.Println("Error: --key flag is required")
+			return
+		}
+
+		if !findExistingKey(key) {
+			fmt.Printf("Key '%s' does not exist in configuration\n", key)
+			return
+		}
+
 		viper.Set(key, nil)
 		err := viper.WriteConfig()
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error writing config: %v\n", err)
+			return
 		}
+		fmt.Printf("Unset key '%s' from configuration\n", key)
 	},
 }
 
@@ -119,6 +137,8 @@ func init() {
 	// Add flags to the commands
 	setCmd.PersistentFlags().StringP("accesskey", "a", "", "The access key to set in the configuration.")
 	setCmd.PersistentFlags().StringP("secretkey", "s", "", "The secret key to set in the configuration.")
+
+	unsetCmd.PersistentFlags().StringP("key", "k", "", "The key to unset from the configuration (e.g., accesskey, secretkey)")
 
 	configCmd.AddCommand(setCmd)
 	configCmd.AddCommand(unsetCmd)
