@@ -47,7 +47,7 @@ func main() {
 	// Initialize client
 	client := lib.NewClient(accessKey, secretKey)
 
-	fmt.Println("=== DCI Certification Workflow ===\n")
+	fmt.Println("=== DCI Certification Workflow ===")
 
 	// Step 1: Verify authentication
 	fmt.Println("1. Verifying authentication...")
@@ -111,7 +111,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
-	fmt.Println("   State updated to 'pre-run'\n")
+	fmt.Println("   State updated to 'pre-run'")
 
 	// Simulate some work
 	time.Sleep(1 * time.Second)
@@ -122,7 +122,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
-	fmt.Println("   State updated to 'running'\n")
+	fmt.Println("   State updated to 'running'")
 
 	// Step 7: Upload test results (if provided)
 	if *resultsFile != "" {
@@ -136,7 +136,7 @@ func main() {
 		}
 		fmt.Println()
 	} else {
-		fmt.Println("7. Skipping file upload (no results file provided)\n")
+		fmt.Println("7. Skipping file upload (no results file provided)")
 	}
 
 	// Simulate test execution
@@ -148,7 +148,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
-	fmt.Println("   State updated to 'success'\n")
+	fmt.Println("   State updated to 'success'")
 
 	// Step 9: Verify final job state
 	fmt.Println("9. Verifying final job state...")

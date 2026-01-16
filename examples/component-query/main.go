@@ -42,7 +42,7 @@ func main() {
 	// Initialize client
 	client := lib.NewClient(accessKey, secretKey)
 
-	fmt.Println("=== DCI Component Analysis ===\n")
+	fmt.Println("=== DCI Component Analysis ===")
 
 	// Verify authentication
 	identity, err := client.GetIdentity()

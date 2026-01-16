@@ -33,7 +33,7 @@ func main() {
 	// Step 2: Initialize the client
 	client := lib.NewClient(accessKey, secretKey)
 
-	fmt.Println("=== go-dci Basic Usage Example ===\n")
+	fmt.Println("=== go-dci Basic Usage Example ===")
 
 	// Step 3: Verify authentication by getting identity
 	fmt.Println("1. Verifying authentication...")
