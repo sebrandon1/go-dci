@@ -297,6 +297,42 @@ type UpdateTopicRequest struct {
 	State                  string   `json:"state,omitempty"`
 }
 
+// JobResponse represents a single job response from the API
+type JobResponse struct {
+	Job Job `json:"job"`
+}
+
+// UpdateJobRequest represents the request body for updating a job
+type UpdateJobRequest struct {
+	Comment string   `json:"comment,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+}
+
+// ScheduleJobRequest represents the request body for scheduling a job
+type ScheduleJobRequest struct {
+	TopicID string `json:"topic_id"`
+}
+
+// FilesResponse represents the response from getting files
+type FilesResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Files []File `json:"files,omitempty"`
+}
+
+// File represents a file in DCI
+type File struct {
+	ID        string `json:"id"`
+	JobID     string `json:"job_id"`
+	Name      string `json:"name"`
+	Mime      string `json:"mime"`
+	Size      int64  `json:"size"`
+	Etag      string `json:"etag,omitempty"`
+	State     string `json:"state,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
 // POST request/response structs
 
 // CreateJobRequest represents the request body for creating a new job

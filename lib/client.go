@@ -456,6 +456,150 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 	return jobCollection, nil
 }
 
+// GetJob retrieves a single job by ID from the DCI API
+func (c *Client) GetJob(jobID string) (*JobResponse, error) {
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var job JobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&job); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &job, nil
+}
+
+// UpdateJob updates an existing job in DCI
+func (c *Client) UpdateJob(jobID string, updates UpdateJobRequest) (*JobResponse, error) {
+	jsonBody, err := json.Marshal(updates)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error updating job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to update job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response JobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteJob deletes a job from DCI
+func (c *Client) DeleteJob(jobID string) error {
+	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ScheduleJob schedules a job with auto-selected components for a topic
+func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
+	reqBody := ScheduleJobRequest{
+		TopicID: topicID,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/jobs/schedule", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error scheduling job: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to schedule job with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response CreateJobResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetJobFiles retrieves all files for a specific job
+func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
+	url := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting job files: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get job files with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response FilesResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
 func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
 	// Create signer using aws-sdk-go-v2 v4 signer
 	signer := signerv4.NewSigner()
