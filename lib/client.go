@@ -1065,7 +1065,8 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/jobstates", jsonBody)
+	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating job state: %w", err)
 	}
@@ -1087,6 +1088,125 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 	}
 
 	return &response, nil
+}
+
+// CreateJobState creates a new job state entry
+func (c *Client) CreateJobState(jobID string, status JobState, comment string) (*JobStateResponse, error) {
+	reqBody := UpdateJobStateRequest{
+		JobID:   jobID,
+		Status:  string(status),
+		Comment: comment,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling request body: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
+	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	if err != nil {
+		return nil, fmt.Errorf("error creating job state: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to create job state with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response JobStateResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetJobStates retrieves job states, optionally filtered by job ID
+func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
+	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
+	if jobID != "" {
+		url = fmt.Sprintf("%s?where=job_id:%s", url, jobID)
+	}
+
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("error getting job states: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, fmt.Errorf("failed to get job states with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	var response JobStatesResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetFile downloads a file by ID from DCI
+func (c *Client) GetFile(fileID string) ([]byte, string, error) {
+	url := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	if err != nil {
+		return nil, "", fmt.Errorf("error getting file: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, "", fmt.Errorf("failed to get file with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	content, err := io.ReadAll(httpResponse.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("error reading file content: %w", err)
+	}
+
+	contentType := httpResponse.Header.Get("Content-Type")
+	return content, contentType, nil
+}
+
+// DeleteFile deletes a file from DCI
+func (c *Client) DeleteFile(fileID string) error {
+	url := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	if err != nil {
+		return fmt.Errorf("error deleting file: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(httpResponse.Body)
+		return fmt.Errorf("failed to delete file with status code %d: %s", httpResponse.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 // UploadFile uploads a file (e.g., test results) to a job in DCI
