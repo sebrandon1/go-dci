@@ -13,7 +13,7 @@ https://doc.distributed-ci.io/dci-control-server/docs/API/
 
 | Endpoint | Method | Status | CLI Command |
 |----------|--------|--------|-------------|
-| `/api/v1/topics` | GET | ✅ Implemented | `topics` (via lib) |
+| `/api/v1/topics` | GET | ✅ Implemented | `topics` |
 | `/api/v1/jobs` | GET | ✅ Implemented | `jobs`, `ocpcount` |
 | `/api/v1/components` | GET | ✅ Implemented | `components` |
 | `/api/v1/identity` | GET | ✅ Implemented | `identity` |
@@ -32,11 +32,15 @@ make build
 
 ### Configuration
 
-Set up your DCI RemoteCI credentials:
+Set up your DCI RemoteCI credentials using one of the following methods:
+
+#### Option 1: Config File
 
 ```bash
 ./go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
 ```
+
+This creates a `.go-dci-config.yaml` file in the current directory.
 
 ```
 Usage:
@@ -48,7 +52,53 @@ Flags:
   -s, --secretkey string   The secret key to set in the configuration.
 ```
 
+#### Option 2: Environment Variables
+
+You can also set credentials via environment variables (useful for CI/CD):
+
+```bash
+export GO_DCI_ACCESSKEY=<your-access-key>
+export GO_DCI_SECRETKEY=<your-secret-key>
+```
+
+| Variable | Description |
+|----------|-------------|
+| `GO_DCI_ACCESSKEY` | Your DCI client ID / access key |
+| `GO_DCI_SECRETKEY` | Your DCI API secret key |
+
+Environment variables take precedence over values in the config file.
+
 ### Available Commands
+
+#### `topics` - List Topics
+
+Get all available topics from DCI.
+
+```bash
+# Get all topics
+./go-dci topics
+
+# Output as JSON
+./go-dci topics --output json
+```
+
+```
+Usage:
+  dci topics [flags]
+
+Flags:
+  -h, --help            help for topics
+  -o, --output string   Output format (json) - default is stdout (default "stdout")
+```
+
+Example output:
+
+```
+Getting all topics from DCI
+ID: topic-123 | Name: OCP-4.14 | Product: OpenShift Container Platform | State: active
+ID: topic-456 | Name: OCP-4.15 | Product: OpenShift Container Platform | State: active
+Total Topics: 2
+```
 
 #### `identity` - Verify Authentication
 

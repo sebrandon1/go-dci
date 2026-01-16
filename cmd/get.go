@@ -27,6 +27,42 @@ var (
 	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
 )
 
+var getTopicsCmd = &cobra.Command{
+	Use:   "topics",
+	Short: "Get all topics from DCI",
+	Run: func(cmd *cobra.Command, args []string) {
+		accessKey, secretKey, err := getCredentials()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client := lib.NewClient(accessKey, secretKey)
+
+		if outputFormat != OutputFormatJSON {
+			fmt.Println("Getting all topics from DCI")
+		}
+
+		topicsResponses, err := client.GetTopics()
+		if err != nil {
+			fmt.Printf("failed to get topics: %v\n", err)
+			return
+		}
+
+		totalTopics := 0
+		for _, tr := range topicsResponses {
+			totalTopics += len(tr.Topics)
+		}
+
+		if outputFormat == OutputFormatJSON {
+			printTopicsJSON(topicsResponses)
+		} else {
+			printTopicsStdout(topicsResponses)
+			fmt.Printf("Total Topics: %d\n", totalTopics)
+		}
+	},
+}
+
 var getComponentTypesCmd = &cobra.Command{
 	Use:   "componenttypes",
 	Short: "Get all component types from DCI",
@@ -105,14 +141,16 @@ var getOcpCountCmd = &cobra.Command{
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
+			return
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
 
 		jobsResponses, err := client.GetJobs(daysBackLimit)
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error getting jobs: %v\n", err)
+			return
 		}
 
 		ocpVersionCount := countOcpVersions(jobsResponses)
@@ -194,7 +232,8 @@ var getJobsCmd = &cobra.Command{
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
+			return
 		}
 
 		jobsResponses, err := client.GetJobs(daysBackLimit)
@@ -234,7 +273,8 @@ var getJobsCmd = &cobra.Command{
 		} else {
 			jsonOutputBytes, err := json.Marshal(jsonOutput)
 			if err != nil {
-				panic(err)
+				fmt.Printf("Error marshaling JSON output: %v\n", err)
+				return
 			}
 			fmt.Println(string(jsonOutputBytes))
 		}
@@ -416,12 +456,64 @@ func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesRespons
 	fmt.Println(string(jsonBytes))
 }
 
+func printTopicsStdout(topicsResponses []lib.TopicsResponse) {
+	for _, tr := range topicsResponses {
+		for _, t := range tr.Topics {
+			fmt.Printf("ID: %s | Name: %s | Product: %s | State: %s\n",
+				t.ID, t.Name, t.Product.Name, t.State)
+		}
+	}
+}
+
+func printTopicsJSON(topicsResponses []lib.TopicsResponse) {
+	// Flatten all topics into a single slice using the Topic struct
+	type Topic struct {
+		ID            string   `json:"id"`
+		Name          string   `json:"name"`
+		ProductID     string   `json:"product_id"`
+		ProductName   string   `json:"product_name"`
+		State         string   `json:"state"`
+		ExportControl bool     `json:"export_control"`
+		CreatedAt     string   `json:"created_at,omitempty"`
+		UpdatedAt     string   `json:"updated_at,omitempty"`
+	}
+
+	var allTopics []Topic
+	for _, tr := range topicsResponses {
+		for _, t := range tr.Topics {
+			allTopics = append(allTopics, Topic{
+				ID:            t.ID,
+				Name:          t.Name,
+				ProductID:     t.ProductID,
+				ProductName:   t.Product.Name,
+				State:         t.State,
+				ExportControl: t.ExportControl,
+				CreatedAt:     t.CreatedAt,
+				UpdatedAt:     t.UpdatedAt,
+			})
+		}
+	}
+
+	output := struct {
+		Topics []Topic `json:"topics"`
+	}{
+		Topics: allTopics,
+	}
+
+	jsonBytes, err := json.Marshal(output)
+	if err != nil {
+		log.Fatalf("Failed to marshal JSON: %v", err)
+	}
+	fmt.Println(string(jsonBytes))
+}
+
 func init() {
 	rootCmd.AddCommand(getJobsCmd)
 	rootCmd.AddCommand(getOcpCountCmd)
 	rootCmd.AddCommand(getComponentsCmd)
 	rootCmd.AddCommand(getIdentityCmd)
 	rootCmd.AddCommand(getComponentTypesCmd)
+	rootCmd.AddCommand(getTopicsCmd)
 
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
@@ -435,4 +527,6 @@ func init() {
 	getIdentityCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getComponentTypesCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
+
+	getTopicsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
