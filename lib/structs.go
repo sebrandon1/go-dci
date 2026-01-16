@@ -297,6 +297,82 @@ type UpdateTopicRequest struct {
 	State                  string   `json:"state,omitempty"`
 }
 
+// ComponentTypeResponse represents a single component type response from the API
+type ComponentTypeResponse struct {
+	ComponentType ComponentType `json:"componenttype"`
+}
+
+// CreateComponentTypeRequest represents the request body for creating a component type
+type CreateComponentTypeRequest struct {
+	Name string `json:"name"`
+}
+
+// UpdateComponentTypeRequest represents the request body for updating a component type
+type UpdateComponentTypeRequest struct {
+	Name  string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
+// ComponentResponse represents a single component response from the API
+type ComponentResponse struct {
+	Component Components `json:"component"`
+}
+
+// CreateComponentRequest represents the request body for creating a new component
+type CreateComponentRequest struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	TopicID string `json:"topic_id"`
+	Version string `json:"version,omitempty"`
+	URL     string `json:"url,omitempty"`
+	State   string `json:"state,omitempty"`
+}
+
+// UpdateComponentRequest represents the request body for updating a component
+type UpdateComponentRequest struct {
+	Name    string   `json:"name,omitempty"`
+	State   string   `json:"state,omitempty"`
+	URL     string   `json:"url,omitempty"`
+	Version string   `json:"version,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+}
+
+// JobResponse represents a single job response from the API
+type JobResponse struct {
+	Job Job `json:"job"`
+}
+
+// UpdateJobRequest represents the request body for updating a job
+type UpdateJobRequest struct {
+	Comment string   `json:"comment,omitempty"`
+	Tags    []string `json:"tags,omitempty"`
+}
+
+// ScheduleJobRequest represents the request body for scheduling a job
+type ScheduleJobRequest struct {
+	TopicID string `json:"topic_id"`
+}
+
+// FilesResponse represents the response from getting files
+type FilesResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Files []File `json:"files,omitempty"`
+}
+
+// File represents a file in DCI
+type File struct {
+	ID        string `json:"id"`
+	JobID     string `json:"job_id"`
+	Name      string `json:"name"`
+	Mime      string `json:"mime"`
+	Size      int64  `json:"size"`
+	Etag      string `json:"etag,omitempty"`
+	State     string `json:"state,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
 // POST request/response structs
 
 // CreateJobRequest represents the request body for creating a new job
@@ -343,6 +419,21 @@ type JobStateResponse struct {
 	} `json:"jobstate"`
 }
 
+// JobStatesResponse represents the response from getting job states
+type JobStatesResponse struct {
+	Meta      Meta       `json:"_meta,omitempty"`
+	JobStates []JobState2 `json:"jobstates,omitempty"`
+}
+
+// JobState2 represents a single job state entry (different from JobState which is a string type)
+type JobState2 struct {
+	ID        string `json:"id"`
+	JobID     string `json:"job_id"`
+	Status    string `json:"status"`
+	Comment   string `json:"comment,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
 // UploadFileResponse represents the response from uploading a file
 type UploadFileResponse struct {
 	File struct {
@@ -357,4 +448,131 @@ type UploadFileResponse struct {
 		CreatedAt string `json:"created_at,omitempty"`
 		UpdatedAt string `json:"updated_at,omitempty"`
 	} `json:"file"`
+}
+
+// RemoteCI represents a remote CI in DCI
+type RemoteCI struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	APISecret string `json:"api_secret,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	State     string `json:"state,omitempty"`
+	Public    bool   `json:"public,omitempty"`
+	Etag      string `json:"etag,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+// RemoteCIsResponse represents the response from getting remote CIs
+type RemoteCIsResponse struct {
+	Meta      Meta       `json:"_meta,omitempty"`
+	RemoteCIs []RemoteCI `json:"remotecis,omitempty"`
+}
+
+// RemoteCIResponse represents a single remote CI response
+type RemoteCIResponse struct {
+	RemoteCI RemoteCI `json:"remoteci"`
+}
+
+// CreateRemoteCIRequest represents the request body for creating a remote CI
+type CreateRemoteCIRequest struct {
+	Name   string `json:"name"`
+	TeamID string `json:"team_id"`
+}
+
+// UpdateRemoteCIRequest represents the request body for updating a remote CI
+type UpdateRemoteCIRequest struct {
+	Name  string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
+// Team represents a team in DCI
+type Team struct {
+	ID                  string `json:"id"`
+	Name                string `json:"name"`
+	Country             string `json:"country,omitempty"`
+	External            bool   `json:"external,omitempty"`
+	HasPreReleaseAccess bool   `json:"has_pre_release_access,omitempty"`
+	State               string `json:"state,omitempty"`
+	Etag                string `json:"etag,omitempty"`
+	CreatedAt           string `json:"created_at,omitempty"`
+	UpdatedAt           string `json:"updated_at,omitempty"`
+}
+
+// TeamsResponse represents the response from getting teams
+type TeamsResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Teams []Team `json:"teams,omitempty"`
+}
+
+// TeamResponse represents a single team response
+type TeamResponse struct {
+	Team Team `json:"team"`
+}
+
+// CreateTeamRequest represents the request body for creating a team
+type CreateTeamRequest struct {
+	Name    string `json:"name"`
+	Country string `json:"country,omitempty"`
+}
+
+// UpdateTeamRequest represents the request body for updating a team
+type UpdateTeamRequest struct {
+	Name    string `json:"name,omitempty"`
+	Country string `json:"country,omitempty"`
+	State   string `json:"state,omitempty"`
+}
+
+// User represents a user in DCI
+type User struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Fullname  string `json:"fullname,omitempty"`
+	Email     string `json:"email,omitempty"`
+	TeamID    string `json:"team_id,omitempty"`
+	Timezone  string `json:"timezone,omitempty"`
+	State     string `json:"state,omitempty"`
+	Etag      string `json:"etag,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+// UsersResponse represents the response from getting users
+type UsersResponse struct {
+	Meta  Meta   `json:"_meta,omitempty"`
+	Users []User `json:"users,omitempty"`
+}
+
+// UserResponse represents a single user response
+type UserResponse struct {
+	User User `json:"user"`
+}
+
+// CreateUserRequest represents the request body for creating a user
+type CreateUserRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Fullname string `json:"fullname,omitempty"`
+	TeamID   string `json:"team_id"`
+	Password string `json:"password"`
+}
+
+// UpdateUserRequest represents the request body for updating a user
+type UpdateUserRequest struct {
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Fullname string `json:"fullname,omitempty"`
+	Timezone string `json:"timezone,omitempty"`
+	State    string `json:"state,omitempty"`
+}
+
+// ProductsResponse represents the response from getting products
+type ProductsResponse struct {
+	Meta     Meta      `json:"_meta,omitempty"`
+	Products []Product `json:"products,omitempty"`
+}
+
+// ProductResponse represents a single product response
+type ProductResponse struct {
+	Product Product `json:"product"`
 }
