@@ -256,6 +256,47 @@ type ComponentType struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
+// Topic represents a single topic in DCI
+type Topic struct {
+	ID                     string   `json:"id,omitempty"`
+	Name                   string   `json:"name,omitempty"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ProductID              string   `json:"product_id,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+	ExportControl          bool     `json:"export_control,omitempty"`
+	State                  string   `json:"state,omitempty"`
+	Etag                   string   `json:"etag,omitempty"`
+	CreatedAt              string   `json:"created_at,omitempty"`
+	UpdatedAt              string   `json:"updated_at,omitempty"`
+	Product                Product  `json:"product,omitempty"`
+}
+
+// TopicResponse represents a single topic response from the API
+type TopicResponse struct {
+	Topic Topic `json:"topic"`
+}
+
+// CreateTopicRequest represents the request body for creating a new topic
+type CreateTopicRequest struct {
+	Name                   string   `json:"name"`
+	ProductID              string   `json:"product_id"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ExportControl          bool     `json:"export_control,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+}
+
+// UpdateTopicRequest represents the request body for updating a topic
+type UpdateTopicRequest struct {
+	Name                   string   `json:"name,omitempty"`
+	ComponentTypes         []string `json:"component_types,omitempty"`
+	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
+	ExportControl          *bool    `json:"export_control,omitempty"`
+	NextTopicID            string   `json:"next_topic_id,omitempty"`
+	State                  string   `json:"state,omitempty"`
+}
+
 // POST request/response structs
 
 // CreateJobRequest represents the request body for creating a new job
