@@ -3,7 +3,7 @@ module github.com/sebrandon1/go-dci
 go 1.26.0
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.41.1
+	github.com/aws/aws-sdk-go-v2 v1.41.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/aws/smithy-go v1.24.0 // indirect
+	github.com/aws/smithy-go v1.24.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
