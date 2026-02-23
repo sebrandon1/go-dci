@@ -7,6 +7,8 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions: read-all
+
 jobs:
   lint:
     name: Run Linters and Vet
