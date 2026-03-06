@@ -422,11 +422,11 @@ type JobStateResponse struct {
 // JobStatesResponse represents the response from getting job states
 type JobStatesResponse struct {
 	Meta      Meta       `json:"_meta,omitempty"`
-	JobStates []JobState2 `json:"jobstates,omitempty"`
+	JobStates []JobStateEntry `json:"jobstates,omitempty"`
 }
 
-// JobState2 represents a single job state entry (different from JobState which is a string type)
-type JobState2 struct {
+// JobStateEntry represents a single job state entry (different from JobState which is a string type)
+type JobStateEntry struct {
 	ID        string `json:"id"`
 	JobID     string `json:"job_id"`
 	Status    string `json:"status"`

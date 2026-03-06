@@ -124,7 +124,7 @@ func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
 
 // fetchComponentTypes is an internal helper to fetch component types with pagination
 func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesResponse, error) {
-	httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/componenttypes", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/componenttypes", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 	if err != nil {
 		fmt.Printf("Error getting component types: %s\n", err)
 		return ComponentTypesResponse{}, err
@@ -268,48 +268,51 @@ func (c *Client) GetTopics() ([]TopicsResponse, error) {
 
 	requestLimit := 100
 	offset := 0
-	maxRecords := 50000
 
 	for {
-		httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/topics", awsRegion, serviceName, c.AccessKey, c.SecretKey, 100, 0)
+		topics, err := c.fetchTopics(requestLimit, offset)
 		if err != nil {
-			fmt.Printf("Error getting topics: %s\n", err)
-			return nil, err
-		}
-
-		defer func() {
-			err := httpResponse.Body.Close()
-			if err != nil {
-				fmt.Printf("Error closing the response body: %s\n", err)
-			}
-		}()
-
-		var topics TopicsResponse
-		err = json.NewDecoder(httpResponse.Body).Decode(&topics)
-		if err != nil {
-			fmt.Printf("Error decoding the response: %s\n", err)
 			return nil, err
 		}
 
 		topicsCollection = append(topicsCollection, topics)
 
-		offset += requestLimit
-
-		// If the number of topics returned is less than the request limit, we have reached the end
 		if len(topics.Topics) < requestLimit {
 			break
 		}
 
-		// If we have reached the maximum number of records, we can stop the loop
-		if len(topics.Topics) >= maxRecords {
+		if offset >= maxRecords {
 			break
 		}
 
-		// Increment the offset
 		offset += requestLimit
 	}
 
 	return topicsCollection, nil
+}
+
+// fetchTopics is an internal helper to fetch topics with pagination
+func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
+	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/topics", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	if err != nil {
+		fmt.Printf("Error getting topics: %s\n", err)
+		return TopicsResponse{}, err
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	var topics TopicsResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&topics)
+	if err != nil {
+		fmt.Printf("Error decoding the response: %s\n", err)
+		return TopicsResponse{}, err
+	}
+
+	return topics, nil
 }
 
 // GetTopic retrieves a single topic by ID from the DCI API
@@ -438,31 +441,17 @@ func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error
 	offset := 0
 
 	for {
-		url := fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID)
-		httpResponse, err := HttpGetWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+		components, err := c.fetchTopicComponents(topicID, requestLimit, offset)
 		if err != nil {
-			return nil, fmt.Errorf("error getting topic components: %w", err)
-		}
-
-		defer func() {
-			if cerr := httpResponse.Body.Close(); cerr != nil {
-				fmt.Printf("Error closing response body: %v\n", cerr)
-			}
-		}()
-
-		var components ComponentsResponse
-		if err := json.NewDecoder(httpResponse.Body).Decode(&components); err != nil {
-			return nil, fmt.Errorf("error decoding response: %w", err)
+			return nil, err
 		}
 
 		componentsCollection = append(componentsCollection, components)
 
-		// If fewer results than limit, we've reached the end
 		if len(components.Components) < requestLimit {
 			break
 		}
 
-		// If we've reached max records, stop
 		if offset >= maxRecords {
 			break
 		}
@@ -471,6 +460,28 @@ func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error
 	}
 
 	return componentsCollection, nil
+}
+
+// fetchTopicComponents is an internal helper to fetch components for a topic with pagination
+func (c *Client) fetchTopicComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
+	url := fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID)
+	httpResponse, err := httpGetWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	if err != nil {
+		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
+	}
+
+	defer func() {
+		if cerr := httpResponse.Body.Close(); cerr != nil {
+			fmt.Printf("Error closing response body: %v\n", cerr)
+		}
+	}()
+
+	var components ComponentsResponse
+	if err := json.NewDecoder(httpResponse.Body).Decode(&components); err != nil {
+		return ComponentsResponse{}, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	return components, nil
 }
 
 func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
@@ -717,7 +728,7 @@ func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
 	return &response, nil
 }
 
-func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
+func httpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
 	// Create signer using aws-sdk-go-v2 v4 signer
 	signer := signerv4.NewSigner()
 
@@ -750,7 +761,7 @@ func HttpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, l
 
 func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 	// Get jobs from the API
-	httpResponse, err := HttpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 	if err != nil {
 		fmt.Printf("Error getting jobs: %s\n", err)
 		return JobsResponse{}, err
@@ -775,37 +786,10 @@ func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 
 // GetComponents retrieves all components from the DCI API with pagination
 func (c *Client) GetComponents() ([]ComponentsResponse, error) {
-	var componentsCollection []ComponentsResponse
-
-	requestLimit := 100
-	offset := 0
-
-	for {
-		components, err := c.fetchComponents("", requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		componentsCollection = append(componentsCollection, components)
-
-		// If the number of components returned is less than the request limit, we have reached the end
-		if len(components.Components) < requestLimit {
-			break
-		}
-
-		// If we have reached the maximum number of records, we can stop the loop
-		if offset >= maxRecords {
-			break
-		}
-
-		// Increment the offset
-		offset += requestLimit
-	}
-
-	return componentsCollection, nil
+	return c.GetComponentsByTopicID("")
 }
 
-// GetComponentsByTopicID retrieves components filtered by topic ID
+// GetComponentsByTopicID retrieves components filtered by topic ID (empty string for all)
 func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, error) {
 	var componentsCollection []ComponentsResponse
 
@@ -820,17 +804,14 @@ func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, e
 
 		componentsCollection = append(componentsCollection, components)
 
-		// If the number of components returned is less than the request limit, we have reached the end
 		if len(components.Components) < requestLimit {
 			break
 		}
 
-		// If we have reached the maximum number of records, we can stop the loop
 		if offset >= maxRecords {
 			break
 		}
 
-		// Increment the offset
 		offset += requestLimit
 	}
 
@@ -1080,44 +1061,6 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
 		return nil, fmt.Errorf("failed to update job state with status code %d: %s", httpResponse.StatusCode, string(body))
-	}
-
-	var response JobStateResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
-	}
-
-	return &response, nil
-}
-
-// CreateJobState creates a new job state entry
-func (c *Client) CreateJobState(jobID string, status JobState, comment string) (*JobStateResponse, error) {
-	reqBody := UpdateJobStateRequest{
-		JobID:   jobID,
-		Status:  string(status),
-		Comment: comment,
-	}
-
-	jsonBody, err := json.Marshal(reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling request body: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
-	if err != nil {
-		return nil, fmt.Errorf("error creating job state: %w", err)
-	}
-
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create job state with status code %d: %s", httpResponse.StatusCode, string(body))
 	}
 
 	var response JobStateResponse

@@ -154,8 +154,8 @@ files, err := client.GetJobFiles(jobID)
 // Update job state
 state, err := client.UpdateJobState(jobID, lib.JobStateRunning, "Starting tests")
 
-// Create job state entry
-state, err := client.CreateJobState(jobID, lib.JobStateSuccess, "Tests passed")
+// Mark job as successful
+state, err = client.UpdateJobState(jobID, lib.JobStateSuccess, "Tests passed")
 
 // Get job states history
 states, err := client.GetJobStates(jobID)
