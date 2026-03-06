@@ -7,57 +7,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SetConfigValue(key, value string) error {
-	viper.Set(key, value)
-	if err := viper.WriteConfig(); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
-	}
-	return nil
-}
-
-func ConfigKeyValuePairAdd(key string, value string) error {
-	if validateKeyValuePair(key, value) {
-		return fmt.Errorf("validation not met for %s", key)
-	}
-	return writeKeyValuePair(key, value)
-}
-
-func validateKeyValuePair(key string, value string) bool {
-	if len(key) == 0 || len(value) == 0 {
-		fmt.Println("The key and value must both contain contents to write to the configuration file.")
-		return true
-	}
-	// Determine if an existing key, if so notify.
-	if findExistingKey(key) {
-		fmt.Println("This key already exists. Create a key value pair with a different key, or if this is an update use the update command.")
-		return true
-	}
-	return false
-}
-
-func findExistingKey(theKey string) bool {
-	existingKey := false
-	for i := 0; i < len(viper.AllKeys()); i++ {
-		if viper.AllKeys()[i] == theKey {
-			existingKey = true
-		}
-	}
-	return existingKey
-}
-
-func ConfigKeyValuePairUpdate(key string, value string) error {
-	return writeKeyValuePair(key, value)
-}
-
-func writeKeyValuePair(key string, value interface{}) error {
-	viper.Set(key, value)
-	if err := viper.WriteConfig(); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
-	}
-	fmt.Printf("Wrote the %s pair.\n", key)
-	return nil
-}
-
 func GetConfigValue(key string) string {
 	return viper.GetString(key)
 }
@@ -110,7 +59,7 @@ var unsetCmd = &cobra.Command{
 			return
 		}
 
-		if !findExistingKey(key) {
+		if !viper.IsSet(key) {
 			fmt.Printf("Key '%s' does not exist in configuration\n", key)
 			return
 		}

@@ -102,7 +102,7 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 	urlConcatPattern := regexp.MustCompile(`(?:` + baseURLVar + `)\s*\+\s*"(/[^"]+)"`)
 	sprintfPattern := regexp.MustCompile(`fmt\.Sprintf\s*\(\s*"%s(/[^"]+)"`)
 	// Match HTTP method from http.NewRequest or helper function calls
-	methodPattern := regexp.MustCompile(`(?:http\.NewRequest|HttpGetWithAWSAuth|httpGetSimpleWithAWSAuth|httpPostWithAWSAuth|httpPostFileWithAWSAuth)\s*\(\s*(?:"(GET|POST|PUT|DELETE|PATCH)")?`)
+	methodPattern := regexp.MustCompile(`(?:http\.NewRequest|httpGetWithAWSAuth|httpGetSimpleWithAWSAuth|httpPostWithAWSAuth|httpPostFileWithAWSAuth)\s*\(\s*(?:"(GET|POST|PUT|DELETE|PATCH)")?`)
 
 	err := filepath.Walk(libPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
