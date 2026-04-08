@@ -2,8 +2,6 @@ module github.com/sebrandon1/go-dci
 
 go 1.26.2
 
-toolchain go1.26.2
-
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/spf13/cobra v1.10.2
