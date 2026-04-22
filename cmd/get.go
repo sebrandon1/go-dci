@@ -16,9 +16,12 @@ import (
 var ageInDays string
 var outputFormat string
 var topicID string
+var startDate string
+var endDate string
 
 const (
 	dateFormat         = "2006-01-02T15:04:05.999999"
+	dateFormatDay      = "2006-01-02"
 	OutputFormatJSON   = "json"
 	OutputFormatStdout = "stdout"
 )
@@ -210,7 +213,7 @@ var getComponentsCmd = &cobra.Command{
 
 var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
-	Short: "Get all jobs with a specific age in days",
+	Short: "Get all jobs with a specific age in days or date range",
 	Run: func(cmd *cobra.Command, args []string) {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -226,20 +229,52 @@ var getJobsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
-		}
+		var jobsResponses []lib.JobsResponse
 
-		daysBackLimit, err := strconv.Atoi(ageInDays)
-		if err != nil {
-			fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
-			return
-		}
+		if startDate != "" && endDate != "" {
+			parsedStart, err := time.Parse(dateFormatDay, startDate)
+			if err != nil {
+				fmt.Printf("Error: invalid start-date '%s' (expected YYYY-MM-DD): %v\n", startDate, err)
+				return
+			}
 
-		jobsResponses, err := client.GetJobs(daysBackLimit)
-		if err != nil {
-			fmt.Printf("failed to get jobs: %v\n", err)
+			parsedEnd, err := time.Parse(dateFormatDay, endDate)
+			if err != nil {
+				fmt.Printf("Error: invalid end-date '%s' (expected YYYY-MM-DD): %v\n", endDate, err)
+				return
+			}
+
+			// Include the entire end date by advancing to the start of the next day
+			parsedEnd = parsedEnd.AddDate(0, 0, 1)
+
+			if outputFormat != OutputFormatJSON {
+				fmt.Printf("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
+			}
+
+			jobsResponses, err = client.GetJobsByDate(parsedStart, parsedEnd)
+			if err != nil {
+				fmt.Printf("failed to get jobs: %v\n", err)
+				return
+			}
+		} else if startDate != "" || endDate != "" {
+			fmt.Println("Error: both --start-date and --end-date must be provided together")
 			return
+		} else {
+			if outputFormat != OutputFormatJSON {
+				fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
+			}
+
+			daysBackLimit, err := strconv.Atoi(ageInDays)
+			if err != nil {
+				fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
+				return
+			}
+
+			jobsResponses, err = client.GetJobs(daysBackLimit)
+			if err != nil {
+				fmt.Printf("failed to get jobs: %v\n", err)
+				return
+			}
 		}
 
 		for _, job := range jobsResponses {
@@ -516,6 +551,8 @@ func init() {
 	rootCmd.AddCommand(getTopicsCmd)
 
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
+	getJobsCmd.PersistentFlags().StringVarP(&startDate, "start-date", "s", "", "Start date for job query (YYYY-MM-DD)")
+	getJobsCmd.PersistentFlags().StringVarP(&endDate, "end-date", "e", "", "End date for job query (YYYY-MM-DD)")
 	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
