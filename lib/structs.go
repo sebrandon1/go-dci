@@ -1,5 +1,34 @@
 package lib
 
+import "encoding/json"
+
+// StringOrSlice handles JSON fields that can be either a string or []string.
+type StringOrSlice []string
+
+func (s *StringOrSlice) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+
+	if data[0] == '"' {
+		var single string
+		if err := json.Unmarshal(data, &single); err != nil {
+			return err
+		}
+
+		*s = []string{single}
+		return nil
+	}
+
+	var slice []string
+	if err := json.Unmarshal(data, &slice); err != nil {
+		return err
+	}
+
+	*s = slice
+	return nil
+}
+
 // Shared structs
 
 type Meta struct {
@@ -18,7 +47,7 @@ type Product struct {
 }
 
 type Data struct {
-	Digest      []string `json:"digest"`
+	Digest      StringOrSlice `json:"digest"`
 	DisplayName string   `json:"display_name"`
 	PullURL     string   `json:"pull_url"`
 	Tags        []string `json:"tags"`
