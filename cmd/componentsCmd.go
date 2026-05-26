@@ -128,7 +128,7 @@ var updateComponentCmd = &cobra.Command{
 			updates.Name = updateComponentName
 		}
 		if updateComponentState != "" {
-			updates.State = updateComponentState
+			updates.State = lib.ResourceState(updateComponentState)
 		}
 		if updateComponentVersion != "" {
 			updates.Version = updateComponentVersion

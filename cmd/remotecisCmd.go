@@ -147,7 +147,7 @@ var updateRemoteCICmd = &cobra.Command{
 			updates.Name = updateRemoteCINameFlag
 		}
 		if updateRemoteCIStateFlag != "" {
-			updates.State = updateRemoteCIStateFlag
+			updates.State = lib.ResourceState(updateRemoteCIStateFlag)
 		}
 
 		if outputFormat != OutputFormatJSON {

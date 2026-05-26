@@ -142,7 +142,7 @@ var updateTeamCmd = &cobra.Command{
 			updates.Name = updateTeamNameFlag
 		}
 		if updateTeamStateFlag != "" {
-			updates.State = updateTeamStateFlag
+			updates.State = lib.ResourceState(updateTeamStateFlag)
 		}
 
 		if outputFormat != OutputFormatJSON {

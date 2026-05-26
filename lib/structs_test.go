@@ -58,6 +58,31 @@ func TestStringOrSlice_UnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestResourceStateConstants(t *testing.T) {
+	if ResourceStateActive != "active" {
+		t.Errorf("expected 'active', got %q", ResourceStateActive)
+	}
+	if ResourceStateInactive != "inactive" {
+		t.Errorf("expected 'inactive', got %q", ResourceStateInactive)
+	}
+}
+
+func TestResourceStateJSON(t *testing.T) {
+	req := UpdateComponentTypeRequest{Name: "test", State: ResourceStateActive}
+	data, err := json.Marshal(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var decoded UpdateComponentTypeRequest
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if decoded.State != ResourceStateActive {
+		t.Errorf("expected %q, got %q", ResourceStateActive, decoded.State)
+	}
+}
+
 func TestStringOrSlice_UnmarshalJSON_Error(t *testing.T) {
 	tests := []struct {
 		name  string
