@@ -318,12 +318,12 @@ type CreateTopicRequest struct {
 
 // UpdateTopicRequest represents the request body for updating a topic
 type UpdateTopicRequest struct {
-	Name                   string   `json:"name,omitempty"`
-	ComponentTypes         []string `json:"component_types,omitempty"`
-	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
-	ExportControl          *bool    `json:"export_control,omitempty"`
-	NextTopicID            string   `json:"next_topic_id,omitempty"`
-	State                  string   `json:"state,omitempty"`
+	Name                   string        `json:"name,omitempty"`
+	ComponentTypes         []string      `json:"component_types,omitempty"`
+	ComponentTypesOptional []string      `json:"component_types_optional,omitempty"`
+	ExportControl          *bool         `json:"export_control,omitempty"`
+	NextTopicID            string        `json:"next_topic_id,omitempty"`
+	State                  ResourceState `json:"state,omitempty"`
 }
 
 // ComponentTypeResponse represents a single component type response from the API
@@ -338,8 +338,8 @@ type CreateComponentTypeRequest struct {
 
 // UpdateComponentTypeRequest represents the request body for updating a component type
 type UpdateComponentTypeRequest struct {
-	Name  string `json:"name,omitempty"`
-	State string `json:"state,omitempty"`
+	Name  string        `json:"name,omitempty"`
+	State ResourceState `json:"state,omitempty"`
 }
 
 // ComponentResponse represents a single component response from the API
@@ -349,21 +349,21 @@ type ComponentResponse struct {
 
 // CreateComponentRequest represents the request body for creating a new component
 type CreateComponentRequest struct {
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	TopicID string `json:"topic_id"`
-	Version string `json:"version,omitempty"`
-	URL     string `json:"url,omitempty"`
-	State   string `json:"state,omitempty"`
+	Name    string        `json:"name"`
+	Type    string        `json:"type"`
+	TopicID string        `json:"topic_id"`
+	Version string        `json:"version,omitempty"`
+	URL     string        `json:"url,omitempty"`
+	State   ResourceState `json:"state,omitempty"`
 }
 
 // UpdateComponentRequest represents the request body for updating a component
 type UpdateComponentRequest struct {
-	Name    string   `json:"name,omitempty"`
-	State   string   `json:"state,omitempty"`
-	URL     string   `json:"url,omitempty"`
-	Version string   `json:"version,omitempty"`
-	Tags    []string `json:"tags,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	State   ResourceState `json:"state,omitempty"`
+	URL     string        `json:"url,omitempty"`
+	Version string        `json:"version,omitempty"`
+	Tags    []string      `json:"tags,omitempty"`
 }
 
 // JobResponse represents a single job response from the API
@@ -415,6 +415,14 @@ type CreateJobRequest struct {
 type CreateJobResponse struct {
 	Job Job `json:"job"`
 }
+
+// ResourceState represents the valid states for DCI resources (topics, components, teams, etc.)
+type ResourceState string
+
+const (
+	ResourceStateActive   ResourceState = "active"
+	ResourceStateInactive ResourceState = "inactive"
+)
 
 // JobState represents the valid job states
 type JobState string
@@ -511,8 +519,8 @@ type CreateRemoteCIRequest struct {
 
 // UpdateRemoteCIRequest represents the request body for updating a remote CI
 type UpdateRemoteCIRequest struct {
-	Name  string `json:"name,omitempty"`
-	State string `json:"state,omitempty"`
+	Name  string        `json:"name,omitempty"`
+	State ResourceState `json:"state,omitempty"`
 }
 
 // Team represents a team in DCI
@@ -547,9 +555,9 @@ type CreateTeamRequest struct {
 
 // UpdateTeamRequest represents the request body for updating a team
 type UpdateTeamRequest struct {
-	Name    string `json:"name,omitempty"`
-	Country string `json:"country,omitempty"`
-	State   string `json:"state,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	Country string        `json:"country,omitempty"`
+	State   ResourceState `json:"state,omitempty"`
 }
 
 // User represents a user in DCI
@@ -588,11 +596,11 @@ type CreateUserRequest struct {
 
 // UpdateUserRequest represents the request body for updating a user
 type UpdateUserRequest struct {
-	Name     string `json:"name,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Fullname string `json:"fullname,omitempty"`
-	Timezone string `json:"timezone,omitempty"`
-	State    string `json:"state,omitempty"`
+	Name     string        `json:"name,omitempty"`
+	Email    string        `json:"email,omitempty"`
+	Fullname string        `json:"fullname,omitempty"`
+	Timezone string        `json:"timezone,omitempty"`
+	State    ResourceState `json:"state,omitempty"`
 }
 
 // ProductsResponse represents the response from getting products

@@ -172,7 +172,7 @@ var updateUserCmd = &cobra.Command{
 			updates.Fullname = updateUserFullnameFlag
 		}
 		if updateUserStateFlag != "" {
-			updates.State = updateUserStateFlag
+			updates.State = lib.ResourceState(updateUserStateFlag)
 		}
 
 		if outputFormat != OutputFormatJSON {

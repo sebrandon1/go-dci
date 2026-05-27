@@ -112,7 +112,7 @@ var updateComponentTypeCmd = &cobra.Command{
 			updates.Name = updateComponentTypeName
 		}
 		if updateComponentTypeState != "" {
-			updates.State = updateComponentTypeState
+			updates.State = lib.ResourceState(updateComponentTypeState)
 		}
 
 		if outputFormat != OutputFormatJSON {
