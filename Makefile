@@ -1,4 +1,5 @@
 APP_NAME=go-dci
+VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 GO_FILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: vet build lint test clean run
@@ -7,7 +8,7 @@ vet:
 	go vet $(GO_FILES)
 
 build:
-	go build -o $(APP_NAME)
+	go build -ldflags "-X github.com/sebrandon1/go-dci/cmd.Version=$(VERSION)" -o $(APP_NAME)
 
 lint:
 	golangci-lint run ./cmd ./lib
