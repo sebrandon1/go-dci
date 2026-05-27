@@ -24,16 +24,14 @@ var (
 var getTopicCmd = &cobra.Command{
 	Use:   "topic",
 	Short: "Get a specific topic by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getTopicIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -44,8 +42,7 @@ var getTopicCmd = &cobra.Command{
 
 		response, err := client.GetTopic(getTopicIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get topic: %v\n", err)
-			return
+			return fmt.Errorf("failed to get topic: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -53,27 +50,26 @@ var getTopicCmd = &cobra.Command{
 		} else {
 			printTopicStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var createTopicCmd = &cobra.Command{
 	Use:   "create-topic",
 	Short: "Create a new topic in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createTopicName == "" {
-			fmt.Println("Error: --name is required")
-			return
+			return fmt.Errorf("--name is required")
 		}
 
 		if createTopicProductID == "" {
-			fmt.Println("Error: --product-id is required")
-			return
+			return fmt.Errorf("--product-id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -93,8 +89,7 @@ var createTopicCmd = &cobra.Command{
 
 		response, err := client.CreateTopic(createTopicName, createTopicProductID, componentTypes)
 		if err != nil {
-			fmt.Printf("Failed to create topic: %v\n", err)
-			return
+			return fmt.Errorf("failed to create topic: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -103,22 +98,22 @@ var createTopicCmd = &cobra.Command{
 			fmt.Println("Topic created successfully!")
 			printTopicStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateTopicCmd = &cobra.Command{
 	Use:   "update-topic",
 	Short: "Update an existing topic in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getTopicIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -134,8 +129,7 @@ var updateTopicCmd = &cobra.Command{
 
 		response, err := client.UpdateTopic(getTopicIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update topic: %v\n", err)
-			return
+			return fmt.Errorf("failed to update topic: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -144,22 +138,22 @@ var updateTopicCmd = &cobra.Command{
 			fmt.Println("Topic updated successfully!")
 			printTopicStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteTopicCmd = &cobra.Command{
 	Use:   "delete-topic",
 	Short: "Delete a topic from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteTopicIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -170,8 +164,7 @@ var deleteTopicCmd = &cobra.Command{
 
 		err = client.DeleteTopic(deleteTopicIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete topic: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete topic: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -181,22 +174,22 @@ var deleteTopicCmd = &cobra.Command{
 		} else {
 			fmt.Println("Topic deleted successfully!")
 		}
+
+		return nil
 	},
 }
 
 var getTopicComponentsCmd = &cobra.Command{
 	Use:   "topic-components",
 	Short: "Get all components for a specific topic",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if topicComponentsIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -207,8 +200,7 @@ var getTopicComponentsCmd = &cobra.Command{
 
 		componentsResponses, err := client.GetTopicComponents(topicComponentsIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get topic components: %v\n", err)
-			return
+			return fmt.Errorf("failed to get topic components: %v", err)
 		}
 
 		totalComponents := 0
@@ -222,6 +214,8 @@ var getTopicComponentsCmd = &cobra.Command{
 			printComponentsStdout(componentsResponses)
 			fmt.Printf("Total Components: %d\n", totalComponents)
 		}
+
+		return nil
 	},
 }
 

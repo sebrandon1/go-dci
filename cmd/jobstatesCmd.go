@@ -17,11 +17,10 @@ var (
 var getJobStatesCmd = &cobra.Command{
 	Use:   "jobstates",
 	Short: "Get job states, optionally filtered by job ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -36,8 +35,7 @@ var getJobStatesCmd = &cobra.Command{
 
 		response, err := client.GetJobStates(getJobStatesJobIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get job states: %v\n", err)
-			return
+			return fmt.Errorf("failed to get job states: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -45,6 +43,8 @@ var getJobStatesCmd = &cobra.Command{
 		} else {
 			printJobStatesStdout(response)
 		}
+
+		return nil
 	},
 }
 

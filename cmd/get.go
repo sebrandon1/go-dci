@@ -33,11 +33,10 @@ var (
 var getTopicsCmd = &cobra.Command{
 	Use:   "topics",
 	Short: "Get all topics from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -48,8 +47,7 @@ var getTopicsCmd = &cobra.Command{
 
 		topicsResponses, err := client.GetTopics()
 		if err != nil {
-			fmt.Printf("failed to get topics: %v\n", err)
-			return
+			return fmt.Errorf("failed to get topics: %v", err)
 		}
 
 		totalTopics := 0
@@ -63,17 +61,18 @@ var getTopicsCmd = &cobra.Command{
 			printTopicsStdout(topicsResponses)
 			fmt.Printf("Total Topics: %d\n", totalTopics)
 		}
+
+		return nil
 	},
 }
 
 var getComponentTypesCmd = &cobra.Command{
 	Use:   "componenttypes",
 	Short: "Get all component types from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -84,8 +83,7 @@ var getComponentTypesCmd = &cobra.Command{
 
 		componentTypesResponses, err := client.GetComponentTypes()
 		if err != nil {
-			fmt.Printf("failed to get component types: %v\n", err)
-			return
+			return fmt.Errorf("failed to get component types: %v", err)
 		}
 
 		totalComponentTypes := 0
@@ -99,25 +97,25 @@ var getComponentTypesCmd = &cobra.Command{
 			printComponentTypesStdout(componentTypesResponses)
 			fmt.Printf("Total Component Types: %d\n", totalComponentTypes)
 		}
+
+		return nil
 	},
 }
 
 var getIdentityCmd = &cobra.Command{
 	Use:   "identity",
 	Short: "Verify authentication and display current identity information",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
 
 		identity, err := client.GetIdentity()
 		if err != nil {
-			fmt.Printf("Authentication failed: %v\n", err)
-			return
+			return fmt.Errorf("authentication failed: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -125,17 +123,18 @@ var getIdentityCmd = &cobra.Command{
 		} else {
 			printIdentityStdout(identity)
 		}
+
+		return nil
 	},
 }
 
 var getOcpCountCmd = &cobra.Command{
 	Use:   "ocpcount",
 	Short: "Get the count of jobs for each OCP version",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if outputFormat != OutputFormatJSON {
@@ -144,16 +143,14 @@ var getOcpCountCmd = &cobra.Command{
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)
 		if err != nil {
-			fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
-			return
+			return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
 
 		jobsResponses, err := client.GetJobs(daysBackLimit)
 		if err != nil {
-			fmt.Printf("Error getting jobs: %v\n", err)
-			return
+			return fmt.Errorf("getting jobs: %v", err)
 		}
 
 		ocpVersionCount := countOcpVersions(jobsResponses)
@@ -163,17 +160,18 @@ var getOcpCountCmd = &cobra.Command{
 		} else {
 			printOcpVersionCountJSON(ocpVersionCount)
 		}
+
+		return nil
 	},
 }
 
 var getComponentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "Get all components, optionally filtered by topic ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -193,8 +191,7 @@ var getComponentsCmd = &cobra.Command{
 		}
 
 		if err != nil {
-			fmt.Printf("failed to get components: %v\n", err)
-			return
+			return fmt.Errorf("failed to get components: %v", err)
 		}
 
 		totalComponents := 0
@@ -208,17 +205,18 @@ var getComponentsCmd = &cobra.Command{
 			printComponentsStdout(componentsResponses)
 			fmt.Printf("Total Components: %d\n", totalComponents)
 		}
+
+		return nil
 	},
 }
 
 var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
 	Short: "Get all jobs with a specific age in days or date range",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		var jsonOutput lib.JobsJsonOutput
@@ -234,14 +232,12 @@ var getJobsCmd = &cobra.Command{
 		if startDate != "" && endDate != "" {
 			parsedStart, err := time.Parse(dateFormatDay, startDate)
 			if err != nil {
-				fmt.Printf("Error: invalid start-date '%s' (expected YYYY-MM-DD): %v\n", startDate, err)
-				return
+				return fmt.Errorf("invalid start-date '%s' (expected YYYY-MM-DD): %v", startDate, err)
 			}
 
 			parsedEnd, err := time.Parse(dateFormatDay, endDate)
 			if err != nil {
-				fmt.Printf("Error: invalid end-date '%s' (expected YYYY-MM-DD): %v\n", endDate, err)
-				return
+				return fmt.Errorf("invalid end-date '%s' (expected YYYY-MM-DD): %v", endDate, err)
 			}
 
 			// Include the entire end date by advancing to the start of the next day
@@ -253,12 +249,10 @@ var getJobsCmd = &cobra.Command{
 
 			jobsResponses, err = client.GetJobsByDate(parsedStart, parsedEnd)
 			if err != nil {
-				fmt.Printf("failed to get jobs: %v\n", err)
-				return
+				return fmt.Errorf("failed to get jobs: %v", err)
 			}
 		} else if startDate != "" || endDate != "" {
-			fmt.Println("Error: both --start-date and --end-date must be provided together")
-			return
+			return fmt.Errorf("both --start-date and --end-date must be provided together")
 		} else {
 			if outputFormat != OutputFormatJSON {
 				fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
@@ -266,14 +260,12 @@ var getJobsCmd = &cobra.Command{
 
 			daysBackLimit, err := strconv.Atoi(ageInDays)
 			if err != nil {
-				fmt.Printf("Error: invalid age value '%s': %v\n", ageInDays, err)
-				return
+				return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 			}
 
 			jobsResponses, err = client.GetJobs(daysBackLimit)
 			if err != nil {
-				fmt.Printf("failed to get jobs: %v\n", err)
-				return
+				return fmt.Errorf("failed to get jobs: %v", err)
 			}
 		}
 
@@ -308,11 +300,12 @@ var getJobsCmd = &cobra.Command{
 		} else {
 			jsonOutputBytes, err := json.Marshal(jsonOutput)
 			if err != nil {
-				fmt.Printf("Error marshaling JSON output: %v\n", err)
-				return
+				return fmt.Errorf("failed to marshal JSON output: %v", err)
 			}
 			fmt.Println(string(jsonOutputBytes))
 		}
+
+		return nil
 	},
 }
 

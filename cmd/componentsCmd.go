@@ -28,16 +28,14 @@ var (
 var getComponentCmd = &cobra.Command{
 	Use:   "component",
 	Short: "Get a specific component by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getComponentIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -48,8 +46,7 @@ var getComponentCmd = &cobra.Command{
 
 		response, err := client.GetComponent(getComponentIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get component: %v\n", err)
-			return
+			return fmt.Errorf("failed to get component: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -57,32 +54,30 @@ var getComponentCmd = &cobra.Command{
 		} else {
 			printComponentStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var createComponentCmd = &cobra.Command{
 	Use:   "create-component",
 	Short: "Create a new component in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createComponentName == "" {
-			fmt.Println("Error: --name is required")
-			return
+			return fmt.Errorf("--name is required")
 		}
 
 		if createComponentType == "" {
-			fmt.Println("Error: --type is required")
-			return
+			return fmt.Errorf("--type is required")
 		}
 
 		if createComponentTopicID == "" {
-			fmt.Println("Error: --topic-id is required")
-			return
+			return fmt.Errorf("--topic-id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -93,8 +88,7 @@ var createComponentCmd = &cobra.Command{
 
 		response, err := client.CreateComponent(createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
 		if err != nil {
-			fmt.Printf("Failed to create component: %v\n", err)
-			return
+			return fmt.Errorf("failed to create component: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -103,22 +97,22 @@ var createComponentCmd = &cobra.Command{
 			fmt.Println("Component created successfully!")
 			printComponentStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateComponentCmd = &cobra.Command{
 	Use:   "update-component",
 	Short: "Update an existing component in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateComponentIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -147,8 +141,7 @@ var updateComponentCmd = &cobra.Command{
 
 		response, err := client.UpdateComponent(updateComponentIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update component: %v\n", err)
-			return
+			return fmt.Errorf("failed to update component: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -157,22 +150,22 @@ var updateComponentCmd = &cobra.Command{
 			fmt.Println("Component updated successfully!")
 			printComponentStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteComponentCmd = &cobra.Command{
 	Use:   "delete-component",
 	Short: "Delete a component from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteComponentIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -183,8 +176,7 @@ var deleteComponentCmd = &cobra.Command{
 
 		err = client.DeleteComponent(deleteComponentIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete component: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete component: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -194,6 +186,8 @@ var deleteComponentCmd = &cobra.Command{
 		} else {
 			fmt.Println("Component deleted successfully!")
 		}
+
+		return nil
 	},
 }
 

@@ -28,11 +28,10 @@ var (
 var getUsersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "Get all users from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -43,8 +42,7 @@ var getUsersCmd = &cobra.Command{
 
 		response, err := client.GetUsers()
 		if err != nil {
-			fmt.Printf("Failed to get users: %v\n", err)
-			return
+			return fmt.Errorf("failed to get users: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -52,22 +50,22 @@ var getUsersCmd = &cobra.Command{
 		} else {
 			printUsersStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var getUserCmd = &cobra.Command{
 	Use:   "user",
 	Short: "Get a specific user by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getUserIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -78,8 +76,7 @@ var getUserCmd = &cobra.Command{
 
 		response, err := client.GetUser(getUserIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get user: %v\n", err)
-			return
+			return fmt.Errorf("failed to get user: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -87,34 +84,31 @@ var getUserCmd = &cobra.Command{
 		} else {
 			printUserStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var createUserCmd = &cobra.Command{
 	Use:   "create-user",
 	Short: "Create a new user in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createUserNameFlag == "" {
-			fmt.Println("Error: --name is required")
-			return
+			return fmt.Errorf("--name is required")
 		}
 		if createUserEmailFlag == "" {
-			fmt.Println("Error: --email is required")
-			return
+			return fmt.Errorf("--email is required")
 		}
 		if createUserTeamIDFlag == "" {
-			fmt.Println("Error: --team-id is required")
-			return
+			return fmt.Errorf("--team-id is required")
 		}
 		if createUserPasswordFlag == "" {
-			fmt.Println("Error: --password is required")
-			return
+			return fmt.Errorf("--password is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -131,8 +125,7 @@ var createUserCmd = &cobra.Command{
 			createUserPasswordFlag,
 		)
 		if err != nil {
-			fmt.Printf("Failed to create user: %v\n", err)
-			return
+			return fmt.Errorf("failed to create user: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -141,22 +134,22 @@ var createUserCmd = &cobra.Command{
 			fmt.Println("User created successfully!")
 			printUserStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateUserCmd = &cobra.Command{
 	Use:   "update-user",
 	Short: "Update an existing user in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateUserIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -181,8 +174,7 @@ var updateUserCmd = &cobra.Command{
 
 		response, err := client.UpdateUser(updateUserIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update user: %v\n", err)
-			return
+			return fmt.Errorf("failed to update user: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -191,22 +183,22 @@ var updateUserCmd = &cobra.Command{
 			fmt.Println("User updated successfully!")
 			printUserStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteUserCmd = &cobra.Command{
 	Use:   "delete-user",
 	Short: "Delete a user from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteUserIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -217,8 +209,7 @@ var deleteUserCmd = &cobra.Command{
 
 		err = client.DeleteUser(deleteUserIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete user: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete user: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -228,6 +219,8 @@ var deleteUserCmd = &cobra.Command{
 		} else {
 			fmt.Println("User deleted successfully!")
 		}
+
+		return nil
 	},
 }
 

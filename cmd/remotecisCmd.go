@@ -11,23 +11,22 @@ import (
 
 // Variables for remoteci command flags
 var (
-	getRemoteCIsCmd_IDFlag       string
-	createRemoteCINameFlag       string
-	createRemoteCITeamIDFlag     string
-	updateRemoteCIIDFlag         string
-	updateRemoteCINameFlag       string
-	updateRemoteCIStateFlag      string
-	deleteRemoteCIIDFlag         string
+	getRemoteCIsCmd_IDFlag   string
+	createRemoteCINameFlag   string
+	createRemoteCITeamIDFlag string
+	updateRemoteCIIDFlag     string
+	updateRemoteCINameFlag   string
+	updateRemoteCIStateFlag  string
+	deleteRemoteCIIDFlag     string
 )
 
 var getRemoteCIsCmd = &cobra.Command{
 	Use:   "remotecis",
 	Short: "Get all remote CIs from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -38,8 +37,7 @@ var getRemoteCIsCmd = &cobra.Command{
 
 		response, err := client.GetRemoteCIs()
 		if err != nil {
-			fmt.Printf("Failed to get remote CIs: %v\n", err)
-			return
+			return fmt.Errorf("failed to get remote CIs: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -47,22 +45,22 @@ var getRemoteCIsCmd = &cobra.Command{
 		} else {
 			printRemoteCIsStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var getRemoteCICmd = &cobra.Command{
 	Use:   "remoteci",
 	Short: "Get a specific remote CI by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getRemoteCIsCmd_IDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -73,8 +71,7 @@ var getRemoteCICmd = &cobra.Command{
 
 		response, err := client.GetRemoteCI(getRemoteCIsCmd_IDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get remote CI: %v\n", err)
-			return
+			return fmt.Errorf("failed to get remote CI: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -82,26 +79,25 @@ var getRemoteCICmd = &cobra.Command{
 		} else {
 			printRemoteCIStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var createRemoteCICmd = &cobra.Command{
 	Use:   "create-remoteci",
 	Short: "Create a new remote CI in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createRemoteCINameFlag == "" {
-			fmt.Println("Error: --name is required")
-			return
+			return fmt.Errorf("--name is required")
 		}
 		if createRemoteCITeamIDFlag == "" {
-			fmt.Println("Error: --team-id is required")
-			return
+			return fmt.Errorf("--team-id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -112,8 +108,7 @@ var createRemoteCICmd = &cobra.Command{
 
 		response, err := client.CreateRemoteCI(createRemoteCINameFlag, createRemoteCITeamIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to create remote CI: %v\n", err)
-			return
+			return fmt.Errorf("failed to create remote CI: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -122,22 +117,22 @@ var createRemoteCICmd = &cobra.Command{
 			fmt.Println("Remote CI created successfully!")
 			printRemoteCIStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateRemoteCICmd = &cobra.Command{
 	Use:   "update-remoteci",
 	Short: "Update an existing remote CI in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateRemoteCIIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -156,8 +151,7 @@ var updateRemoteCICmd = &cobra.Command{
 
 		response, err := client.UpdateRemoteCI(updateRemoteCIIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update remote CI: %v\n", err)
-			return
+			return fmt.Errorf("failed to update remote CI: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -166,22 +160,22 @@ var updateRemoteCICmd = &cobra.Command{
 			fmt.Println("Remote CI updated successfully!")
 			printRemoteCIStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteRemoteCICmd = &cobra.Command{
 	Use:   "delete-remoteci",
 	Short: "Delete a remote CI from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteRemoteCIIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -192,8 +186,7 @@ var deleteRemoteCICmd = &cobra.Command{
 
 		err = client.DeleteRemoteCI(deleteRemoteCIIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete remote CI: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete remote CI: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -203,6 +196,8 @@ var deleteRemoteCICmd = &cobra.Command{
 		} else {
 			fmt.Println("Remote CI deleted successfully!")
 		}
+
+		return nil
 	},
 }
 

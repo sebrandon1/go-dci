@@ -27,58 +27,60 @@ var configCmd = &cobra.Command{
 var setCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Set a key value pair to the configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accesskey, _ := cmd.Flags().GetString("accesskey")
 		secretkey, _ := cmd.Flags().GetString("secretkey")
 
 		if accesskey != "" {
 			if err := UpdateConfigValue("accesskey", accesskey); err != nil {
-				fmt.Printf("Error setting accesskey: %v\n", err)
-				return
+				return fmt.Errorf("setting accesskey: %v", err)
 			}
 			fmt.Println("Access key updated successfully")
 		}
 
 		if secretkey != "" {
 			if err := UpdateConfigValue("secretkey", secretkey); err != nil {
-				fmt.Printf("Error setting secretkey: %v\n", err)
-				return
+				return fmt.Errorf("setting secretkey: %v", err)
 			}
 			fmt.Println("Secret key updated successfully")
 		}
+
+		return nil
 	},
 }
 
 var unsetCmd = &cobra.Command{
 	Use:   "unset",
 	Short: "Unset a key value pair from the configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		key, _ := cmd.Flags().GetString("key")
 		if key == "" {
-			fmt.Println("Error: --key flag is required")
-			return
+			return fmt.Errorf("--key flag is required")
 		}
 
 		if !viper.IsSet(key) {
 			fmt.Printf("Key '%s' does not exist in configuration\n", key)
-			return
+			return nil
 		}
 
 		viper.Set(key, nil)
 		err := viper.WriteConfig()
 		if err != nil {
-			fmt.Printf("Error writing config: %v\n", err)
-			return
+			return fmt.Errorf("writing config: %v", err)
 		}
 		fmt.Printf("Unset key '%s' from configuration\n", key)
+
+		return nil
 	},
 }
 
 var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View the configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		viper.Debug()
+
+		return nil
 	},
 }
 
