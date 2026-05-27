@@ -12,6 +12,7 @@ linters:
     - staticcheck
     - unused
     - misspell
+    - bodyclose
 
   exclusions:
     rules:

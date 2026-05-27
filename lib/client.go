@@ -24,28 +24,31 @@ const (
 	awsRegion   = "BHS3"
 	serviceName = "api"
 	dateFormat  = "2006-01-02T15:04:05.999999"
-	maxRecords  = 50000
+	maxRecords      = 50000
+	defaultPageSize = 100
 	// SHA-256 of empty string for unsigned GET requests
 	emptyStringSHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 )
 
 type Client struct {
-	BaseURL   string
-	AccessKey string
-	SecretKey string
+	BaseURL    string
+	AccessKey  string
+	SecretKey  string
+	httpClient *http.Client
 }
 
 func NewClient(accessKey, secretKey string) *Client {
 	return &Client{
-		BaseURL:   DCIURL,
-		AccessKey: accessKey,
-		SecretKey: secretKey,
+		BaseURL:    DCIURL,
+		AccessKey:  accessKey,
+		SecretKey:  secretKey,
+		httpClient: &http.Client{},
 	}
 }
 
 // GetIdentity retrieves the authenticated user/remoteci identity from the DCI API
 func (c *Client) GetIdentity() (*IdentityResponse, error) {
-	httpResponse, err := httpGetSimpleWithAWSAuth(c.BaseURL+"/identity", awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(c.BaseURL + "/identity")
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +69,7 @@ func (c *Client) GetIdentity() (*IdentityResponse, error) {
 }
 
 // httpGetSimpleWithAWSAuth performs an authenticated GET request without pagination parameters
-func httpGetSimpleWithAWSAuth(url, region, svcName, accessKey, secretKey string) (*http.Response, error) {
+func (c *Client) httpGetSimpleWithAWSAuth(url string) (*http.Response, error) {
 	signer := signerv4.NewSigner()
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -74,21 +77,19 @@ func httpGetSimpleWithAWSAuth(url, region, svcName, accessKey, secretKey string)
 		return nil, err
 	}
 
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, svcName, region, time.Now()); err != nil {
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // GetComponentTypes retrieves all component types from the DCI API with pagination
 func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
 	var componentTypesCollection []ComponentTypesResponse
 
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -118,7 +119,7 @@ func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
 
 // fetchComponentTypes is an internal helper to fetch component types with pagination
 func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesResponse, error) {
-	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/componenttypes", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/componenttypes", requestLimit, offset)
 	if err != nil {
 		return ComponentTypesResponse{}, err
 	}
@@ -137,7 +138,7 @@ func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesRe
 // GetComponentType retrieves a single component type by ID from the DCI API
 func (c *Client) GetComponentType(componentTypeID string) (*ComponentTypeResponse, error) {
 	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component type: %w", err)
 	}
@@ -238,7 +239,7 @@ func (c *Client) DeleteComponentType(componentTypeID string) error {
 func (c *Client) GetTopics() ([]TopicsResponse, error) {
 	var topicsCollection []TopicsResponse
 
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -265,7 +266,7 @@ func (c *Client) GetTopics() ([]TopicsResponse, error) {
 
 // fetchTopics is an internal helper to fetch topics with pagination
 func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
-	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/topics", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/topics", requestLimit, offset)
 	if err != nil {
 		return TopicsResponse{}, err
 	}
@@ -284,7 +285,7 @@ func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
 // GetTopic retrieves a single topic by ID from the DCI API
 func (c *Client) GetTopic(topicID string) (*TopicResponse, error) {
 	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting topic: %w", err)
 	}
@@ -387,7 +388,7 @@ func (c *Client) DeleteTopic(topicID string) error {
 func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error) {
 	var componentsCollection []ComponentsResponse
 
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -415,7 +416,7 @@ func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error
 // fetchTopicComponents is an internal helper to fetch components for a topic with pagination
 func (c *Client) fetchTopicComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
 	url := fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID)
-	httpResponse, err := httpGetWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := c.httpGetWithAWSAuth(url, requestLimit, offset)
 	if err != nil {
 		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
 	}
@@ -434,7 +435,7 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 	var jobCollection []JobsResponse
 
 	// Default values to page through the results
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -488,7 +489,7 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 	var jobCollection []JobsResponse
 
 	// Default values to page through the results
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -531,7 +532,7 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 // GetJob retrieves a single job by ID from the DCI API
 func (c *Client) GetJob(jobID string) (*JobResponse, error) {
 	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job: %w", err)
 	}
@@ -632,7 +633,7 @@ func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
 // GetJobFiles retrieves all files for a specific job
 func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
 	url := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job files: %w", err)
 	}
@@ -652,40 +653,31 @@ func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
 	return &response, nil
 }
 
-func httpGetWithAWSAuth(url, region, serviceName, accessKey, secretKey string, limit, offset int) (*http.Response, error) {
-	// Create signer using aws-sdk-go-v2 v4 signer
+func (c *Client) httpGetWithAWSAuth(url string, limit, offset int) (*http.Response, error) {
 	signer := signerv4.NewSigner()
 
-	// Create a new request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build the query string
 	q := req.URL.Query()
 	q.Add("limit", strconv.Itoa(limit))
 	q.Add("offset", strconv.Itoa(offset))
-	q.Add("sort", "-created_at") // Sort by created_at in descending order
+	q.Add("sort", "-created_at")
 	req.URL.RawQuery = q.Encode()
 
-	// Sign the request
-	// For GET with empty body use the precomputed empty payload hash
-	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, region, time.Now()); err != nil {
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
 		return nil, err
 	}
 
-	// Send the request
-	client := &http.Client{}
-
-	// Perform the requests and adjust the offset based on the response
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 	// Get jobs from the API
-	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
+	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/jobs", requestLimit, offset)
 	if err != nil {
 		return JobsResponse{}, err
 	}
@@ -711,7 +703,7 @@ func (c *Client) GetComponents() ([]ComponentsResponse, error) {
 func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, error) {
 	var componentsCollection []ComponentsResponse
 
-	requestLimit := 100
+	requestLimit := defaultPageSize
 	offset := 0
 
 	for {
@@ -739,7 +731,7 @@ func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, e
 // GetComponent retrieves a single component by ID from the DCI API
 func (c *Client) GetComponent(componentID string) (*ComponentResponse, error) {
 	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component: %w", err)
 	}
@@ -844,7 +836,7 @@ func (c *Client) DeleteComponent(componentID string) error {
 func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
 	url := c.BaseURL + "/components"
 
-	httpResponse, err := httpGetComponentsWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, topicID, requestLimit, offset)
+	httpResponse, err := c.httpGetComponentsWithAWSAuth(url, topicID, requestLimit, offset)
 	if err != nil {
 		return ComponentsResponse{}, err
 	}
@@ -861,7 +853,7 @@ func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (Comp
 }
 
 // httpGetComponentsWithAWSAuth performs an authenticated GET request for components with optional topic filtering
-func httpGetComponentsWithAWSAuth(url, region, svcName, accessKey, secretKey, topicID string, limit, offset int) (*http.Response, error) {
+func (c *Client) httpGetComponentsWithAWSAuth(url, topicID string, limit, offset int) (*http.Response, error) {
 	signer := signerv4.NewSigner()
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -869,27 +861,23 @@ func httpGetComponentsWithAWSAuth(url, region, svcName, accessKey, secretKey, to
 		return nil, err
 	}
 
-	// Build the query string
 	q := req.URL.Query()
 	q.Add("limit", strconv.Itoa(limit))
 	q.Add("offset", strconv.Itoa(offset))
 	q.Add("sort", "-created_at")
 
-	// Add topic_id filter if provided
 	if topicID != "" {
 		q.Add("where", "topic_id:"+topicID)
 	}
 
 	req.URL.RawQuery = q.Encode()
 
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: accessKey, SecretAccessKey: secretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, svcName, region, time.Now()); err != nil {
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // CreateJob creates a new job in DCI
@@ -966,7 +954,7 @@ func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
 		url = fmt.Sprintf("%s?where=job_id:%s", url, jobID)
 	}
 
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job states: %w", err)
 	}
@@ -989,7 +977,7 @@ func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
 // GetFile downloads a file by ID from DCI
 func (c *Client) GetFile(fileID string) ([]byte, string, error) {
 	url := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, "", fmt.Errorf("error getting file: %w", err)
 	}
@@ -1101,8 +1089,7 @@ func (c *Client) httpPostWithAWSAuth(url string, jsonBody []byte) (*http.Respons
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // httpPutWithAWSAuth performs an authenticated PUT request with JSON body
@@ -1126,8 +1113,7 @@ func (c *Client) httpPutWithAWSAuth(url string, jsonBody []byte) (*http.Response
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // httpDeleteWithAWSAuth performs an authenticated DELETE request
@@ -1145,8 +1131,7 @@ func (c *Client) httpDeleteWithAWSAuth(url string) (*http.Response, error) {
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // httpPostFileWithAWSAuth performs an authenticated POST request for file uploads
@@ -1174,14 +1159,13 @@ func (c *Client) httpPostFileWithAWSAuth(url string, content []byte, jobID, file
 		return nil, err
 	}
 
-	client := &http.Client{}
-	return client.Do(req)
+	return c.httpClient.Do(req)
 }
 
 // GetRemoteCIs retrieves all remote CIs from DCI
 func (c *Client) GetRemoteCIs() (*RemoteCIsResponse, error) {
 	url := fmt.Sprintf("%s/remotecis", c.BaseURL)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting remote CIs: %w", err)
 	}
@@ -1204,7 +1188,7 @@ func (c *Client) GetRemoteCIs() (*RemoteCIsResponse, error) {
 // GetRemoteCI retrieves a specific remote CI by ID
 func (c *Client) GetRemoteCI(remoteciID string) (*RemoteCIResponse, error) {
 	url := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting remote CI: %w", err)
 	}
@@ -1306,7 +1290,7 @@ func (c *Client) DeleteRemoteCI(remoteciID string) error {
 // GetTeams retrieves all teams from DCI
 func (c *Client) GetTeams() (*TeamsResponse, error) {
 	url := fmt.Sprintf("%s/teams", c.BaseURL)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting teams: %w", err)
 	}
@@ -1329,7 +1313,7 @@ func (c *Client) GetTeams() (*TeamsResponse, error) {
 // GetTeam retrieves a specific team by ID
 func (c *Client) GetTeam(teamID string) (*TeamResponse, error) {
 	url := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting team: %w", err)
 	}
@@ -1430,7 +1414,7 @@ func (c *Client) DeleteTeam(teamID string) error {
 // GetUsers retrieves all users from DCI
 func (c *Client) GetUsers() (*UsersResponse, error) {
 	url := fmt.Sprintf("%s/users", c.BaseURL)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting users: %w", err)
 	}
@@ -1453,7 +1437,7 @@ func (c *Client) GetUsers() (*UsersResponse, error) {
 // GetUser retrieves a specific user by ID
 func (c *Client) GetUser(userID string) (*UserResponse, error) {
 	url := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
@@ -1558,7 +1542,7 @@ func (c *Client) DeleteUser(userID string) error {
 // GetProducts retrieves all products from DCI
 func (c *Client) GetProducts() (*ProductsResponse, error) {
 	url := fmt.Sprintf("%s/products", c.BaseURL)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting products: %w", err)
 	}
@@ -1581,7 +1565,7 @@ func (c *Client) GetProducts() (*ProductsResponse, error) {
 // GetProduct retrieves a specific product by ID
 func (c *Client) GetProduct(productID string) (*ProductResponse, error) {
 	url := fmt.Sprintf("%s/products/%s", c.BaseURL, productID)
-	httpResponse, err := httpGetSimpleWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey)
+	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
 	if err != nil {
 		return nil, fmt.Errorf("error getting product: %w", err)
 	}
