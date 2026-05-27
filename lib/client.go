@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,9 +47,96 @@ func NewClient(accessKey, secretKey string) *Client {
 	}
 }
 
+// doRequest is the core HTTP method that all HTTP operations go through.
+// It creates a request, sets headers, computes payload hash, signs with AWS SigV4, and executes.
+func (c *Client) doRequest(method, reqURL string, body []byte, headers map[string]string) (*http.Response, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyReader = bytes.NewReader(body)
+	}
+
+	req, err := http.NewRequest(method, reqURL, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	payloadHash := emptyStringSHA256
+	if body != nil {
+		hash := sha256.Sum256(body)
+		payloadHash = hex.EncodeToString(hash[:])
+	}
+
+	signer := signerv4.NewSigner()
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
+		return nil, err
+	}
+
+	return c.httpClient.Do(req)
+}
+
+// doJSON is a convenience method for POST/PUT requests with a JSON body.
+func (c *Client) doJSON(method, reqURL string, jsonBody []byte) (*http.Response, error) {
+	return c.doRequest(method, reqURL, jsonBody, map[string]string{"Content-Type": "application/json"})
+}
+
+// paginatedURL builds a URL with limit, offset, sort, and optional where filters.
+func paginatedURL(base string, limit, offset int, filters ...string) string {
+	u, err := url.Parse(base)
+	if err != nil {
+		// Fallback: return base as-is if unparseable (should not happen)
+		return base
+	}
+
+	q := u.Query()
+	q.Set("limit", strconv.Itoa(limit))
+	q.Set("offset", strconv.Itoa(offset))
+	q.Set("sort", "-created_at")
+
+	for _, f := range filters {
+		if f != "" {
+			q.Add("where", f)
+		}
+	}
+
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// paginate is a generic helper that handles the standard pagination loop.
+func paginate[T any](fetch func(limit, offset int) (T, int, error)) ([]T, error) {
+	var collection []T
+	offset := 0
+
+	for {
+		page, count, err := fetch(defaultPageSize, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		collection = append(collection, page)
+
+		if count < defaultPageSize {
+			break
+		}
+
+		if offset >= maxRecords {
+			break
+		}
+
+		offset += defaultPageSize
+	}
+
+	return collection, nil
+}
+
 // GetIdentity retrieves the authenticated user/remoteci identity from the DCI API
 func (c *Client) GetIdentity() (*IdentityResponse, error) {
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(c.BaseURL + "/identity")
+	httpResponse, err := c.doRequest("GET", c.BaseURL+"/identity", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -68,58 +156,17 @@ func (c *Client) GetIdentity() (*IdentityResponse, error) {
 	return &identity, nil
 }
 
-// httpGetSimpleWithAWSAuth performs an authenticated GET request without pagination parameters
-func (c *Client) httpGetSimpleWithAWSAuth(url string) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
 // GetComponentTypes retrieves all component types from the DCI API with pagination
 func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
-	var componentTypesCollection []ComponentTypesResponse
-
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		componentTypes, err := c.fetchComponentTypes(requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		componentTypesCollection = append(componentTypesCollection, componentTypes)
-
-		// If the number of component types returned is less than the request limit, we have reached the end
-		if len(componentTypes.ComponentTypes) < requestLimit {
-			break
-		}
-
-		// If we have reached the maximum number of records, we can stop the loop
-		if offset >= maxRecords {
-			break
-		}
-
-		// Increment the offset
-		offset += requestLimit
-	}
-
-	return componentTypesCollection, nil
+	return paginate(func(limit, offset int) (ComponentTypesResponse, int, error) {
+		resp, err := c.fetchComponentTypes(limit, offset)
+		return resp, len(resp.ComponentTypes), err
+	})
 }
 
 // fetchComponentTypes is an internal helper to fetch component types with pagination
 func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesResponse, error) {
-	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/componenttypes", requestLimit, offset)
+	httpResponse, err := c.doRequest("GET", paginatedURL(c.BaseURL+"/componenttypes", requestLimit, offset), nil, nil)
 	if err != nil {
 		return ComponentTypesResponse{}, err
 	}
@@ -137,8 +184,8 @@ func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesRe
 
 // GetComponentType retrieves a single component type by ID from the DCI API
 func (c *Client) GetComponentType(componentTypeID string) (*ComponentTypeResponse, error) {
-	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component type: %w", err)
 	}
@@ -169,8 +216,8 @@ func (c *Client) CreateComponentType(name string) (*ComponentTypeResponse, error
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/componenttypes", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/componenttypes", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating component type: %w", err)
 	}
@@ -197,8 +244,8 @@ func (c *Client) UpdateComponentType(componentTypeID string, updates UpdateCompo
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component type: %w", err)
 	}
@@ -220,8 +267,8 @@ func (c *Client) UpdateComponentType(componentTypeID string, updates UpdateCompo
 
 // DeleteComponentType deletes a component type from DCI
 func (c *Client) DeleteComponentType(componentTypeID string) error {
-	url := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting component type: %w", err)
 	}
@@ -237,36 +284,15 @@ func (c *Client) DeleteComponentType(componentTypeID string) error {
 }
 
 func (c *Client) GetTopics() ([]TopicsResponse, error) {
-	var topicsCollection []TopicsResponse
-
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		topics, err := c.fetchTopics(requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		topicsCollection = append(topicsCollection, topics)
-
-		if len(topics.Topics) < requestLimit {
-			break
-		}
-
-		if offset >= maxRecords {
-			break
-		}
-
-		offset += requestLimit
-	}
-
-	return topicsCollection, nil
+	return paginate(func(limit, offset int) (TopicsResponse, int, error) {
+		resp, err := c.fetchTopics(limit, offset)
+		return resp, len(resp.Topics), err
+	})
 }
 
 // fetchTopics is an internal helper to fetch topics with pagination
 func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
-	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/topics", requestLimit, offset)
+	httpResponse, err := c.doRequest("GET", paginatedURL(c.BaseURL+"/topics", requestLimit, offset), nil, nil)
 	if err != nil {
 		return TopicsResponse{}, err
 	}
@@ -284,8 +310,8 @@ func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
 
 // GetTopic retrieves a single topic by ID from the DCI API
 func (c *Client) GetTopic(topicID string) (*TopicResponse, error) {
-	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting topic: %w", err)
 	}
@@ -318,7 +344,7 @@ func (c *Client) CreateTopic(name, productID string, componentTypes []string) (*
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/topics", jsonBody)
+	httpResponse, err := c.doJSON("POST", c.BaseURL+"/topics", jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating topic: %w", err)
 	}
@@ -345,8 +371,8 @@ func (c *Client) UpdateTopic(topicID string, updates UpdateTopicRequest) (*Topic
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating topic: %w", err)
 	}
@@ -368,8 +394,8 @@ func (c *Client) UpdateTopic(topicID string, updates UpdateTopicRequest) (*Topic
 
 // DeleteTopic deletes a topic from DCI
 func (c *Client) DeleteTopic(topicID string) error {
-	url := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting topic: %w", err)
 	}
@@ -386,37 +412,16 @@ func (c *Client) DeleteTopic(topicID string) error {
 
 // GetTopicComponents retrieves all components for a specific topic using the topic components endpoint
 func (c *Client) GetTopicComponents(topicID string) ([]ComponentsResponse, error) {
-	var componentsCollection []ComponentsResponse
-
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		components, err := c.fetchTopicComponents(topicID, requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		componentsCollection = append(componentsCollection, components)
-
-		if len(components.Components) < requestLimit {
-			break
-		}
-
-		if offset >= maxRecords {
-			break
-		}
-
-		offset += requestLimit
-	}
-
-	return componentsCollection, nil
+	return paginate(func(limit, offset int) (ComponentsResponse, int, error) {
+		resp, err := c.fetchTopicComponents(topicID, limit, offset)
+		return resp, len(resp.Components), err
+	})
 }
 
 // fetchTopicComponents is an internal helper to fetch components for a topic with pagination
 func (c *Client) fetchTopicComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
-	url := fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID)
-	httpResponse, err := c.httpGetWithAWSAuth(url, requestLimit, offset)
+	reqURL := paginatedURL(fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID), requestLimit, offset)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
 	}
@@ -531,8 +536,8 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 
 // GetJob retrieves a single job by ID from the DCI API
 func (c *Client) GetJob(jobID string) (*JobResponse, error) {
-	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job: %w", err)
 	}
@@ -559,8 +564,8 @@ func (c *Client) UpdateJob(jobID string, updates UpdateJobRequest) (*JobResponse
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating job: %w", err)
 	}
@@ -582,8 +587,8 @@ func (c *Client) UpdateJob(jobID string, updates UpdateJobRequest) (*JobResponse
 
 // DeleteJob deletes a job from DCI
 func (c *Client) DeleteJob(jobID string) error {
-	url := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting job: %w", err)
 	}
@@ -609,8 +614,8 @@ func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/jobs/schedule", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/jobs/schedule", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error scheduling job: %w", err)
 	}
@@ -632,8 +637,8 @@ func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
 
 // GetJobFiles retrieves all files for a specific job
 func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
-	url := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job files: %w", err)
 	}
@@ -653,31 +658,9 @@ func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
 	return &response, nil
 }
 
-func (c *Client) httpGetWithAWSAuth(url string, limit, offset int) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	q := req.URL.Query()
-	q.Add("limit", strconv.Itoa(limit))
-	q.Add("offset", strconv.Itoa(offset))
-	q.Add("sort", "-created_at")
-	req.URL.RawQuery = q.Encode()
-
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
 func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 	// Get jobs from the API
-	httpResponse, err := c.httpGetWithAWSAuth(c.BaseURL+"/jobs", requestLimit, offset)
+	httpResponse, err := c.doRequest("GET", paginatedURL(c.BaseURL+"/jobs", requestLimit, offset), nil, nil)
 	if err != nil {
 		return JobsResponse{}, err
 	}
@@ -701,37 +684,16 @@ func (c *Client) GetComponents() ([]ComponentsResponse, error) {
 
 // GetComponentsByTopicID retrieves components filtered by topic ID (empty string for all)
 func (c *Client) GetComponentsByTopicID(topicID string) ([]ComponentsResponse, error) {
-	var componentsCollection []ComponentsResponse
-
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		components, err := c.fetchComponents(topicID, requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		componentsCollection = append(componentsCollection, components)
-
-		if len(components.Components) < requestLimit {
-			break
-		}
-
-		if offset >= maxRecords {
-			break
-		}
-
-		offset += requestLimit
-	}
-
-	return componentsCollection, nil
+	return paginate(func(limit, offset int) (ComponentsResponse, int, error) {
+		resp, err := c.fetchComponents(topicID, limit, offset)
+		return resp, len(resp.Components), err
+	})
 }
 
 // GetComponent retrieves a single component by ID from the DCI API
 func (c *Client) GetComponent(componentID string) (*ComponentResponse, error) {
-	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component: %w", err)
 	}
@@ -765,8 +727,8 @@ func (c *Client) CreateComponent(name, componentType, topicID, version string) (
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/components", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/components", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating component: %w", err)
 	}
@@ -793,8 +755,8 @@ func (c *Client) UpdateComponent(componentID string, updates UpdateComponentRequ
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component: %w", err)
 	}
@@ -816,8 +778,8 @@ func (c *Client) UpdateComponent(componentID string, updates UpdateComponentRequ
 
 // DeleteComponent deletes a component from DCI
 func (c *Client) DeleteComponent(componentID string) error {
-	url := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting component: %w", err)
 	}
@@ -834,9 +796,13 @@ func (c *Client) DeleteComponent(componentID string) error {
 
 // fetchComponents is an internal helper to fetch components with optional topic filtering
 func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (ComponentsResponse, error) {
-	url := c.BaseURL + "/components"
+	var filter string
+	if topicID != "" {
+		filter = "topic_id:" + topicID
+	}
 
-	httpResponse, err := c.httpGetComponentsWithAWSAuth(url, topicID, requestLimit, offset)
+	reqURL := paginatedURL(c.BaseURL+"/components", requestLimit, offset, filter)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return ComponentsResponse{}, err
 	}
@@ -852,34 +818,6 @@ func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (Comp
 	return components, nil
 }
 
-// httpGetComponentsWithAWSAuth performs an authenticated GET request for components with optional topic filtering
-func (c *Client) httpGetComponentsWithAWSAuth(url, topicID string, limit, offset int) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	q := req.URL.Query()
-	q.Add("limit", strconv.Itoa(limit))
-	q.Add("offset", strconv.Itoa(offset))
-	q.Add("sort", "-created_at")
-
-	if topicID != "" {
-		q.Add("where", "topic_id:"+topicID)
-	}
-
-	req.URL.RawQuery = q.Encode()
-
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
 // CreateJob creates a new job in DCI
 func (c *Client) CreateJob(topicID string, componentIDs []string, comment string) (*CreateJobResponse, error) {
 	reqBody := CreateJobRequest{
@@ -893,7 +831,7 @@ func (c *Client) CreateJob(topicID string, componentIDs []string, comment string
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	httpResponse, err := c.httpPostWithAWSAuth(c.BaseURL+"/jobs", jsonBody)
+	httpResponse, err := c.doJSON("POST", c.BaseURL+"/jobs", jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating job: %w", err)
 	}
@@ -926,8 +864,8 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/jobstates", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating job state: %w", err)
 	}
@@ -949,12 +887,12 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 
 // GetJobStates retrieves job states, optionally filtered by job ID
 func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
-	url := fmt.Sprintf("%s/jobstates", c.BaseURL)
+	reqURL := fmt.Sprintf("%s/jobstates", c.BaseURL)
 	if jobID != "" {
-		url = fmt.Sprintf("%s?where=job_id:%s", url, jobID)
+		reqURL = fmt.Sprintf("%s?where=job_id:%s", reqURL, jobID)
 	}
 
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job states: %w", err)
 	}
@@ -976,8 +914,8 @@ func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
 
 // GetFile downloads a file by ID from DCI
 func (c *Client) GetFile(fileID string) ([]byte, string, error) {
-	url := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("error getting file: %w", err)
 	}
@@ -1000,8 +938,8 @@ func (c *Client) GetFile(fileID string) ([]byte, string, error) {
 
 // DeleteFile deletes a file from DCI
 func (c *Client) DeleteFile(fileID string) error {
-	url := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting file: %w", err)
 	}
@@ -1026,29 +964,24 @@ func (c *Client) UploadFile(jobID, filePath, mimeType string) (*UploadFileRespon
 
 	fileName := filepath.Base(filePath)
 
-	httpResponse, err := c.httpPostFileWithAWSAuth(c.BaseURL+"/files", fileContent, jobID, fileName, mimeType)
-	if err != nil {
-		return nil, fmt.Errorf("error uploading file: %w", err)
-	}
-
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to upload file with status code %d: %s", httpResponse.StatusCode, string(body))
-	}
-
-	var response UploadFileResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
-	}
-
-	return &response, nil
+	return c.uploadFileContent(c.BaseURL+"/files", fileContent, jobID, fileName, mimeType)
 }
 
 // UploadFileContent uploads file content directly (without reading from disk) to a job in DCI
 func (c *Client) UploadFileContent(jobID, fileName, mimeType string, content []byte) (*UploadFileResponse, error) {
-	httpResponse, err := c.httpPostFileWithAWSAuth(c.BaseURL+"/files", content, jobID, fileName, mimeType)
+	return c.uploadFileContent(c.BaseURL+"/files", content, jobID, fileName, mimeType)
+}
+
+// uploadFileContent is the shared implementation for file uploads
+func (c *Client) uploadFileContent(reqURL string, content []byte, jobID, fileName, mimeType string) (*UploadFileResponse, error) {
+	headers := map[string]string{
+		"DCI-JOB-ID":    jobID,
+		"DCI-NAME":      fileName,
+		"DCI-MIME":      mimeType,
+		"Content-Type":  "application/octet-stream",
+	}
+
+	httpResponse, err := c.doRequest("POST", reqURL, content, headers)
 	if err != nil {
 		return nil, fmt.Errorf("error uploading file: %w", err)
 	}
@@ -1068,104 +1001,10 @@ func (c *Client) UploadFileContent(jobID, fileName, mimeType string, content []b
 	return &response, nil
 }
 
-// httpPostWithAWSAuth performs an authenticated POST request with JSON body
-func (c *Client) httpPostWithAWSAuth(url string, jsonBody []byte) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	// Calculate SHA256 hash of the body for signing
-	hash := sha256.Sum256(jsonBody)
-	payloadHash := hex.EncodeToString(hash[:])
-
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
-// httpPutWithAWSAuth performs an authenticated PUT request with JSON body
-func (c *Client) httpPutWithAWSAuth(url string, jsonBody []byte) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	// Calculate SHA256 hash of the body for signing
-	hash := sha256.Sum256(jsonBody)
-	payloadHash := hex.EncodeToString(hash[:])
-
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
-// httpDeleteWithAWSAuth performs an authenticated DELETE request
-func (c *Client) httpDeleteWithAWSAuth(url string) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, emptyStringSHA256, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
-// httpPostFileWithAWSAuth performs an authenticated POST request for file uploads
-func (c *Client) httpPostFileWithAWSAuth(url string, content []byte, jobID, fileName, mimeType string) (*http.Response, error) {
-	signer := signerv4.NewSigner()
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-
-	// Set DCI-specific headers for file upload
-	req.Header.Set("DCI-JOB-ID", jobID)
-	req.Header.Set("DCI-NAME", fileName)
-	req.Header.Set("DCI-MIME", mimeType)
-	req.Header.Set("Content-Type", "application/octet-stream")
-
-	// Calculate SHA256 hash of the body for signing
-	hash := sha256.Sum256(content)
-	payloadHash := hex.EncodeToString(hash[:])
-
-	// Sign the request
-	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-	if err := signer.SignHTTP(context.Background(), creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
-		return nil, err
-	}
-
-	return c.httpClient.Do(req)
-}
-
 // GetRemoteCIs retrieves all remote CIs from DCI
 func (c *Client) GetRemoteCIs() (*RemoteCIsResponse, error) {
-	url := fmt.Sprintf("%s/remotecis", c.BaseURL)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/remotecis", c.BaseURL)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting remote CIs: %w", err)
 	}
@@ -1187,8 +1026,8 @@ func (c *Client) GetRemoteCIs() (*RemoteCIsResponse, error) {
 
 // GetRemoteCI retrieves a specific remote CI by ID
 func (c *Client) GetRemoteCI(remoteciID string) (*RemoteCIResponse, error) {
-	url := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting remote CI: %w", err)
 	}
@@ -1220,8 +1059,8 @@ func (c *Client) CreateRemoteCI(name, teamID string) (*RemoteCIResponse, error) 
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/remotecis", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/remotecis", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating remote CI: %w", err)
 	}
@@ -1248,8 +1087,8 @@ func (c *Client) UpdateRemoteCI(remoteciID string, updates UpdateRemoteCIRequest
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating remote CI: %w", err)
 	}
@@ -1271,8 +1110,8 @@ func (c *Client) UpdateRemoteCI(remoteciID string, updates UpdateRemoteCIRequest
 
 // DeleteRemoteCI deletes a remote CI from DCI
 func (c *Client) DeleteRemoteCI(remoteciID string) error {
-	url := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting remote CI: %w", err)
 	}
@@ -1289,8 +1128,8 @@ func (c *Client) DeleteRemoteCI(remoteciID string) error {
 
 // GetTeams retrieves all teams from DCI
 func (c *Client) GetTeams() (*TeamsResponse, error) {
-	url := fmt.Sprintf("%s/teams", c.BaseURL)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/teams", c.BaseURL)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting teams: %w", err)
 	}
@@ -1312,8 +1151,8 @@ func (c *Client) GetTeams() (*TeamsResponse, error) {
 
 // GetTeam retrieves a specific team by ID
 func (c *Client) GetTeam(teamID string) (*TeamResponse, error) {
-	url := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting team: %w", err)
 	}
@@ -1344,8 +1183,8 @@ func (c *Client) CreateTeam(name string) (*TeamResponse, error) {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/teams", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/teams", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating team: %w", err)
 	}
@@ -1372,8 +1211,8 @@ func (c *Client) UpdateTeam(teamID string, updates UpdateTeamRequest) (*TeamResp
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating team: %w", err)
 	}
@@ -1395,8 +1234,8 @@ func (c *Client) UpdateTeam(teamID string, updates UpdateTeamRequest) (*TeamResp
 
 // DeleteTeam deletes a team from DCI
 func (c *Client) DeleteTeam(teamID string) error {
-	url := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting team: %w", err)
 	}
@@ -1413,8 +1252,8 @@ func (c *Client) DeleteTeam(teamID string) error {
 
 // GetUsers retrieves all users from DCI
 func (c *Client) GetUsers() (*UsersResponse, error) {
-	url := fmt.Sprintf("%s/users", c.BaseURL)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/users", c.BaseURL)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting users: %w", err)
 	}
@@ -1436,8 +1275,8 @@ func (c *Client) GetUsers() (*UsersResponse, error) {
 
 // GetUser retrieves a specific user by ID
 func (c *Client) GetUser(userID string) (*UserResponse, error) {
-	url := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
@@ -1472,8 +1311,8 @@ func (c *Client) CreateUser(name, email, fullname, teamID, password string) (*Us
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/users", c.BaseURL)
-	httpResponse, err := c.httpPostWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/users", c.BaseURL)
+	httpResponse, err := c.doJSON("POST", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
@@ -1500,8 +1339,8 @@ func (c *Client) UpdateUser(userID string, updates UpdateUserRequest) (*UserResp
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
-	httpResponse, err := c.httpPutWithAWSAuth(url, jsonBody)
+	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	httpResponse, err := c.doJSON("PUT", reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating user: %w", err)
 	}
@@ -1523,8 +1362,8 @@ func (c *Client) UpdateUser(userID string, updates UpdateUserRequest) (*UserResp
 
 // DeleteUser deletes a user from DCI
 func (c *Client) DeleteUser(userID string) error {
-	url := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
-	httpResponse, err := c.httpDeleteWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	httpResponse, err := c.doRequest("DELETE", reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting user: %w", err)
 	}
@@ -1541,8 +1380,8 @@ func (c *Client) DeleteUser(userID string) error {
 
 // GetProducts retrieves all products from DCI
 func (c *Client) GetProducts() (*ProductsResponse, error) {
-	url := fmt.Sprintf("%s/products", c.BaseURL)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/products", c.BaseURL)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting products: %w", err)
 	}
@@ -1564,8 +1403,8 @@ func (c *Client) GetProducts() (*ProductsResponse, error) {
 
 // GetProduct retrieves a specific product by ID
 func (c *Client) GetProduct(productID string) (*ProductResponse, error) {
-	url := fmt.Sprintf("%s/products/%s", c.BaseURL, productID)
-	httpResponse, err := c.httpGetSimpleWithAWSAuth(url)
+	reqURL := fmt.Sprintf("%s/products/%s", c.BaseURL, productID)
+	httpResponse, err := c.doRequest("GET", reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting product: %w", err)
 	}
