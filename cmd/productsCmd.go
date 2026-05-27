@@ -28,7 +28,7 @@ var getProductsCmd = &cobra.Command{
 			fmt.Println("Getting products...")
 		}
 
-		response, err := client.GetProducts()
+		response, err := client.GetProducts(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get products: %v", err)
 		}
@@ -62,7 +62,7 @@ var getProductCmd = &cobra.Command{
 			fmt.Printf("Getting product with ID: %s\n", getProductIDFlag)
 		}
 
-		response, err := client.GetProduct(getProductIDFlag)
+		response, err := client.GetProduct(cmd.Context(), getProductIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get product: %v", err)
 		}

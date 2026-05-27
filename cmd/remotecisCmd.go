@@ -34,7 +34,7 @@ var getRemoteCIsCmd = &cobra.Command{
 			fmt.Println("Getting remote CIs...")
 		}
 
-		response, err := client.GetRemoteCIs()
+		response, err := client.GetRemoteCIs(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get remote CIs: %v", err)
 		}
@@ -68,7 +68,7 @@ var getRemoteCICmd = &cobra.Command{
 			fmt.Printf("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
 		}
 
-		response, err := client.GetRemoteCI(getRemoteCIsCmd_IDFlag)
+		response, err := client.GetRemoteCI(cmd.Context(), getRemoteCIsCmd_IDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get remote CI: %v", err)
 		}
@@ -105,7 +105,7 @@ var createRemoteCICmd = &cobra.Command{
 			fmt.Printf("Creating remote CI: %s\n", createRemoteCINameFlag)
 		}
 
-		response, err := client.CreateRemoteCI(createRemoteCINameFlag, createRemoteCITeamIDFlag)
+		response, err := client.CreateRemoteCI(cmd.Context(), createRemoteCINameFlag, createRemoteCITeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to create remote CI: %v", err)
 		}
@@ -148,7 +148,7 @@ var updateRemoteCICmd = &cobra.Command{
 			fmt.Printf("Updating remote CI: %s\n", updateRemoteCIIDFlag)
 		}
 
-		response, err := client.UpdateRemoteCI(updateRemoteCIIDFlag, updates)
+		response, err := client.UpdateRemoteCI(cmd.Context(), updateRemoteCIIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update remote CI: %v", err)
 		}
@@ -183,7 +183,7 @@ var deleteRemoteCICmd = &cobra.Command{
 			fmt.Printf("Deleting remote CI: %s\n", deleteRemoteCIIDFlag)
 		}
 
-		err = client.DeleteRemoteCI(deleteRemoteCIIDFlag)
+		err = client.DeleteRemoteCI(cmd.Context(), deleteRemoteCIIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete remote CI: %v", err)
 		}

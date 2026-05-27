@@ -33,7 +33,7 @@ var getTeamsCmd = &cobra.Command{
 			fmt.Println("Getting teams...")
 		}
 
-		response, err := client.GetTeams()
+		response, err := client.GetTeams(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get teams: %v", err)
 		}
@@ -67,7 +67,7 @@ var getTeamCmd = &cobra.Command{
 			fmt.Printf("Getting team with ID: %s\n", getTeamIDFlag)
 		}
 
-		response, err := client.GetTeam(getTeamIDFlag)
+		response, err := client.GetTeam(cmd.Context(), getTeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get team: %v", err)
 		}
@@ -101,7 +101,7 @@ var createTeamCmd = &cobra.Command{
 			fmt.Printf("Creating team: %s\n", createTeamNameFlag)
 		}
 
-		response, err := client.CreateTeam(createTeamNameFlag)
+		response, err := client.CreateTeam(cmd.Context(), createTeamNameFlag)
 		if err != nil {
 			return fmt.Errorf("failed to create team: %v", err)
 		}
@@ -144,7 +144,7 @@ var updateTeamCmd = &cobra.Command{
 			fmt.Printf("Updating team: %s\n", updateTeamIDFlag)
 		}
 
-		response, err := client.UpdateTeam(updateTeamIDFlag, updates)
+		response, err := client.UpdateTeam(cmd.Context(), updateTeamIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update team: %v", err)
 		}
@@ -179,7 +179,7 @@ var deleteTeamCmd = &cobra.Command{
 			fmt.Printf("Deleting team: %s\n", deleteTeamIDFlag)
 		}
 
-		err = client.DeleteTeam(deleteTeamIDFlag)
+		err = client.DeleteTeam(cmd.Context(), deleteTeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete team: %v", err)
 		}

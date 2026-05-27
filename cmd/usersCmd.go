@@ -39,7 +39,7 @@ var getUsersCmd = &cobra.Command{
 			fmt.Println("Getting users...")
 		}
 
-		response, err := client.GetUsers()
+		response, err := client.GetUsers(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get users: %v", err)
 		}
@@ -73,7 +73,7 @@ var getUserCmd = &cobra.Command{
 			fmt.Printf("Getting user with ID: %s\n", getUserIDFlag)
 		}
 
-		response, err := client.GetUser(getUserIDFlag)
+		response, err := client.GetUser(cmd.Context(), getUserIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %v", err)
 		}
@@ -117,6 +117,7 @@ var createUserCmd = &cobra.Command{
 		}
 
 		response, err := client.CreateUser(
+			cmd.Context(),
 			createUserNameFlag,
 			createUserEmailFlag,
 			createUserFullnameFlag,
@@ -171,7 +172,7 @@ var updateUserCmd = &cobra.Command{
 			fmt.Printf("Updating user: %s\n", updateUserIDFlag)
 		}
 
-		response, err := client.UpdateUser(updateUserIDFlag, updates)
+		response, err := client.UpdateUser(cmd.Context(), updateUserIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %v", err)
 		}
@@ -206,7 +207,7 @@ var deleteUserCmd = &cobra.Command{
 			fmt.Printf("Deleting user: %s\n", deleteUserIDFlag)
 		}
 
-		err = client.DeleteUser(deleteUserIDFlag)
+		err = client.DeleteUser(cmd.Context(), deleteUserIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete user: %v", err)
 		}

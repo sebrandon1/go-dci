@@ -39,7 +39,7 @@ var getTopicCmd = &cobra.Command{
 			fmt.Printf("Getting topic with ID: %s\n", getTopicIDFlag)
 		}
 
-		response, err := client.GetTopic(getTopicIDFlag)
+		response, err := client.GetTopic(cmd.Context(), getTopicIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get topic: %v", err)
 		}
@@ -86,7 +86,7 @@ var createTopicCmd = &cobra.Command{
 			fmt.Printf("Creating topic: %s\n", createTopicName)
 		}
 
-		response, err := client.CreateTopic(createTopicName, createTopicProductID, componentTypes)
+		response, err := client.CreateTopic(cmd.Context(), createTopicName, createTopicProductID, componentTypes)
 		if err != nil {
 			return fmt.Errorf("failed to create topic: %v", err)
 		}
@@ -126,7 +126,7 @@ var updateTopicCmd = &cobra.Command{
 			fmt.Printf("Updating topic: %s\n", getTopicIDFlag)
 		}
 
-		response, err := client.UpdateTopic(getTopicIDFlag, updates)
+		response, err := client.UpdateTopic(cmd.Context(), getTopicIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update topic: %v", err)
 		}
@@ -161,7 +161,7 @@ var deleteTopicCmd = &cobra.Command{
 			fmt.Printf("Deleting topic: %s\n", deleteTopicIDFlag)
 		}
 
-		err = client.DeleteTopic(deleteTopicIDFlag)
+		err = client.DeleteTopic(cmd.Context(), deleteTopicIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete topic: %v", err)
 		}
@@ -197,7 +197,7 @@ var getTopicComponentsCmd = &cobra.Command{
 			fmt.Printf("Getting components for topic ID: %s\n", topicComponentsIDFlag)
 		}
 
-		componentsResponses, err := client.GetTopicComponents(topicComponentsIDFlag)
+		componentsResponses, err := client.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get topic components: %v", err)
 		}

@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -37,7 +38,7 @@ func main() {
 
 	// Step 3: Verify authentication by getting identity
 	fmt.Println("1. Verifying authentication...")
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	if err != nil {
 		log.Fatalf("Authentication failed: %v", err)
 	}
@@ -52,7 +53,7 @@ func main() {
 
 	// Step 4: List available topics
 	fmt.Println("2. Listing available topics...")
-	topicsResp, err := client.GetTopics()
+	topicsResp, err := client.GetTopics(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get topics: %v", err)
 	}
@@ -69,7 +70,7 @@ func main() {
 
 	// Step 5: List component types
 	fmt.Println("3. Listing component types...")
-	componentTypesResp, err := client.GetComponentTypes()
+	componentTypesResp, err := client.GetComponentTypes(context.Background())
 	if err != nil {
 		log.Printf("   Could not get component types: %v\n", err)
 	} else {
@@ -86,7 +87,7 @@ func main() {
 
 	// Step 6: Get recent jobs (last 7 days)
 	fmt.Println("4. Getting recent jobs (last 7 days)...")
-	jobsResp, err := client.GetJobs(7)
+	jobsResp, err := client.GetJobs(context.Background(), 7)
 	if err != nil {
 		log.Printf("   Could not get jobs: %v\n", err)
 	} else {
@@ -117,7 +118,7 @@ func main() {
 
 	// Step 7: Get products (if available)
 	fmt.Println("5. Listing products...")
-	products, err := client.GetProducts()
+	products, err := client.GetProducts(context.Background())
 	if err != nil {
 		log.Printf("   Could not get products: %v\n", err)
 	} else if len(products.Products) == 0 {

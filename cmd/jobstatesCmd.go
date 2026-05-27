@@ -32,7 +32,7 @@ var getJobStatesCmd = &cobra.Command{
 			}
 		}
 
-		response, err := client.GetJobStates(getJobStatesJobIDFlag)
+		response, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job states: %v", err)
 		}

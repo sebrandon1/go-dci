@@ -37,7 +37,7 @@ var getComponentTypeCmd = &cobra.Command{
 			fmt.Printf("Getting component type with ID: %s\n", getComponentTypeIDFlag)
 		}
 
-		response, err := client.GetComponentType(getComponentTypeIDFlag)
+		response, err := client.GetComponentType(cmd.Context(), getComponentTypeIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get component type: %v", err)
 		}
@@ -71,7 +71,7 @@ var createComponentTypeCmd = &cobra.Command{
 			fmt.Printf("Creating component type: %s\n", createComponentTypeName)
 		}
 
-		response, err := client.CreateComponentType(createComponentTypeName)
+		response, err := client.CreateComponentType(cmd.Context(), createComponentTypeName)
 		if err != nil {
 			return fmt.Errorf("failed to create component type: %v", err)
 		}
@@ -114,7 +114,7 @@ var updateComponentTypeCmd = &cobra.Command{
 			fmt.Printf("Updating component type: %s\n", updateComponentTypeIDFlag)
 		}
 
-		response, err := client.UpdateComponentType(updateComponentTypeIDFlag, updates)
+		response, err := client.UpdateComponentType(cmd.Context(), updateComponentTypeIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update component type: %v", err)
 		}
@@ -149,7 +149,7 @@ var deleteComponentTypeCmd = &cobra.Command{
 			fmt.Printf("Deleting component type: %s\n", deleteComponentTypeIDFlag)
 		}
 
-		err = client.DeleteComponentType(deleteComponentTypeIDFlag)
+		err = client.DeleteComponentType(cmd.Context(), deleteComponentTypeIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete component type: %v", err)
 		}
