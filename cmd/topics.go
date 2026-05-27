@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
@@ -46,10 +45,10 @@ var getTopicCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTopicJSON(response)
-		} else {
-			printTopicStdout(response)
+			return printTopicJSON(response)
 		}
+
+		printTopicStdout(response)
 
 		return nil
 	},
@@ -93,11 +92,11 @@ var createTopicCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTopicJSON(response)
-		} else {
-			fmt.Println("Topic created successfully!")
-			printTopicStdout(response)
+			return printTopicJSON(response)
 		}
+
+		fmt.Println("Topic created successfully!")
+		printTopicStdout(response)
 
 		return nil
 	},
@@ -133,11 +132,11 @@ var updateTopicCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTopicJSON(response)
-		} else {
-			fmt.Println("Topic updated successfully!")
-			printTopicStdout(response)
+			return printTopicJSON(response)
 		}
+
+		fmt.Println("Topic updated successfully!")
+		printTopicStdout(response)
 
 		return nil
 	},
@@ -209,11 +208,11 @@ var getTopicComponentsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentsJSON(componentsResponses)
-		} else {
-			printComponentsStdout(componentsResponses)
-			fmt.Printf("Total Components: %d\n", totalComponents)
+			return printComponentsJSON(componentsResponses)
 		}
+
+		printComponentsStdout(componentsResponses)
+		fmt.Printf("Total Components: %d\n", totalComponents)
 
 		return nil
 	},
@@ -233,12 +232,13 @@ func printTopicStdout(response *lib.TopicResponse) {
 	fmt.Printf("Updated:       %s\n", response.Topic.UpdatedAt)
 }
 
-func printTopicJSON(response *lib.TopicResponse) {
+func printTopicJSON(response *lib.TopicResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

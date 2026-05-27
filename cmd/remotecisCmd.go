@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
@@ -41,10 +40,10 @@ var getRemoteCIsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printRemoteCIsJSON(response)
-		} else {
-			printRemoteCIsStdout(response)
+			return printRemoteCIsJSON(response)
 		}
+
+		printRemoteCIsStdout(response)
 
 		return nil
 	},
@@ -75,10 +74,10 @@ var getRemoteCICmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printRemoteCIJSON(response)
-		} else {
-			printRemoteCIStdout(response)
+			return printRemoteCIJSON(response)
 		}
+
+		printRemoteCIStdout(response)
 
 		return nil
 	},
@@ -112,11 +111,11 @@ var createRemoteCICmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printRemoteCIJSON(response)
-		} else {
-			fmt.Println("Remote CI created successfully!")
-			printRemoteCIStdout(response)
+			return printRemoteCIJSON(response)
 		}
+
+		fmt.Println("Remote CI created successfully!")
+		printRemoteCIStdout(response)
 
 		return nil
 	},
@@ -155,11 +154,11 @@ var updateRemoteCICmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printRemoteCIJSON(response)
-		} else {
-			fmt.Println("Remote CI updated successfully!")
-			printRemoteCIStdout(response)
+			return printRemoteCIJSON(response)
 		}
+
+		fmt.Println("Remote CI updated successfully!")
+		printRemoteCIStdout(response)
 
 		return nil
 	},
@@ -214,12 +213,13 @@ func printRemoteCIsStdout(response *lib.RemoteCIsResponse) {
 	fmt.Printf("Total Remote CIs: %d\n", len(response.RemoteCIs))
 }
 
-func printRemoteCIsJSON(response *lib.RemoteCIsResponse) {
+func printRemoteCIsJSON(response *lib.RemoteCIsResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printRemoteCIStdout(response *lib.RemoteCIResponse) {
@@ -232,12 +232,13 @@ func printRemoteCIStdout(response *lib.RemoteCIResponse) {
 	fmt.Printf("Updated:  %s\n", response.RemoteCI.UpdatedAt)
 }
 
-func printRemoteCIJSON(response *lib.RemoteCIResponse) {
+func printRemoteCIJSON(response *lib.RemoteCIResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

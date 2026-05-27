@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -56,11 +55,11 @@ var getTopicsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTopicsJSON(topicsResponses)
-		} else {
-			printTopicsStdout(topicsResponses)
-			fmt.Printf("Total Topics: %d\n", totalTopics)
+			return printTopicsJSON(topicsResponses)
 		}
+
+		printTopicsStdout(topicsResponses)
+		fmt.Printf("Total Topics: %d\n", totalTopics)
 
 		return nil
 	},
@@ -92,11 +91,11 @@ var getComponentTypesCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentTypesJSON(componentTypesResponses)
-		} else {
-			printComponentTypesStdout(componentTypesResponses)
-			fmt.Printf("Total Component Types: %d\n", totalComponentTypes)
+			return printComponentTypesJSON(componentTypesResponses)
 		}
+
+		printComponentTypesStdout(componentTypesResponses)
+		fmt.Printf("Total Component Types: %d\n", totalComponentTypes)
 
 		return nil
 	},
@@ -119,10 +118,10 @@ var getIdentityCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printIdentityJSON(identity)
-		} else {
-			printIdentityStdout(identity)
+			return printIdentityJSON(identity)
 		}
+
+		printIdentityStdout(identity)
 
 		return nil
 	},
@@ -159,11 +158,11 @@ var getOcpCountCmd = &cobra.Command{
 
 		ocpVersionCount := countOcpVersions(jobsResponses)
 
-		if outputFormat != OutputFormatJSON {
-			printOcpVersionCount(ocpVersionCount)
-		} else {
-			printOcpVersionCountJSON(ocpVersionCount)
+		if outputFormat == OutputFormatJSON {
+			return printOcpVersionCountJSON(ocpVersionCount)
 		}
+
+		printOcpVersionCount(ocpVersionCount)
 
 		return nil
 	},
@@ -204,11 +203,11 @@ var getComponentsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentsJSON(componentsResponses)
-		} else {
-			printComponentsStdout(componentsResponses)
-			fmt.Printf("Total Components: %d\n", totalComponents)
+			return printComponentsJSON(componentsResponses)
 		}
+
+		printComponentsStdout(componentsResponses)
+		fmt.Printf("Total Components: %d\n", totalComponents)
 
 		return nil
 	},
@@ -378,7 +377,7 @@ func printOcpVersionCount(ocpVersionCount map[string]int) {
 	}
 }
 
-func printOcpVersionCountJSON(ocpVersionCount map[string]int) {
+func printOcpVersionCountJSON(ocpVersionCount map[string]int) error {
 	var jsonOutput lib.OcpJsonOutput
 	for _, ocpVersion := range ocpVersionsToLookFor {
 		jo := lib.JsonOcpVersionCount{
@@ -390,9 +389,10 @@ func printOcpVersionCountJSON(ocpVersionCount map[string]int) {
 
 	jsonOutputBytes, err := json.Marshal(jsonOutput)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonOutputBytes))
+	return nil
 }
 
 func extractCommitVersion(componentName string) string {
@@ -417,7 +417,7 @@ func printComponentsStdout(componentsResponses []lib.ComponentsResponse) {
 	}
 }
 
-func printComponentsJSON(componentsResponses []lib.ComponentsResponse) {
+func printComponentsJSON(componentsResponses []lib.ComponentsResponse) error {
 	// Flatten all components into a single slice
 	var allComponents []lib.Components
 	for _, cr := range componentsResponses {
@@ -432,9 +432,10 @@ func printComponentsJSON(componentsResponses []lib.ComponentsResponse) {
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printIdentityStdout(identity *lib.IdentityResponse) {
@@ -460,12 +461,13 @@ func printIdentityStdout(identity *lib.IdentityResponse) {
 	}
 }
 
-func printIdentityJSON(identity *lib.IdentityResponse) {
+func printIdentityJSON(identity *lib.IdentityResponse) error {
 	jsonBytes, err := json.Marshal(identity)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printComponentTypesStdout(componentTypesResponses []lib.ComponentTypesResponse) {
@@ -476,7 +478,7 @@ func printComponentTypesStdout(componentTypesResponses []lib.ComponentTypesRespo
 	}
 }
 
-func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesResponse) {
+func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesResponse) error {
 	// Flatten all component types into a single slice
 	var allComponentTypes []lib.ComponentType
 	for _, ctr := range componentTypesResponses {
@@ -491,9 +493,10 @@ func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesRespons
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printTopicsStdout(topicsResponses []lib.TopicsResponse) {
@@ -505,17 +508,17 @@ func printTopicsStdout(topicsResponses []lib.TopicsResponse) {
 	}
 }
 
-func printTopicsJSON(topicsResponses []lib.TopicsResponse) {
+func printTopicsJSON(topicsResponses []lib.TopicsResponse) error {
 	// Flatten all topics into a single slice using the Topic struct
 	type Topic struct {
-		ID            string   `json:"id"`
-		Name          string   `json:"name"`
-		ProductID     string   `json:"product_id"`
-		ProductName   string   `json:"product_name"`
-		State         string   `json:"state"`
-		ExportControl bool     `json:"export_control"`
-		CreatedAt     string   `json:"created_at,omitempty"`
-		UpdatedAt     string   `json:"updated_at,omitempty"`
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		ProductID     string `json:"product_id"`
+		ProductName   string `json:"product_name"`
+		State         string `json:"state"`
+		ExportControl bool   `json:"export_control"`
+		CreatedAt     string `json:"created_at,omitempty"`
+		UpdatedAt     string `json:"updated_at,omitempty"`
 	}
 
 	var allTopics []Topic
@@ -542,9 +545,10 @@ func printTopicsJSON(topicsResponses []lib.TopicsResponse) {
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

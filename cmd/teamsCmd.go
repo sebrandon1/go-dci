@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
@@ -40,10 +39,10 @@ var getTeamsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTeamsJSON(response)
-		} else {
-			printTeamsStdout(response)
+			return printTeamsJSON(response)
 		}
+
+		printTeamsStdout(response)
 
 		return nil
 	},
@@ -74,10 +73,10 @@ var getTeamCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTeamJSON(response)
-		} else {
-			printTeamStdout(response)
+			return printTeamJSON(response)
 		}
+
+		printTeamStdout(response)
 
 		return nil
 	},
@@ -108,11 +107,11 @@ var createTeamCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTeamJSON(response)
-		} else {
-			fmt.Println("Team created successfully!")
-			printTeamStdout(response)
+			return printTeamJSON(response)
 		}
+
+		fmt.Println("Team created successfully!")
+		printTeamStdout(response)
 
 		return nil
 	},
@@ -151,11 +150,11 @@ var updateTeamCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printTeamJSON(response)
-		} else {
-			fmt.Println("Team updated successfully!")
-			printTeamStdout(response)
+			return printTeamJSON(response)
 		}
+
+		fmt.Println("Team updated successfully!")
+		printTeamStdout(response)
 
 		return nil
 	},
@@ -210,12 +209,13 @@ func printTeamsStdout(response *lib.TeamsResponse) {
 	fmt.Printf("Total Teams: %d\n", len(response.Teams))
 }
 
-func printTeamsJSON(response *lib.TeamsResponse) {
+func printTeamsJSON(response *lib.TeamsResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printTeamStdout(response *lib.TeamResponse) {
@@ -229,12 +229,13 @@ func printTeamStdout(response *lib.TeamResponse) {
 	fmt.Printf("Updated:   %s\n", response.Team.UpdatedAt)
 }
 
-func printTeamJSON(response *lib.TeamResponse) {
+func printTeamJSON(response *lib.TeamResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

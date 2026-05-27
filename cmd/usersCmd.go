@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
@@ -46,10 +45,10 @@ var getUsersCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printUsersJSON(response)
-		} else {
-			printUsersStdout(response)
+			return printUsersJSON(response)
 		}
+
+		printUsersStdout(response)
 
 		return nil
 	},
@@ -80,10 +79,10 @@ var getUserCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printUserJSON(response)
-		} else {
-			printUserStdout(response)
+			return printUserJSON(response)
 		}
+
+		printUserStdout(response)
 
 		return nil
 	},
@@ -129,11 +128,11 @@ var createUserCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printUserJSON(response)
-		} else {
-			fmt.Println("User created successfully!")
-			printUserStdout(response)
+			return printUserJSON(response)
 		}
+
+		fmt.Println("User created successfully!")
+		printUserStdout(response)
 
 		return nil
 	},
@@ -178,11 +177,11 @@ var updateUserCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printUserJSON(response)
-		} else {
-			fmt.Println("User updated successfully!")
-			printUserStdout(response)
+			return printUserJSON(response)
 		}
+
+		fmt.Println("User updated successfully!")
+		printUserStdout(response)
 
 		return nil
 	},
@@ -237,12 +236,13 @@ func printUsersStdout(response *lib.UsersResponse) {
 	fmt.Printf("Total Users: %d\n", len(response.Users))
 }
 
-func printUsersJSON(response *lib.UsersResponse) {
+func printUsersJSON(response *lib.UsersResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printUserStdout(response *lib.UserResponse) {
@@ -257,12 +257,13 @@ func printUserStdout(response *lib.UserResponse) {
 	fmt.Printf("Updated:  %s\n", response.User.UpdatedAt)
 }
 
-func printUserJSON(response *lib.UserResponse) {
+func printUserJSON(response *lib.UserResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

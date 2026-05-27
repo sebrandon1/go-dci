@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
@@ -44,10 +43,10 @@ var getComponentTypeCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentTypeJSON(response)
-		} else {
-			printComponentTypeStdout(response)
+			return printComponentTypeJSON(response)
 		}
+
+		printComponentTypeStdout(response)
 
 		return nil
 	},
@@ -78,11 +77,11 @@ var createComponentTypeCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentTypeJSON(response)
-		} else {
-			fmt.Println("Component type created successfully!")
-			printComponentTypeStdout(response)
+			return printComponentTypeJSON(response)
 		}
+
+		fmt.Println("Component type created successfully!")
+		printComponentTypeStdout(response)
 
 		return nil
 	},
@@ -121,11 +120,11 @@ var updateComponentTypeCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentTypeJSON(response)
-		} else {
-			fmt.Println("Component type updated successfully!")
-			printComponentTypeStdout(response)
+			return printComponentTypeJSON(response)
 		}
+
+		fmt.Println("Component type updated successfully!")
+		printComponentTypeStdout(response)
 
 		return nil
 	},
@@ -176,12 +175,13 @@ func printComponentTypeStdout(response *lib.ComponentTypeResponse) {
 	fmt.Printf("Updated:  %s\n", response.ComponentType.UpdatedAt)
 }
 
-func printComponentTypeJSON(response *lib.ComponentTypeResponse) {
+func printComponentTypeJSON(response *lib.ComponentTypeResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

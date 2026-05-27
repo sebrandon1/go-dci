@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
@@ -35,10 +34,10 @@ var getProductsCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printProductsJSON(response)
-		} else {
-			printProductsStdout(response)
+			return printProductsJSON(response)
 		}
+
+		printProductsStdout(response)
 
 		return nil
 	},
@@ -69,10 +68,10 @@ var getProductCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printProductJSON(response)
-		} else {
-			printProductStdout(response)
+			return printProductJSON(response)
 		}
+
+		printProductStdout(response)
 
 		return nil
 	},
@@ -91,12 +90,13 @@ func printProductsStdout(response *lib.ProductsResponse) {
 	fmt.Printf("Total Products: %d\n", len(response.Products))
 }
 
-func printProductsJSON(response *lib.ProductsResponse) {
+func printProductsJSON(response *lib.ProductsResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printProductStdout(response *lib.ProductResponse) {
@@ -110,12 +110,13 @@ func printProductStdout(response *lib.ProductResponse) {
 	fmt.Printf("Updated:     %s\n", response.Product.UpdatedAt)
 }
 
-func printProductJSON(response *lib.ProductResponse) {
+func printProductJSON(response *lib.ProductResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

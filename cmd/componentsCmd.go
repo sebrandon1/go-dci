@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
@@ -50,10 +49,10 @@ var getComponentCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentJSON(response)
-		} else {
-			printComponentStdout(response)
+			return printComponentJSON(response)
 		}
+
+		printComponentStdout(response)
 
 		return nil
 	},
@@ -92,11 +91,11 @@ var createComponentCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentJSON(response)
-		} else {
-			fmt.Println("Component created successfully!")
-			printComponentStdout(response)
+			return printComponentJSON(response)
 		}
+
+		fmt.Println("Component created successfully!")
+		printComponentStdout(response)
 
 		return nil
 	},
@@ -145,11 +144,11 @@ var updateComponentCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printComponentJSON(response)
-		} else {
-			fmt.Println("Component updated successfully!")
-			printComponentStdout(response)
+			return printComponentJSON(response)
 		}
+
+		fmt.Println("Component updated successfully!")
+		printComponentStdout(response)
 
 		return nil
 	},
@@ -209,12 +208,13 @@ func printComponentStdout(response *lib.ComponentResponse) {
 	fmt.Printf("Updated:      %s\n", response.Component.UpdatedAt)
 }
 
-func printComponentJSON(response *lib.ComponentResponse) {
+func printComponentJSON(response *lib.ComponentResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {
