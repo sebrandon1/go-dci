@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
@@ -57,10 +56,10 @@ var createJobCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printCreateJobJSON(response)
-		} else {
-			printCreateJobStdout(response)
+			return printCreateJobJSON(response)
 		}
+
+		printCreateJobStdout(response)
 
 		return nil
 	},
@@ -108,10 +107,10 @@ var updateJobStateCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printJobStateJSON(response)
-		} else {
-			printJobStateStdout(response)
+			return printJobStateJSON(response)
 		}
+
+		printJobStateStdout(response)
 
 		return nil
 	},
@@ -151,10 +150,10 @@ var uploadFileCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printUploadFileJSON(response)
-		} else {
-			printUploadFileStdout(response)
+			return printUploadFileJSON(response)
 		}
+
+		printUploadFileStdout(response)
 
 		return nil
 	},
@@ -170,12 +169,13 @@ func printCreateJobStdout(response *lib.CreateJobResponse) {
 	fmt.Printf("Created:   %s\n", response.Job.CreatedAt)
 }
 
-func printCreateJobJSON(response *lib.CreateJobResponse) {
+func printCreateJobJSON(response *lib.CreateJobResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printJobStateStdout(response *lib.JobStateResponse) {
@@ -190,12 +190,13 @@ func printJobStateStdout(response *lib.JobStateResponse) {
 	fmt.Printf("Created:     %s\n", response.JobState.CreatedAt)
 }
 
-func printJobStateJSON(response *lib.JobStateResponse) {
+func printJobStateJSON(response *lib.JobStateResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printUploadFileStdout(response *lib.UploadFileResponse) {
@@ -209,12 +210,13 @@ func printUploadFileStdout(response *lib.UploadFileResponse) {
 	fmt.Printf("Created:   %s\n", response.File.CreatedAt)
 }
 
-func printUploadFileJSON(response *lib.UploadFileResponse) {
+func printUploadFileJSON(response *lib.UploadFileResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {

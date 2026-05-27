@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
@@ -46,10 +45,10 @@ var getJobCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printJobJSON(response)
-		} else {
-			printJobStdout(response)
+			return printJobJSON(response)
 		}
+
+		printJobStdout(response)
 
 		return nil
 	},
@@ -92,11 +91,11 @@ var updateJobCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printJobJSON(response)
-		} else {
-			fmt.Println("Job updated successfully!")
-			printJobStdout(response)
+			return printJobJSON(response)
 		}
+
+		fmt.Println("Job updated successfully!")
+		printJobStdout(response)
 
 		return nil
 	},
@@ -163,11 +162,11 @@ var scheduleJobCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printCreateJobJSON(response)
-		} else {
-			fmt.Println("Job scheduled successfully!")
-			printCreateJobStdout(response)
+			return printCreateJobJSON(response)
 		}
+
+		fmt.Println("Job scheduled successfully!")
+		printCreateJobStdout(response)
 
 		return nil
 	},
@@ -198,10 +197,10 @@ var getJobFilesCmd = &cobra.Command{
 		}
 
 		if outputFormat == OutputFormatJSON {
-			printFilesJSON(response)
-		} else {
-			printFilesStdout(response)
+			return printFilesJSON(response)
 		}
+
+		printFilesStdout(response)
 
 		return nil
 	},
@@ -227,12 +226,13 @@ func printJobStdout(response *lib.JobResponse) {
 	fmt.Printf("Updated:      %s\n", response.Job.UpdatedAt)
 }
 
-func printJobJSON(response *lib.JobResponse) {
+func printJobJSON(response *lib.JobResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func printFilesStdout(response *lib.FilesResponse) {
@@ -248,12 +248,13 @@ func printFilesStdout(response *lib.FilesResponse) {
 	fmt.Printf("Total Files: %d\n", len(response.Files))
 }
 
-func printFilesJSON(response *lib.FilesResponse) {
+func printFilesJSON(response *lib.FilesResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		log.Fatalf("Failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
 	fmt.Println(string(jsonBytes))
+	return nil
 }
 
 func init() {
