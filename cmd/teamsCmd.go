@@ -11,22 +11,21 @@ import (
 
 // Variables for team command flags
 var (
-	getTeamIDFlag      string
-	createTeamNameFlag string
-	updateTeamIDFlag   string
-	updateTeamNameFlag string
+	getTeamIDFlag       string
+	createTeamNameFlag  string
+	updateTeamIDFlag    string
+	updateTeamNameFlag  string
 	updateTeamStateFlag string
-	deleteTeamIDFlag   string
+	deleteTeamIDFlag    string
 )
 
 var getTeamsCmd = &cobra.Command{
 	Use:   "teams",
 	Short: "Get all teams from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -37,8 +36,7 @@ var getTeamsCmd = &cobra.Command{
 
 		response, err := client.GetTeams()
 		if err != nil {
-			fmt.Printf("Failed to get teams: %v\n", err)
-			return
+			return fmt.Errorf("failed to get teams: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -46,22 +44,22 @@ var getTeamsCmd = &cobra.Command{
 		} else {
 			printTeamsStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var getTeamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Get a specific team by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getTeamIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -72,8 +70,7 @@ var getTeamCmd = &cobra.Command{
 
 		response, err := client.GetTeam(getTeamIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get team: %v\n", err)
-			return
+			return fmt.Errorf("failed to get team: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -81,22 +78,22 @@ var getTeamCmd = &cobra.Command{
 		} else {
 			printTeamStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var createTeamCmd = &cobra.Command{
 	Use:   "create-team",
 	Short: "Create a new team in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createTeamNameFlag == "" {
-			fmt.Println("Error: --name is required")
-			return
+			return fmt.Errorf("--name is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -107,8 +104,7 @@ var createTeamCmd = &cobra.Command{
 
 		response, err := client.CreateTeam(createTeamNameFlag)
 		if err != nil {
-			fmt.Printf("Failed to create team: %v\n", err)
-			return
+			return fmt.Errorf("failed to create team: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -117,22 +113,22 @@ var createTeamCmd = &cobra.Command{
 			fmt.Println("Team created successfully!")
 			printTeamStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateTeamCmd = &cobra.Command{
 	Use:   "update-team",
 	Short: "Update an existing team in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateTeamIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -151,8 +147,7 @@ var updateTeamCmd = &cobra.Command{
 
 		response, err := client.UpdateTeam(updateTeamIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update team: %v\n", err)
-			return
+			return fmt.Errorf("failed to update team: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -161,22 +156,22 @@ var updateTeamCmd = &cobra.Command{
 			fmt.Println("Team updated successfully!")
 			printTeamStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteTeamCmd = &cobra.Command{
 	Use:   "delete-team",
 	Short: "Delete a team from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteTeamIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -187,8 +182,7 @@ var deleteTeamCmd = &cobra.Command{
 
 		err = client.DeleteTeam(deleteTeamIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete team: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete team: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -198,6 +192,8 @@ var deleteTeamCmd = &cobra.Command{
 		} else {
 			fmt.Println("Team deleted successfully!")
 		}
+
+		return nil
 	},
 }
 

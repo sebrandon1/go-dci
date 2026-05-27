@@ -24,16 +24,14 @@ var (
 var getJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "Get a specific job by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getJobIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -44,8 +42,7 @@ var getJobCmd = &cobra.Command{
 
 		response, err := client.GetJob(getJobIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get job: %v\n", err)
-			return
+			return fmt.Errorf("failed to get job: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -53,22 +50,22 @@ var getJobCmd = &cobra.Command{
 		} else {
 			printJobStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateJobCmd = &cobra.Command{
 	Use:   "update-job",
 	Short: "Update an existing job in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateJobIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -91,8 +88,7 @@ var updateJobCmd = &cobra.Command{
 
 		response, err := client.UpdateJob(updateJobIDFlag, updates)
 		if err != nil {
-			fmt.Printf("Failed to update job: %v\n", err)
-			return
+			return fmt.Errorf("failed to update job: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -101,22 +97,22 @@ var updateJobCmd = &cobra.Command{
 			fmt.Println("Job updated successfully!")
 			printJobStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var deleteJobCmd = &cobra.Command{
 	Use:   "delete-job",
 	Short: "Delete a job from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteJobIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -127,8 +123,7 @@ var deleteJobCmd = &cobra.Command{
 
 		err = client.DeleteJob(deleteJobIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete job: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete job: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -138,22 +133,22 @@ var deleteJobCmd = &cobra.Command{
 		} else {
 			fmt.Println("Job deleted successfully!")
 		}
+
+		return nil
 	},
 }
 
 var scheduleJobCmd = &cobra.Command{
 	Use:   "schedule-job",
 	Short: "Schedule a job with auto-selected components",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if scheduleJobTopicID == "" {
-			fmt.Println("Error: --topic-id is required")
-			return
+			return fmt.Errorf("--topic-id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -164,8 +159,7 @@ var scheduleJobCmd = &cobra.Command{
 
 		response, err := client.ScheduleJob(scheduleJobTopicID)
 		if err != nil {
-			fmt.Printf("Failed to schedule job: %v\n", err)
-			return
+			return fmt.Errorf("failed to schedule job: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -174,22 +168,22 @@ var scheduleJobCmd = &cobra.Command{
 			fmt.Println("Job scheduled successfully!")
 			printCreateJobStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var getJobFilesCmd = &cobra.Command{
 	Use:   "job-files",
 	Short: "Get all files for a specific job",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if jobFilesIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -200,8 +194,7 @@ var getJobFilesCmd = &cobra.Command{
 
 		response, err := client.GetJobFiles(jobFilesIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get job files: %v\n", err)
-			return
+			return fmt.Errorf("failed to get job files: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -209,6 +202,8 @@ var getJobFilesCmd = &cobra.Command{
 		} else {
 			printFilesStdout(response)
 		}
+
+		return nil
 	},
 }
 

@@ -26,16 +26,14 @@ var (
 var createJobCmd = &cobra.Command{
 	Use:   "create-job",
 	Short: "Create a new job in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if createJobTopicID == "" {
-			fmt.Println("Error: --topic-id is required")
-			return
+			return fmt.Errorf("--topic-id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -55,8 +53,7 @@ var createJobCmd = &cobra.Command{
 
 		response, err := client.CreateJob(createJobTopicID, componentIDs, createJobComment)
 		if err != nil {
-			fmt.Printf("Failed to create job: %v\n", err)
-			return
+			return fmt.Errorf("failed to create job: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -64,27 +61,26 @@ var createJobCmd = &cobra.Command{
 		} else {
 			printCreateJobStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var updateJobStateCmd = &cobra.Command{
 	Use:   "update-job-state",
 	Short: "Update the state of a job (pre-run, running, success, failure, etc.)",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if updateJobStateJobID == "" {
-			fmt.Println("Error: --job-id is required")
-			return
+			return fmt.Errorf("--job-id is required")
 		}
 
 		if updateJobStateStatus == "" {
-			fmt.Println("Error: --status is required")
-			return
+			return fmt.Errorf("--status is required")
 		}
 
 		// Validate status
@@ -97,8 +93,7 @@ var updateJobStateCmd = &cobra.Command{
 			}
 		}
 		if !isValid {
-			fmt.Printf("Error: invalid status '%s'. Valid values: %s\n", updateJobStateStatus, strings.Join(validStatuses, ", "))
-			return
+			return fmt.Errorf("invalid status '%s'. Valid values: %s", updateJobStateStatus, strings.Join(validStatuses, ", "))
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -109,8 +104,7 @@ var updateJobStateCmd = &cobra.Command{
 
 		response, err := client.UpdateJobState(updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
 		if err != nil {
-			fmt.Printf("Failed to update job state: %v\n", err)
-			return
+			return fmt.Errorf("failed to update job state: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -118,27 +112,26 @@ var updateJobStateCmd = &cobra.Command{
 		} else {
 			printJobStateStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var uploadFileCmd = &cobra.Command{
 	Use:   "upload-file",
 	Short: "Upload a file (e.g., test results) to a job in DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if uploadFileJobID == "" {
-			fmt.Println("Error: --job-id is required")
-			return
+			return fmt.Errorf("--job-id is required")
 		}
 
 		if uploadFilePath == "" {
-			fmt.Println("Error: --file is required")
-			return
+			return fmt.Errorf("--file is required")
 		}
 
 		// Default mime type for test results
@@ -154,8 +147,7 @@ var uploadFileCmd = &cobra.Command{
 
 		response, err := client.UploadFile(uploadFileJobID, uploadFilePath, uploadFileMimeType)
 		if err != nil {
-			fmt.Printf("Failed to upload file: %v\n", err)
-			return
+			return fmt.Errorf("failed to upload file: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -163,6 +155,8 @@ var uploadFileCmd = &cobra.Command{
 		} else {
 			printUploadFileStdout(response)
 		}
+
+		return nil
 	},
 }
 

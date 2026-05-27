@@ -19,16 +19,14 @@ var (
 var getFileCmd = &cobra.Command{
 	Use:   "file",
 	Short: "Download a file by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getFileIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -39,14 +37,12 @@ var getFileCmd = &cobra.Command{
 
 		content, contentType, err := client.GetFile(getFileIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get file: %v\n", err)
-			return
+			return fmt.Errorf("failed to get file: %v", err)
 		}
 
 		if getFileOutputPath != "" {
 			if err := os.WriteFile(getFileOutputPath, content, 0644); err != nil {
-				fmt.Printf("Failed to write file: %v\n", err)
-				return
+				return fmt.Errorf("failed to write file: %v", err)
 			}
 			fmt.Printf("File saved to: %s\n", getFileOutputPath)
 		} else if outputFormat == OutputFormatJSON {
@@ -63,22 +59,22 @@ var getFileCmd = &cobra.Command{
 			fmt.Printf("Size:          %d bytes\n", len(content))
 			fmt.Println("Use --output <path> to save the file content")
 		}
+
+		return nil
 	},
 }
 
 var deleteFileCmd = &cobra.Command{
 	Use:   "delete-file",
 	Short: "Delete a file from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if deleteFileIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -89,8 +85,7 @@ var deleteFileCmd = &cobra.Command{
 
 		err = client.DeleteFile(deleteFileIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to delete file: %v\n", err)
-			return
+			return fmt.Errorf("failed to delete file: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -100,6 +95,8 @@ var deleteFileCmd = &cobra.Command{
 		} else {
 			fmt.Println("File deleted successfully!")
 		}
+
+		return nil
 	},
 }
 

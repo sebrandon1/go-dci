@@ -17,11 +17,10 @@ var (
 var getProductsCmd = &cobra.Command{
 	Use:   "products",
 	Short: "Get all products from DCI",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -32,8 +31,7 @@ var getProductsCmd = &cobra.Command{
 
 		response, err := client.GetProducts()
 		if err != nil {
-			fmt.Printf("Failed to get products: %v\n", err)
-			return
+			return fmt.Errorf("failed to get products: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -41,22 +39,22 @@ var getProductsCmd = &cobra.Command{
 		} else {
 			printProductsStdout(response)
 		}
+
+		return nil
 	},
 }
 
 var getProductCmd = &cobra.Command{
 	Use:   "product",
 	Short: "Get a specific product by ID",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		if getProductIDFlag == "" {
-			fmt.Println("Error: --id is required")
-			return
+			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -67,8 +65,7 @@ var getProductCmd = &cobra.Command{
 
 		response, err := client.GetProduct(getProductIDFlag)
 		if err != nil {
-			fmt.Printf("Failed to get product: %v\n", err)
-			return
+			return fmt.Errorf("failed to get product: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -76,6 +73,8 @@ var getProductCmd = &cobra.Command{
 		} else {
 			printProductStdout(response)
 		}
+
+		return nil
 	},
 }
 
