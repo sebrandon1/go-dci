@@ -16,8 +16,12 @@ lint:
 test:
 	go test -v ./cmd ./lib
 
+coverage:
+	go test -coverprofile=coverage.out ./cmd ./lib
+	go tool cover -func=coverage.out
+
 clean:
-	rm -f $(APP_NAME)
+	rm -f $(APP_NAME) coverage.out
 
 run: build
 	./$(APP_NAME)
@@ -29,4 +33,4 @@ check-swagger-alignment:
 		--lib-path="./lib" \
 		--base-url-var="DCIURL|BaseURL"
 
-.PHONY: vet build lint test clean run check-swagger-alignment
+.PHONY: vet build lint test coverage clean run check-swagger-alignment

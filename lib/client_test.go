@@ -13,7 +13,7 @@ import (
 )
 
 func newTestClient(serverURL string) *Client {
-	return &Client{BaseURL: serverURL, AccessKey: "testKey", SecretKey: "testSecret"}
+	return &Client{BaseURL: serverURL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}}
 }
 
 func TestNewClient(t *testing.T) {
@@ -23,6 +23,7 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, "testAccessKey", client.AccessKey)
 	assert.Equal(t, "testSecretKey", client.SecretKey)
 	assert.Equal(t, DCIURL, client.BaseURL)
+	assert.NotNil(t, client.httpClient)
 }
 
 func TestGetComponents_EmptyResponse(t *testing.T) {
@@ -251,9 +252,10 @@ func TestGetIdentity_AuthenticationFailed(t *testing.T) {
 	defer server.Close()
 
 	client := &Client{
-		BaseURL:   server.URL,
-		AccessKey: "badKey",
-		SecretKey: "badSecret",
+		BaseURL:    server.URL,
+		AccessKey:  "badKey",
+		SecretKey:  "badSecret",
+		httpClient: &http.Client{},
 	}
 
 	identity, err := client.GetIdentity()
@@ -2373,7 +2375,7 @@ func TestUploadFile_Success(t *testing.T) {
 }
 
 func TestUploadFile_FileNotFound(t *testing.T) {
-	client := &Client{BaseURL: "http://localhost", AccessKey: "testKey", SecretKey: "testSecret"}
+	client := &Client{BaseURL: "http://localhost", AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}}
 	result, err := client.UploadFile("job-123", "/nonexistent/path/file.xml", "application/xml")
 	assert.Error(t, err)
 	assert.Nil(t, result)
