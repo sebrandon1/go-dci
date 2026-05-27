@@ -47,15 +47,10 @@ func NewClient(accessKey, secretKey string) *Client {
 func (c *Client) GetIdentity() (*IdentityResponse, error) {
 	httpResponse, err := httpGetSimpleWithAWSAuth(c.BaseURL+"/identity", awsRegion, serviceName, c.AccessKey, c.SecretKey)
 	if err != nil {
-		fmt.Printf("Error getting identity: %s\n", err)
 		return nil, err
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("authentication failed with status code: %d", httpResponse.StatusCode)
@@ -64,7 +59,6 @@ func (c *Client) GetIdentity() (*IdentityResponse, error) {
 	var identity IdentityResponse
 	err = json.NewDecoder(httpResponse.Body).Decode(&identity)
 	if err != nil {
-		fmt.Printf("Error decoding the response: %s\n", err)
 		return nil, err
 	}
 
@@ -126,20 +120,14 @@ func (c *Client) GetComponentTypes() ([]ComponentTypesResponse, error) {
 func (c *Client) fetchComponentTypes(requestLimit, offset int) (ComponentTypesResponse, error) {
 	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/componenttypes", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 	if err != nil {
-		fmt.Printf("Error getting component types: %s\n", err)
 		return ComponentTypesResponse{}, err
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	var componentTypes ComponentTypesResponse
 	err = json.NewDecoder(httpResponse.Body).Decode(&componentTypes)
 	if err != nil {
-		fmt.Printf("Error decoding the response: %s\n", err)
 		return ComponentTypesResponse{}, err
 	}
 
@@ -154,11 +142,7 @@ func (c *Client) GetComponentType(componentTypeID string) (*ComponentTypeRespons
 		return nil, fmt.Errorf("error getting component type: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -190,11 +174,7 @@ func (c *Client) CreateComponentType(name string) (*ComponentTypeResponse, error
 		return nil, fmt.Errorf("error creating component type: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -222,11 +202,7 @@ func (c *Client) UpdateComponentType(componentTypeID string, updates UpdateCompo
 		return nil, fmt.Errorf("error updating component type: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -249,11 +225,7 @@ func (c *Client) DeleteComponentType(componentTypeID string) error {
 		return fmt.Errorf("error deleting component type: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -295,20 +267,14 @@ func (c *Client) GetTopics() ([]TopicsResponse, error) {
 func (c *Client) fetchTopics(requestLimit, offset int) (TopicsResponse, error) {
 	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/topics", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 	if err != nil {
-		fmt.Printf("Error getting topics: %s\n", err)
 		return TopicsResponse{}, err
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	var topics TopicsResponse
 	err = json.NewDecoder(httpResponse.Body).Decode(&topics)
 	if err != nil {
-		fmt.Printf("Error decoding the response: %s\n", err)
 		return TopicsResponse{}, err
 	}
 
@@ -323,11 +289,7 @@ func (c *Client) GetTopic(topicID string) (*TopicResponse, error) {
 		return nil, fmt.Errorf("error getting topic: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -360,11 +322,7 @@ func (c *Client) CreateTopic(name, productID string, componentTypes []string) (*
 		return nil, fmt.Errorf("error creating topic: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -392,11 +350,7 @@ func (c *Client) UpdateTopic(topicID string, updates UpdateTopicRequest) (*Topic
 		return nil, fmt.Errorf("error updating topic: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -419,11 +373,7 @@ func (c *Client) DeleteTopic(topicID string) error {
 		return fmt.Errorf("error deleting topic: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -470,11 +420,7 @@ func (c *Client) fetchTopicComponents(topicID string, requestLimit, offset int) 
 		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	var components ComponentsResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&components); err != nil {
@@ -509,7 +455,6 @@ func (c *Client) GetJobs(daysBackLimit int) ([]JobsResponse, error) {
 			// Parse the created at date
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
-				fmt.Printf("Error parsing the created at date: %s\n", err)
 				continue
 			}
 
@@ -556,7 +501,6 @@ func (c *Client) GetJobsByDate(startDate, endDate time.Time) ([]JobsResponse, er
 			// Parse the created at date
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
-				fmt.Printf("Error parsing the created at date: %s\n", err)
 				continue
 			}
 
@@ -592,11 +536,7 @@ func (c *Client) GetJob(jobID string) (*JobResponse, error) {
 		return nil, fmt.Errorf("error getting job: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -624,11 +564,7 @@ func (c *Client) UpdateJob(jobID string, updates UpdateJobRequest) (*JobResponse
 		return nil, fmt.Errorf("error updating job: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -651,11 +587,7 @@ func (c *Client) DeleteJob(jobID string) error {
 		return fmt.Errorf("error deleting job: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -682,11 +614,7 @@ func (c *Client) ScheduleJob(topicID string) (*CreateJobResponse, error) {
 		return nil, fmt.Errorf("error scheduling job: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -709,11 +637,7 @@ func (c *Client) GetJobFiles(jobID string) (*FilesResponse, error) {
 		return nil, fmt.Errorf("error getting job files: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -763,21 +687,15 @@ func (c *Client) fetchJobs(requestLimit, offset int) (JobsResponse, error) {
 	// Get jobs from the API
 	httpResponse, err := httpGetWithAWSAuth(c.BaseURL+"/jobs", awsRegion, serviceName, c.AccessKey, c.SecretKey, requestLimit, offset)
 	if err != nil {
-		fmt.Printf("Error getting jobs: %s\n", err)
 		return JobsResponse{}, err
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	// Decode the response into JobsResponse
 	var jobs JobsResponse
 	err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
 	if err != nil {
-		fmt.Printf("Error decoding the response: %s\n", err)
 		return JobsResponse{}, err
 	}
 
@@ -826,11 +744,7 @@ func (c *Client) GetComponent(componentID string) (*ComponentResponse, error) {
 		return nil, fmt.Errorf("error getting component: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -865,11 +779,7 @@ func (c *Client) CreateComponent(name, componentType, topicID, version string) (
 		return nil, fmt.Errorf("error creating component: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -897,11 +807,7 @@ func (c *Client) UpdateComponent(componentID string, updates UpdateComponentRequ
 		return nil, fmt.Errorf("error updating component: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -924,11 +830,7 @@ func (c *Client) DeleteComponent(componentID string) error {
 		return fmt.Errorf("error deleting component: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -944,20 +846,14 @@ func (c *Client) fetchComponents(topicID string, requestLimit, offset int) (Comp
 
 	httpResponse, err := httpGetComponentsWithAWSAuth(url, awsRegion, serviceName, c.AccessKey, c.SecretKey, topicID, requestLimit, offset)
 	if err != nil {
-		fmt.Printf("Error getting components: %s\n", err)
 		return ComponentsResponse{}, err
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	var components ComponentsResponse
 	err = json.NewDecoder(httpResponse.Body).Decode(&components)
 	if err != nil {
-		fmt.Printf("Error decoding the response: %s\n", err)
 		return ComponentsResponse{}, err
 	}
 
@@ -1014,11 +910,7 @@ func (c *Client) CreateJob(topicID string, componentIDs []string, comment string
 		return nil, fmt.Errorf("error creating job: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1052,11 +944,7 @@ func (c *Client) UpdateJobState(jobID string, status JobState, comment string) (
 		return nil, fmt.Errorf("error updating job state: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1083,11 +971,7 @@ func (c *Client) GetJobStates(jobID string) (*JobStatesResponse, error) {
 		return nil, fmt.Errorf("error getting job states: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1110,11 +994,7 @@ func (c *Client) GetFile(fileID string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("error getting file: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1138,11 +1018,7 @@ func (c *Client) DeleteFile(fileID string) error {
 		return fmt.Errorf("error deleting file: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1167,11 +1043,7 @@ func (c *Client) UploadFile(jobID, filePath, mimeType string) (*UploadFileRespon
 		return nil, fmt.Errorf("error uploading file: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1193,11 +1065,7 @@ func (c *Client) UploadFileContent(jobID, fileName, mimeType string, content []b
 		return nil, fmt.Errorf("error uploading file: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1318,11 +1186,7 @@ func (c *Client) GetRemoteCIs() (*RemoteCIsResponse, error) {
 		return nil, fmt.Errorf("error getting remote CIs: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1345,11 +1209,7 @@ func (c *Client) GetRemoteCI(remoteciID string) (*RemoteCIResponse, error) {
 		return nil, fmt.Errorf("error getting remote CI: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1382,11 +1242,7 @@ func (c *Client) CreateRemoteCI(name, teamID string) (*RemoteCIResponse, error) 
 		return nil, fmt.Errorf("error creating remote CI: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1414,11 +1270,7 @@ func (c *Client) UpdateRemoteCI(remoteciID string, updates UpdateRemoteCIRequest
 		return nil, fmt.Errorf("error updating remote CI: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1441,11 +1293,7 @@ func (c *Client) DeleteRemoteCI(remoteciID string) error {
 		return fmt.Errorf("error deleting remote CI: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1463,11 +1311,7 @@ func (c *Client) GetTeams() (*TeamsResponse, error) {
 		return nil, fmt.Errorf("error getting teams: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1490,11 +1334,7 @@ func (c *Client) GetTeam(teamID string) (*TeamResponse, error) {
 		return nil, fmt.Errorf("error getting team: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1526,11 +1366,7 @@ func (c *Client) CreateTeam(name string) (*TeamResponse, error) {
 		return nil, fmt.Errorf("error creating team: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1558,11 +1394,7 @@ func (c *Client) UpdateTeam(teamID string, updates UpdateTeamRequest) (*TeamResp
 		return nil, fmt.Errorf("error updating team: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1585,11 +1417,7 @@ func (c *Client) DeleteTeam(teamID string) error {
 		return fmt.Errorf("error deleting team: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1607,11 +1435,7 @@ func (c *Client) GetUsers() (*UsersResponse, error) {
 		return nil, fmt.Errorf("error getting users: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1634,11 +1458,7 @@ func (c *Client) GetUser(userID string) (*UserResponse, error) {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1674,11 +1494,7 @@ func (c *Client) CreateUser(name, email, fullname, teamID, password string) (*Us
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1706,11 +1522,7 @@ func (c *Client) UpdateUser(userID string, updates UpdateUserRequest) (*UserResp
 		return nil, fmt.Errorf("error updating user: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1733,11 +1545,7 @@ func (c *Client) DeleteUser(userID string) error {
 		return fmt.Errorf("error deleting user: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1755,11 +1563,7 @@ func (c *Client) GetProducts() (*ProductsResponse, error) {
 		return nil, fmt.Errorf("error getting products: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
@@ -1782,11 +1586,7 @@ func (c *Client) GetProduct(productID string) (*ProductResponse, error) {
 		return nil, fmt.Errorf("error getting product: %w", err)
 	}
 
-	defer func() {
-		if cerr := httpResponse.Body.Close(); cerr != nil {
-			fmt.Printf("Error closing response body: %v\n", cerr)
-		}
-	}()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
