@@ -8,9 +8,12 @@ import (
 	"github.com/spf13/viper"
 )
 
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "dci",
-	Short: "DCI CLI",
+	Use:     "dci",
+	Short:   "CLI and library for the Red Hat Distributed CI API",
+	Version: Version,
 }
 
 var configFile string
