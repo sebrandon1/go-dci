@@ -137,6 +137,10 @@ var getOcpCountCmd = &cobra.Command{
 			return err
 		}
 
+		if ageInDays == "" {
+			return fmt.Errorf("--age is required")
+		}
+
 		if outputFormat != OutputFormatJSON {
 			fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
 		}
@@ -217,6 +221,14 @@ var getJobsCmd = &cobra.Command{
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
+		}
+
+		if ageInDays != "" && (startDate != "" || endDate != "") {
+			return fmt.Errorf("--age and --start-date/--end-date are mutually exclusive")
+		}
+
+		if ageInDays == "" && startDate == "" && endDate == "" {
+			return fmt.Errorf("either --age or --start-date/--end-date is required")
 		}
 
 		var jsonOutput lib.JobsJsonOutput
