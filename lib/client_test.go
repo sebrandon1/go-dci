@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 )
 
 func newTestClient(serverURL string) *Client {
-	return &Client{BaseURL: serverURL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}}
+	return &Client{BaseURL: serverURL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 1}
 }
 
 func TestNewClient(t *testing.T) {
@@ -24,6 +25,7 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, "testSecretKey", client.SecretKey)
 	assert.Equal(t, DCIURL, client.BaseURL)
 	assert.NotNil(t, client.httpClient)
+	assert.Equal(t, 3, client.MaxRetries)
 }
 
 func TestGetComponents_EmptyResponse(t *testing.T) {
@@ -42,7 +44,7 @@ func TestGetComponents_EmptyResponse(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.GetComponents()
+	components, err := client.GetComponents(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, components)
 	assert.Len(t, components, 1)
@@ -78,7 +80,7 @@ func TestGetComponents_WithData(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.GetComponents()
+	components, err := client.GetComponents(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, components)
 	assert.Len(t, components, 1)
@@ -114,7 +116,7 @@ func TestGetComponentsByTopicID(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.GetComponentsByTopicID(expectedTopicID)
+	components, err := client.GetComponentsByTopicID(context.Background(), expectedTopicID)
 	assert.NoError(t, err)
 	assert.NotNil(t, components)
 	assert.Len(t, components, 1)
@@ -130,7 +132,7 @@ func TestFetchComponents_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.fetchComponents("", 100, 0)
+	components, err := client.fetchComponents(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, components.Components)
 }
@@ -145,7 +147,7 @@ func TestFetchComponents_InvalidJSON(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.fetchComponents("", 100, 0)
+	components, err := client.fetchComponents(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, components.Components)
 }
@@ -204,7 +206,7 @@ func TestGetIdentity_Success(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, identity)
 	assert.Equal(t, "remoteci-123", identity.Identity.ID)
@@ -237,7 +239,7 @@ func TestGetIdentity_UserType(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, identity)
 	assert.Equal(t, "user", identity.Identity.Type)
@@ -256,9 +258,10 @@ func TestGetIdentity_AuthenticationFailed(t *testing.T) {
 		AccessKey:  "badKey",
 		SecretKey:  "badSecret",
 		httpClient: &http.Client{},
+		MaxRetries: 1,
 	}
 
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, identity)
 	assert.Contains(t, err.Error(), "authentication failed")
@@ -274,7 +277,7 @@ func TestGetIdentity_InvalidJSON(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, identity)
 }
@@ -327,7 +330,7 @@ func TestGetComponentTypes_EmptyResponse(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.GetComponentTypes()
+	componentTypes, err := client.GetComponentTypes(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, componentTypes)
 	assert.Len(t, componentTypes, 1)
@@ -367,7 +370,7 @@ func TestGetComponentTypes_WithData(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.GetComponentTypes()
+	componentTypes, err := client.GetComponentTypes(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, componentTypes)
 	assert.Len(t, componentTypes, 1)
@@ -385,7 +388,7 @@ func TestFetchComponentTypes_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.fetchComponentTypes(100, 0)
+	componentTypes, err := client.fetchComponentTypes(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, componentTypes.ComponentTypes)
 }
@@ -400,7 +403,7 @@ func TestFetchComponentTypes_InvalidJSON(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.fetchComponentTypes(100, 0)
+	componentTypes, err := client.fetchComponentTypes(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, componentTypes.ComponentTypes)
 }
@@ -469,7 +472,7 @@ func TestCreateJob_Success(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.CreateJob("topic-123", []string{"comp-1", "comp-2"}, "test comment")
+	response, err := client.CreateJob(context.Background(), "topic-123", []string{"comp-1", "comp-2"}, "test comment")
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, "job-456", response.Job.ID)
@@ -487,7 +490,7 @@ func TestCreateJob_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.CreateJob("invalid-topic", nil, "")
+	response, err := client.CreateJob(context.Background(), "invalid-topic", nil, "")
 	assert.Error(t, err)
 	assert.Nil(t, response)
 	assert.Contains(t, err.Error(), "failed to create job")
@@ -519,7 +522,7 @@ func TestUpdateJobState_Success(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.UpdateJobState("job-123", JobStateRunning, "starting test run")
+	response, err := client.UpdateJobState(context.Background(), "job-123", JobStateRunning, "starting test run")
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, "jobstate-789", response.JobState.ID)
@@ -547,7 +550,7 @@ func TestUpdateJobState_ToSuccess(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.UpdateJobState("job-123", JobStateSuccess, "")
+	response, err := client.UpdateJobState(context.Background(), "job-123", JobStateSuccess, "")
 	assert.NoError(t, err)
 	assert.Equal(t, "success", response.JobState.Status)
 }
@@ -573,7 +576,7 @@ func TestUpdateJobState_ToFailure(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.UpdateJobState("job-123", JobStateFailure, "tests failed")
+	response, err := client.UpdateJobState(context.Background(), "job-123", JobStateFailure, "tests failed")
 	assert.NoError(t, err)
 	assert.Equal(t, "failure", response.JobState.Status)
 }
@@ -588,7 +591,7 @@ func TestUpdateJobState_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.UpdateJobState("nonexistent-job", JobStateRunning, "")
+	response, err := client.UpdateJobState(context.Background(), "nonexistent-job", JobStateRunning, "")
 	assert.Error(t, err)
 	assert.Nil(t, response)
 	assert.Contains(t, err.Error(), "failed to update job state")
@@ -620,7 +623,7 @@ func TestUploadFileContent_Success(t *testing.T) {
 	client := newTestClient(server.URL)
 
 	content := []byte("<testsuites><testsuite></testsuite></testsuites>")
-	response, err := client.UploadFileContent("job-123", "test-results.xml", "application/junit", content)
+	response, err := client.UploadFileContent(context.Background(), "job-123", "test-results.xml", "application/junit", content)
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 	assert.Equal(t, "file-456", response.File.ID)
@@ -639,7 +642,7 @@ func TestUploadFileContent_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	response, err := client.UploadFileContent("invalid-job", "test.xml", "application/junit", []byte("content"))
+	response, err := client.UploadFileContent(context.Background(), "invalid-job", "test.xml", "application/junit", []byte("content"))
 	assert.Error(t, err)
 	assert.Nil(t, response)
 	assert.Contains(t, err.Error(), "failed to upload file")
@@ -714,7 +717,7 @@ func TestGetTopics_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	topics, err := client.GetTopics()
+	topics, err := client.GetTopics(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, topics)
 	assert.Len(t, topics, 1)
@@ -730,7 +733,7 @@ func TestGetTopics_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	topics, err := client.GetTopics()
+	topics, err := client.GetTopics(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, topics)
 }
@@ -748,7 +751,7 @@ func TestGetTopic_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTopic("topic-123")
+	result, err := client.GetTopic(context.Background(), "topic-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "topic-123", result.Topic.ID)
@@ -764,7 +767,7 @@ func TestGetTopic_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTopic("nonexistent")
+	result, err := client.GetTopic(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get topic")
@@ -791,7 +794,7 @@ func TestCreateTopic_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateTopic("OCP-4.15", "prod-1", []string{"ocp", "certsuite"})
+	result, err := client.CreateTopic(context.Background(), "OCP-4.15", "prod-1", []string{"ocp", "certsuite"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-topic", result.Topic.ID)
@@ -806,7 +809,7 @@ func TestCreateTopic_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateTopic("bad", "bad", nil)
+	result, err := client.CreateTopic(context.Background(), "bad", "bad", nil)
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create topic")
@@ -825,7 +828,7 @@ func TestUpdateTopic_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateTopic("topic-123", UpdateTopicRequest{Name: "updated-topic"})
+	result, err := client.UpdateTopic(context.Background(), "topic-123", UpdateTopicRequest{Name: "updated-topic"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated-topic", result.Topic.Name)
@@ -840,7 +843,7 @@ func TestUpdateTopic_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateTopic("nonexistent", UpdateTopicRequest{Name: "x"})
+	result, err := client.UpdateTopic(context.Background(), "nonexistent", UpdateTopicRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update topic")
@@ -855,7 +858,7 @@ func TestDeleteTopic_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteTopic("topic-123")
+	err := client.DeleteTopic(context.Background(), "topic-123")
 	assert.NoError(t, err)
 }
 
@@ -868,7 +871,7 @@ func TestDeleteTopic_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteTopic("nonexistent")
+	err := client.DeleteTopic(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete topic")
 }
@@ -891,7 +894,7 @@ func TestGetTopicComponents_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTopicComponents("topic-123")
+	result, err := client.GetTopicComponents(context.Background(), "topic-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result, 1)
@@ -906,7 +909,7 @@ func TestGetTopicComponents_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTopicComponents("topic-123")
+	result, err := client.GetTopicComponents(context.Background(), "topic-123")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 }
@@ -942,7 +945,7 @@ func TestFetchTopics_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(100, 0)
+	result, err := client.fetchTopics(context.Background(), 100, 0)
 	assert.NoError(t, err)
 	assert.Len(t, result.Topics, 1)
 	assert.Equal(t, "topic-1", result.Topics[0].ID)
@@ -955,7 +958,7 @@ func TestFetchTopics_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(100, 0)
+	result, err := client.fetchTopics(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Topics)
 }
@@ -969,7 +972,7 @@ func TestFetchTopics_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(100, 0)
+	result, err := client.fetchTopics(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Topics)
 }
@@ -987,7 +990,7 @@ func TestFetchTopicComponents_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopicComponents("topic-123", 100, 0)
+	result, err := client.fetchTopicComponents(context.Background(), "topic-123", 100, 0)
 	assert.NoError(t, err)
 	assert.Len(t, result.Components, 1)
 	assert.Equal(t, "comp-1", result.Components[0].ID)
@@ -1000,7 +1003,7 @@ func TestFetchTopicComponents_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopicComponents("topic-123", 100, 0)
+	result, err := client.fetchTopicComponents(context.Background(), "topic-123", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Components)
 }
@@ -1014,7 +1017,7 @@ func TestFetchTopicComponents_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopicComponents("topic-123", 100, 0)
+	result, err := client.fetchTopicComponents(context.Background(), "topic-123", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Components)
 }
@@ -1042,7 +1045,7 @@ func TestGetJobs_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	jobs, err := client.GetJobs(7)
+	jobs, err := client.GetJobs(context.Background(), 7)
 	assert.NoError(t, err)
 	assert.NotNil(t, jobs)
 	assert.Len(t, jobs, 1)
@@ -1057,7 +1060,7 @@ func TestGetJobs_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	jobs, err := client.GetJobs(7)
+	jobs, err := client.GetJobs(context.Background(), 7)
 	assert.Error(t, err)
 	assert.Nil(t, jobs)
 }
@@ -1084,7 +1087,7 @@ func TestGetJobsByDate_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	jobs, err := client.GetJobsByDate(now.Add(-time.Hour), now.Add(time.Hour))
+	jobs, err := client.GetJobsByDate(context.Background(), now.Add(-time.Hour), now.Add(time.Hour))
 	assert.NoError(t, err)
 	assert.NotNil(t, jobs)
 	assert.Len(t, jobs, 1)
@@ -1098,7 +1101,7 @@ func TestGetJobsByDate_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	jobs, err := client.GetJobsByDate(time.Now(), time.Now().Add(time.Hour))
+	jobs, err := client.GetJobsByDate(context.Background(), time.Now(), time.Now().Add(time.Hour))
 	assert.Error(t, err)
 	assert.Nil(t, jobs)
 }
@@ -1116,7 +1119,7 @@ func TestGetJob_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJob("job-123")
+	result, err := client.GetJob(context.Background(), "job-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "job-123", result.Job.ID)
@@ -1132,7 +1135,7 @@ func TestGetJob_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJob("nonexistent")
+	result, err := client.GetJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get job")
@@ -1151,7 +1154,7 @@ func TestUpdateJob_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateJob("job-123", UpdateJobRequest{Comment: "updated comment"})
+	result, err := client.UpdateJob(context.Background(), "job-123", UpdateJobRequest{Comment: "updated comment"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated comment", result.Job.Comment)
@@ -1166,7 +1169,7 @@ func TestUpdateJob_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateJob("nonexistent", UpdateJobRequest{Comment: "x"})
+	result, err := client.UpdateJob(context.Background(), "nonexistent", UpdateJobRequest{Comment: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update job")
@@ -1181,7 +1184,7 @@ func TestDeleteJob_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteJob("job-123")
+	err := client.DeleteJob(context.Background(), "job-123")
 	assert.NoError(t, err)
 }
 
@@ -1194,7 +1197,7 @@ func TestDeleteJob_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteJob("nonexistent")
+	err := client.DeleteJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete job")
 }
@@ -1219,7 +1222,7 @@ func TestScheduleJob_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.ScheduleJob("topic-123")
+	result, err := client.ScheduleJob(context.Background(), "topic-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "scheduled-job", result.Job.ID)
@@ -1234,7 +1237,7 @@ func TestScheduleJob_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.ScheduleJob("bad-topic")
+	result, err := client.ScheduleJob(context.Background(), "bad-topic")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to schedule job")
@@ -1258,7 +1261,7 @@ func TestGetJobFiles_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJobFiles("job-123")
+	result, err := client.GetJobFiles(context.Background(), "job-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Files, 1)
@@ -1275,7 +1278,7 @@ func TestGetJobFiles_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJobFiles("nonexistent")
+	result, err := client.GetJobFiles(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get job files")
@@ -1299,7 +1302,7 @@ func TestGetJobStates_WithJobID_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJobStates("job-123")
+	result, err := client.GetJobStates(context.Background(), "job-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.JobStates, 1)
@@ -1325,7 +1328,7 @@ func TestGetJobStates_EmptyJobID_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJobStates("")
+	result, err := client.GetJobStates(context.Background(), "")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.JobStates, 2)
@@ -1340,7 +1343,7 @@ func TestGetJobStates_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetJobStates("job-123")
+	result, err := client.GetJobStates(context.Background(), "job-123")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get job states")
@@ -1359,7 +1362,7 @@ func TestFetchJobs_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchJobs(100, 0)
+	result, err := client.fetchJobs(context.Background(), 100, 0)
 	assert.NoError(t, err)
 	assert.Len(t, result.Jobs, 1)
 	assert.Equal(t, "job-1", result.Jobs[0].ID)
@@ -1372,7 +1375,7 @@ func TestFetchJobs_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchJobs(100, 0)
+	result, err := client.fetchJobs(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Jobs)
 }
@@ -1386,7 +1389,7 @@ func TestFetchJobs_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchJobs(100, 0)
+	result, err := client.fetchJobs(context.Background(), 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Jobs)
 }
@@ -1404,7 +1407,7 @@ func TestGetComponent_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetComponent("comp-123")
+	result, err := client.GetComponent(context.Background(), "comp-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "comp-123", result.Component.ID)
@@ -1420,7 +1423,7 @@ func TestGetComponent_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetComponent("nonexistent")
+	result, err := client.GetComponent(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get component")
@@ -1448,7 +1451,7 @@ func TestCreateComponent_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateComponent("OCP 4.15", "ocp", "topic-123", "4.15.0")
+	result, err := client.CreateComponent(context.Background(), "OCP 4.15", "ocp", "topic-123", "4.15.0")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-comp", result.Component.ID)
@@ -1463,7 +1466,7 @@ func TestCreateComponent_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateComponent("bad", "bad", "bad", "bad")
+	result, err := client.CreateComponent(context.Background(), "bad", "bad", "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create component")
@@ -1482,7 +1485,7 @@ func TestUpdateComponent_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateComponent("comp-123", UpdateComponentRequest{Name: "updated-comp"})
+	result, err := client.UpdateComponent(context.Background(), "comp-123", UpdateComponentRequest{Name: "updated-comp"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated-comp", result.Component.Name)
@@ -1497,7 +1500,7 @@ func TestUpdateComponent_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateComponent("nonexistent", UpdateComponentRequest{Name: "x"})
+	result, err := client.UpdateComponent(context.Background(), "nonexistent", UpdateComponentRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update component")
@@ -1512,7 +1515,7 @@ func TestDeleteComponent_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteComponent("comp-123")
+	err := client.DeleteComponent(context.Background(), "comp-123")
 	assert.NoError(t, err)
 }
 
@@ -1525,7 +1528,7 @@ func TestDeleteComponent_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteComponent("nonexistent")
+	err := client.DeleteComponent(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete component")
 }
@@ -1543,7 +1546,7 @@ func TestGetComponentType_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetComponentType("ct-123")
+	result, err := client.GetComponentType(context.Background(), "ct-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "ct-123", result.ComponentType.ID)
@@ -1559,7 +1562,7 @@ func TestGetComponentType_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetComponentType("nonexistent")
+	result, err := client.GetComponentType(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get component type")
@@ -1579,7 +1582,7 @@ func TestCreateComponentType_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateComponentType("new-type")
+	result, err := client.CreateComponentType(context.Background(), "new-type")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-ct", result.ComponentType.ID)
@@ -1594,7 +1597,7 @@ func TestCreateComponentType_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateComponentType("bad")
+	result, err := client.CreateComponentType(context.Background(), "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create component type")
@@ -1613,7 +1616,7 @@ func TestUpdateComponentType_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateComponentType("ct-123", UpdateComponentTypeRequest{Name: "updated-ct"})
+	result, err := client.UpdateComponentType(context.Background(), "ct-123", UpdateComponentTypeRequest{Name: "updated-ct"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated-ct", result.ComponentType.Name)
@@ -1628,7 +1631,7 @@ func TestUpdateComponentType_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateComponentType("nonexistent", UpdateComponentTypeRequest{Name: "x"})
+	result, err := client.UpdateComponentType(context.Background(), "nonexistent", UpdateComponentTypeRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update component type")
@@ -1643,7 +1646,7 @@ func TestDeleteComponentType_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteComponentType("ct-123")
+	err := client.DeleteComponentType(context.Background(), "ct-123")
 	assert.NoError(t, err)
 }
 
@@ -1656,7 +1659,7 @@ func TestDeleteComponentType_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteComponentType("nonexistent")
+	err := client.DeleteComponentType(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete component type")
 }
@@ -1680,7 +1683,7 @@ func TestGetRemoteCIs_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetRemoteCIs()
+	result, err := client.GetRemoteCIs(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.RemoteCIs, 2)
@@ -1696,7 +1699,7 @@ func TestGetRemoteCIs_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetRemoteCIs()
+	result, err := client.GetRemoteCIs(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get remote CIs")
@@ -1715,7 +1718,7 @@ func TestGetRemoteCI_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetRemoteCI("rci-123")
+	result, err := client.GetRemoteCI(context.Background(), "rci-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "rci-123", result.RemoteCI.ID)
@@ -1731,7 +1734,7 @@ func TestGetRemoteCI_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetRemoteCI("nonexistent")
+	result, err := client.GetRemoteCI(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get remote CI")
@@ -1757,7 +1760,7 @@ func TestCreateRemoteCI_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateRemoteCI("new-remoteci", "team-1")
+	result, err := client.CreateRemoteCI(context.Background(), "new-remoteci", "team-1")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-rci", result.RemoteCI.ID)
@@ -1772,7 +1775,7 @@ func TestCreateRemoteCI_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateRemoteCI("bad", "bad")
+	result, err := client.CreateRemoteCI(context.Background(), "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create remote CI")
@@ -1791,7 +1794,7 @@ func TestUpdateRemoteCI_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateRemoteCI("rci-123", UpdateRemoteCIRequest{Name: "updated-remoteci"})
+	result, err := client.UpdateRemoteCI(context.Background(), "rci-123", UpdateRemoteCIRequest{Name: "updated-remoteci"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated-remoteci", result.RemoteCI.Name)
@@ -1806,7 +1809,7 @@ func TestUpdateRemoteCI_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateRemoteCI("nonexistent", UpdateRemoteCIRequest{Name: "x"})
+	result, err := client.UpdateRemoteCI(context.Background(), "nonexistent", UpdateRemoteCIRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update remote CI")
@@ -1821,7 +1824,7 @@ func TestDeleteRemoteCI_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteRemoteCI("rci-123")
+	err := client.DeleteRemoteCI(context.Background(), "rci-123")
 	assert.NoError(t, err)
 }
 
@@ -1834,7 +1837,7 @@ func TestDeleteRemoteCI_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteRemoteCI("nonexistent")
+	err := client.DeleteRemoteCI(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete remote CI")
 }
@@ -1858,7 +1861,7 @@ func TestGetTeams_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTeams()
+	result, err := client.GetTeams(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Teams, 2)
@@ -1875,7 +1878,7 @@ func TestGetTeams_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTeams()
+	result, err := client.GetTeams(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get teams")
@@ -1894,7 +1897,7 @@ func TestGetTeam_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTeam("team-123")
+	result, err := client.GetTeam(context.Background(), "team-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "team-123", result.Team.ID)
@@ -1910,7 +1913,7 @@ func TestGetTeam_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetTeam("nonexistent")
+	result, err := client.GetTeam(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get team")
@@ -1935,7 +1938,7 @@ func TestCreateTeam_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateTeam("New Team")
+	result, err := client.CreateTeam(context.Background(), "New Team")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-team", result.Team.ID)
@@ -1950,7 +1953,7 @@ func TestCreateTeam_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateTeam("bad")
+	result, err := client.CreateTeam(context.Background(), "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create team")
@@ -1969,7 +1972,7 @@ func TestUpdateTeam_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateTeam("team-123", UpdateTeamRequest{Name: "Updated Team"})
+	result, err := client.UpdateTeam(context.Background(), "team-123", UpdateTeamRequest{Name: "Updated Team"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "Updated Team", result.Team.Name)
@@ -1984,7 +1987,7 @@ func TestUpdateTeam_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateTeam("nonexistent", UpdateTeamRequest{Name: "x"})
+	result, err := client.UpdateTeam(context.Background(), "nonexistent", UpdateTeamRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update team")
@@ -1999,7 +2002,7 @@ func TestDeleteTeam_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteTeam("team-123")
+	err := client.DeleteTeam(context.Background(), "team-123")
 	assert.NoError(t, err)
 }
 
@@ -2012,7 +2015,7 @@ func TestDeleteTeam_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteTeam("nonexistent")
+	err := client.DeleteTeam(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete team")
 }
@@ -2036,7 +2039,7 @@ func TestGetUsers_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetUsers()
+	result, err := client.GetUsers(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Users, 2)
@@ -2053,7 +2056,7 @@ func TestGetUsers_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetUsers()
+	result, err := client.GetUsers(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get users")
@@ -2072,7 +2075,7 @@ func TestGetUser_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetUser("user-123")
+	result, err := client.GetUser(context.Background(), "user-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "user-123", result.User.ID)
@@ -2088,7 +2091,7 @@ func TestGetUser_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetUser("nonexistent")
+	result, err := client.GetUser(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get user")
@@ -2116,7 +2119,7 @@ func TestCreateUser_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateUser("newuser", "new@example.com", "New User", "team-1", "password123")
+	result, err := client.CreateUser(context.Background(), "newuser", "new@example.com", "New User", "team-1", "password123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "new-user", result.User.ID)
@@ -2131,7 +2134,7 @@ func TestCreateUser_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.CreateUser("bad", "bad", "bad", "bad", "bad")
+	result, err := client.CreateUser(context.Background(), "bad", "bad", "bad", "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to create user")
@@ -2150,7 +2153,7 @@ func TestUpdateUser_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateUser("user-123", UpdateUserRequest{Name: "updated-user", Email: "updated@example.com"})
+	result, err := client.UpdateUser(context.Background(), "user-123", UpdateUserRequest{Name: "updated-user", Email: "updated@example.com"})
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "updated-user", result.User.Name)
@@ -2165,7 +2168,7 @@ func TestUpdateUser_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.UpdateUser("nonexistent", UpdateUserRequest{Name: "x"})
+	result, err := client.UpdateUser(context.Background(), "nonexistent", UpdateUserRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to update user")
@@ -2180,7 +2183,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteUser("user-123")
+	err := client.DeleteUser(context.Background(), "user-123")
 	assert.NoError(t, err)
 }
 
@@ -2193,7 +2196,7 @@ func TestDeleteUser_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteUser("nonexistent")
+	err := client.DeleteUser(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete user")
 }
@@ -2217,7 +2220,7 @@ func TestGetProducts_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetProducts()
+	result, err := client.GetProducts(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Products, 2)
@@ -2234,7 +2237,7 @@ func TestGetProducts_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetProducts()
+	result, err := client.GetProducts(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get products")
@@ -2253,7 +2256,7 @@ func TestGetProduct_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetProduct("prod-123")
+	result, err := client.GetProduct(context.Background(), "prod-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "prod-123", result.Product.ID)
@@ -2269,7 +2272,7 @@ func TestGetProduct_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.GetProduct("nonexistent")
+	result, err := client.GetProduct(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to get product")
@@ -2290,7 +2293,7 @@ func TestGetFile_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	content, contentType, err := client.GetFile("file-123")
+	content, contentType, err := client.GetFile(context.Background(), "file-123")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedContent, content)
 	assert.Equal(t, expectedContentType, contentType)
@@ -2305,7 +2308,7 @@ func TestGetFile_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	content, contentType, err := client.GetFile("nonexistent")
+	content, contentType, err := client.GetFile(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, content)
 	assert.Empty(t, contentType)
@@ -2321,7 +2324,7 @@ func TestDeleteFile_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteFile("file-123")
+	err := client.DeleteFile(context.Background(), "file-123")
 	assert.NoError(t, err)
 }
 
@@ -2334,7 +2337,7 @@ func TestDeleteFile_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	err := client.DeleteFile("nonexistent")
+	err := client.DeleteFile(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete file")
 }
@@ -2366,7 +2369,7 @@ func TestUploadFile_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	client := newTestClient(server.URL)
-	result, err := client.UploadFile("job-123", filePath, "application/xml")
+	result, err := client.UploadFile(context.Background(), "job-123", filePath, "application/xml")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "file-456", result.File.ID)
@@ -2375,8 +2378,8 @@ func TestUploadFile_Success(t *testing.T) {
 }
 
 func TestUploadFile_FileNotFound(t *testing.T) {
-	client := &Client{BaseURL: "http://localhost", AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}}
-	result, err := client.UploadFile("job-123", "/nonexistent/path/file.xml", "application/xml")
+	client := &Client{BaseURL: "http://localhost", AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 1}
+	result, err := client.UploadFile(context.Background(), "job-123", "/nonexistent/path/file.xml", "application/xml")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "error reading file")
@@ -2396,9 +2399,46 @@ func TestUploadFile_Error(t *testing.T) {
 	assert.NoError(t, err)
 
 	client := newTestClient(server.URL)
-	result, err := client.UploadFile("bad-job", filePath, "application/xml")
+	result, err := client.UploadFile(context.Background(), "bad-job", filePath, "application/xml")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "failed to upload file")
 }
 
+func TestDoRequest_RetryOn500(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts < 3 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{"ok": true}`))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 3}
+	resp, err := client.doRequest(context.Background(), "GET", server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 3, attempts)
+	defer func() { _ = resp.Body.Close() }()
+}
+
+func TestDoRequest_NoRetryOn4xx(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 3}
+	resp, err := client.doRequest(context.Background(), "GET", server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, 1, attempts)
+	defer func() { _ = resp.Body.Close() }()
+}

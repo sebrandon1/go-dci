@@ -39,7 +39,7 @@ var getJobCmd = &cobra.Command{
 			fmt.Printf("Getting job with ID: %s\n", getJobIDFlag)
 		}
 
-		response, err := client.GetJob(getJobIDFlag)
+		response, err := client.GetJob(cmd.Context(), getJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job: %v", err)
 		}
@@ -85,7 +85,7 @@ var updateJobCmd = &cobra.Command{
 			fmt.Printf("Updating job: %s\n", updateJobIDFlag)
 		}
 
-		response, err := client.UpdateJob(updateJobIDFlag, updates)
+		response, err := client.UpdateJob(cmd.Context(), updateJobIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update job: %v", err)
 		}
@@ -120,7 +120,7 @@ var deleteJobCmd = &cobra.Command{
 			fmt.Printf("Deleting job: %s\n", deleteJobIDFlag)
 		}
 
-		err = client.DeleteJob(deleteJobIDFlag)
+		err = client.DeleteJob(cmd.Context(), deleteJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete job: %v", err)
 		}
@@ -156,7 +156,7 @@ var scheduleJobCmd = &cobra.Command{
 			fmt.Printf("Scheduling job for topic: %s\n", scheduleJobTopicID)
 		}
 
-		response, err := client.ScheduleJob(scheduleJobTopicID)
+		response, err := client.ScheduleJob(cmd.Context(), scheduleJobTopicID)
 		if err != nil {
 			return fmt.Errorf("failed to schedule job: %v", err)
 		}
@@ -191,7 +191,7 @@ var getJobFilesCmd = &cobra.Command{
 			fmt.Printf("Getting files for job ID: %s\n", jobFilesIDFlag)
 		}
 
-		response, err := client.GetJobFiles(jobFilesIDFlag)
+		response, err := client.GetJobFiles(cmd.Context(), jobFilesIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job files: %v", err)
 		}

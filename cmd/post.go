@@ -50,7 +50,7 @@ var createJobCmd = &cobra.Command{
 			fmt.Printf("Creating job for topic ID: %s\n", createJobTopicID)
 		}
 
-		response, err := client.CreateJob(createJobTopicID, componentIDs, createJobComment)
+		response, err := client.CreateJob(cmd.Context(), createJobTopicID, componentIDs, createJobComment)
 		if err != nil {
 			return fmt.Errorf("failed to create job: %v", err)
 		}
@@ -101,7 +101,7 @@ var updateJobStateCmd = &cobra.Command{
 			fmt.Printf("Updating job %s to status: %s\n", updateJobStateJobID, updateJobStateStatus)
 		}
 
-		response, err := client.UpdateJobState(updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
+		response, err := client.UpdateJobState(cmd.Context(), updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
 		if err != nil {
 			return fmt.Errorf("failed to update job state: %v", err)
 		}
@@ -144,7 +144,7 @@ var uploadFileCmd = &cobra.Command{
 			fmt.Printf("Uploading file %s to job %s\n", uploadFilePath, uploadFileJobID)
 		}
 
-		response, err := client.UploadFile(uploadFileJobID, uploadFilePath, uploadFileMimeType)
+		response, err := client.UploadFile(cmd.Context(), uploadFileJobID, uploadFilePath, uploadFileMimeType)
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %v", err)
 		}

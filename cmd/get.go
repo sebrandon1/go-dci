@@ -44,7 +44,7 @@ var getTopicsCmd = &cobra.Command{
 			fmt.Println("Getting all topics from DCI")
 		}
 
-		topicsResponses, err := client.GetTopics()
+		topicsResponses, err := client.GetTopics(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get topics: %v", err)
 		}
@@ -80,7 +80,7 @@ var getComponentTypesCmd = &cobra.Command{
 			fmt.Println("Getting all component types from DCI")
 		}
 
-		componentTypesResponses, err := client.GetComponentTypes()
+		componentTypesResponses, err := client.GetComponentTypes(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get component types: %v", err)
 		}
@@ -112,7 +112,7 @@ var getIdentityCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		identity, err := client.GetIdentity()
+		identity, err := client.GetIdentity(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("authentication failed: %v", err)
 		}
@@ -151,7 +151,7 @@ var getOcpCountCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		jobsResponses, err := client.GetJobs(daysBackLimit)
+		jobsResponses, err := client.GetJobs(cmd.Context(), daysBackLimit)
 		if err != nil {
 			return fmt.Errorf("getting jobs: %v", err)
 		}
@@ -185,12 +185,12 @@ var getComponentsCmd = &cobra.Command{
 			if outputFormat != OutputFormatJSON {
 				fmt.Printf("Getting components for topic ID: %s\n", topicID)
 			}
-			componentsResponses, err = client.GetComponentsByTopicID(topicID)
+			componentsResponses, err = client.GetComponentsByTopicID(cmd.Context(), topicID)
 		} else {
 			if outputFormat != OutputFormatJSON {
 				fmt.Println("Getting all components from DCI")
 			}
-			componentsResponses, err = client.GetComponents()
+			componentsResponses, err = client.GetComponents(cmd.Context())
 		}
 
 		if err != nil {
@@ -258,7 +258,7 @@ var getJobsCmd = &cobra.Command{
 				fmt.Printf("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
 			}
 
-			jobsResponses, err = client.GetJobsByDate(parsedStart, parsedEnd)
+			jobsResponses, err = client.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %v", err)
 			}
@@ -274,7 +274,7 @@ var getJobsCmd = &cobra.Command{
 				return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 			}
 
-			jobsResponses, err = client.GetJobs(daysBackLimit)
+			jobsResponses, err = client.GetJobs(cmd.Context(), daysBackLimit)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %v", err)
 			}

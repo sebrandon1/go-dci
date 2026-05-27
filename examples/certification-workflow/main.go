@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -51,7 +52,7 @@ func main() {
 
 	// Step 1: Verify authentication
 	fmt.Println("1. Verifying authentication...")
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	if err != nil {
 		log.Fatalf("Authentication failed: %v", err)
 	}
@@ -59,7 +60,7 @@ func main() {
 
 	// Step 2: Get topic information
 	fmt.Println("2. Getting topic information...")
-	topic, err := client.GetTopic(*topicID)
+	topic, err := client.GetTopic(context.Background(), *topicID)
 	if err != nil {
 		log.Fatalf("Failed to get topic: %v", err)
 	}
@@ -69,7 +70,7 @@ func main() {
 
 	// Step 3: Get available components for this topic
 	fmt.Println("3. Getting available components...")
-	componentsResp, err := client.GetTopicComponents(*topicID)
+	componentsResp, err := client.GetTopicComponents(context.Background(), *topicID)
 	if err != nil {
 		log.Fatalf("Failed to get components: %v", err)
 	}
@@ -96,7 +97,7 @@ func main() {
 
 	// Step 4: Create a new job
 	fmt.Println("4. Creating new certification job...")
-	job, err := client.CreateJob(*topicID, componentIDs, "Certification run via go-dci example")
+	job, err := client.CreateJob(context.Background(), *topicID, componentIDs, "Certification run via go-dci example")
 	if err != nil {
 		log.Fatalf("Failed to create job: %v", err)
 	}
@@ -107,7 +108,7 @@ func main() {
 
 	// Step 5: Update job state to pre-run
 	fmt.Println("5. Updating job state to 'pre-run'...")
-	_, err = client.UpdateJobState(jobID, lib.JobStatePreRun, "Starting pre-run checks")
+	_, err = client.UpdateJobState(context.Background(), jobID, lib.JobStatePreRun, "Starting pre-run checks")
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
@@ -118,7 +119,7 @@ func main() {
 
 	// Step 6: Update job state to running
 	fmt.Println("6. Updating job state to 'running'...")
-	_, err = client.UpdateJobState(jobID, lib.JobStateRunning, "Running certification tests")
+	_, err = client.UpdateJobState(context.Background(), jobID, lib.JobStateRunning, "Running certification tests")
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
@@ -127,7 +128,7 @@ func main() {
 	// Step 7: Upload test results (if provided)
 	if *resultsFile != "" {
 		fmt.Println("7. Uploading test results...")
-		uploadResp, err := client.UploadFile(jobID, *resultsFile, "application/junit")
+		uploadResp, err := client.UploadFile(context.Background(), jobID, *resultsFile, "application/junit")
 		if err != nil {
 			log.Printf("   Warning: Failed to upload file: %v\n", err)
 		} else {
@@ -144,7 +145,7 @@ func main() {
 
 	// Step 8: Update job state to success
 	fmt.Println("8. Updating job state to 'success'...")
-	_, err = client.UpdateJobState(jobID, lib.JobStateSuccess, "All certification tests passed")
+	_, err = client.UpdateJobState(context.Background(), jobID, lib.JobStateSuccess, "All certification tests passed")
 	if err != nil {
 		log.Fatalf("Failed to update job state: %v", err)
 	}
@@ -152,7 +153,7 @@ func main() {
 
 	// Step 9: Verify final job state
 	fmt.Println("9. Verifying final job state...")
-	finalJob, err := client.GetJob(jobID)
+	finalJob, err := client.GetJob(context.Background(), jobID)
 	if err != nil {
 		log.Fatalf("Failed to get job: %v", err)
 	}
@@ -163,7 +164,7 @@ func main() {
 
 	// Get job states history
 	fmt.Println("\n   State History:")
-	states, err := client.GetJobStates(jobID)
+	states, err := client.GetJobStates(context.Background(), jobID)
 	if err != nil {
 		log.Printf("   Could not get job states: %v\n", err)
 	} else {

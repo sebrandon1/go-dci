@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -45,7 +46,7 @@ func main() {
 	fmt.Println("=== DCI Component Analysis ===")
 
 	// Verify authentication
-	identity, err := client.GetIdentity()
+	identity, err := client.GetIdentity(context.Background())
 	if err != nil {
 		log.Fatalf("Authentication failed: %v", err)
 	}
@@ -55,7 +56,7 @@ func main() {
 	fmt.Println("1. Available Component Types")
 	fmt.Println("   " + strings.Repeat("-", 40))
 
-	componentTypesResp, err := client.GetComponentTypes()
+	componentTypesResp, err := client.GetComponentTypes(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get component types: %v", err)
 	}
@@ -77,7 +78,7 @@ func main() {
 	fmt.Println("2. Available Topics")
 	fmt.Println("   " + strings.Repeat("-", 40))
 
-	topicsResp, err := client.GetTopics()
+	topicsResp, err := client.GetTopics(context.Background())
 	if err != nil {
 		log.Fatalf("Failed to get topics: %v", err)
 	}
@@ -115,7 +116,7 @@ func main() {
 
 	// If topic ID is specified, only get components for that topic
 	if *topicID != "" {
-		componentsResp, err := client.GetTopicComponents(*topicID)
+		componentsResp, err := client.GetTopicComponents(context.Background(), *topicID)
 		if err != nil {
 			log.Fatalf("Failed to get components: %v", err)
 		}
@@ -148,7 +149,7 @@ func main() {
 		}
 	} else {
 		// Get all components
-		componentsResp, err := client.GetComponents()
+		componentsResp, err := client.GetComponents(context.Background())
 		if err != nil {
 			log.Fatalf("Failed to get components: %v", err)
 		}

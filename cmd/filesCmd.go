@@ -35,7 +35,7 @@ var getFileCmd = &cobra.Command{
 			fmt.Printf("Downloading file with ID: %s\n", getFileIDFlag)
 		}
 
-		content, contentType, err := client.GetFile(getFileIDFlag)
+		content, contentType, err := client.GetFile(cmd.Context(), getFileIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get file: %v", err)
 		}
@@ -83,7 +83,7 @@ var deleteFileCmd = &cobra.Command{
 			fmt.Printf("Deleting file: %s\n", deleteFileIDFlag)
 		}
 
-		err = client.DeleteFile(deleteFileIDFlag)
+		err = client.DeleteFile(cmd.Context(), deleteFileIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete file: %v", err)
 		}
