@@ -1,40 +1,61 @@
 # go-dci
 
-![Test Incoming Changes](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml/badge.svg)
-![Nightly](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml/badge.svg)
+[![Pre-Main Checks](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml/badge.svg)](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml)
+[![DCI Verified Nightly](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml/badge.svg)](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/sebrandon1/go-dci)](https://golang.org/)
+[![License](https://img.shields.io/github/license/sebrandon1/go-dci)](https://github.com/sebrandon1/go-dci/blob/main/LICENSE)
 
-## Overview
-
-A Golang based wrapper around the Red Hat Distributed CI API:
-
-https://doc.distributed-ci.io/dci-control-server/docs/API/
+A Go wrapper around the [Red Hat Distributed CI (DCI) API](https://doc.distributed-ci.io/dci-control-server/docs/API/)
 
 ## Quick Start
 
-### As a CLI Tool
+### Installation
+
+#### Prebuilt binary
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/sebrandon1/go-dci/releases):
 
 ```bash
-# Build the CLI
+# Linux (amd64)
+curl -sL https://github.com/sebrandon1/go-dci/releases/latest/download/go-dci_$(curl -sL https://api.github.com/repos/sebrandon1/go-dci/releases/latest | grep tag_name | cut -d '"' -f4)_linux_amd64.tar.gz | tar xz
+sudo mv go-dci /usr/local/bin/
+
+# macOS (Apple Silicon)
+curl -sL https://github.com/sebrandon1/go-dci/releases/latest/download/go-dci_$(curl -sL https://api.github.com/repos/sebrandon1/go-dci/releases/latest | grep tag_name | cut -d '"' -f4)_darwin_arm64.tar.gz | tar xz
+sudo mv go-dci /usr/local/bin/
+```
+
+#### Container image
+
+```bash
+# Using podman
+podman run --rm \
+  -e GO_DCI_ACCESSKEY="$GO_DCI_ACCESSKEY" \
+  -e GO_DCI_SECRETKEY="$GO_DCI_SECRETKEY" \
+  quay.io/bapalm/go-dci identity
+
+# Using docker
+docker run --rm \
+  -e GO_DCI_ACCESSKEY="$GO_DCI_ACCESSKEY" \
+  -e GO_DCI_SECRETKEY="$GO_DCI_SECRETKEY" \
+  quay.io/bapalm/go-dci identity
+```
+
+#### Go install
+
+```bash
+go install github.com/sebrandon1/go-dci@latest
+```
+
+#### Build from source
+
+```bash
+git clone https://github.com/sebrandon1/go-dci.git
+cd go-dci
 make build
-
-# Configure credentials
-./go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
-
-# Verify authentication
-./go-dci identity
-
-# List topics
-./go-dci topics
-
-# Get recent jobs
-./go-dci jobs -d 30
 ```
 
-### As a Go Library
-
-```bash
-go get github.com/sebrandon1/go-dci
-```
+### Library Usage
 
 ```go
 package main
@@ -48,20 +69,17 @@ import (
 )
 
 func main() {
-    // Initialize client with AWS SigV4 authentication
     client := lib.NewClient(
         os.Getenv("GO_DCI_ACCESSKEY"),
         os.Getenv("GO_DCI_SECRETKEY"),
     )
 
-    // Verify authentication
     identity, err := client.GetIdentity()
     if err != nil {
         log.Fatalf("Authentication failed: %v", err)
     }
     fmt.Printf("Authenticated as: %s\n", identity.Identity.Name)
 
-    // List topics
     topics, err := client.GetTopics()
     if err != nil {
         log.Fatal(err)
@@ -74,48 +92,63 @@ func main() {
 }
 ```
 
+### CLI Usage
+
+```bash
+# Configure credentials
+go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
+
+# Verify authentication
+go-dci identity
+
+# List topics
+go-dci topics
+
+# Get recent jobs
+go-dci jobs -d 30
+
+# Or run via container
+podman run --rm \
+  -e GO_DCI_ACCESSKEY="$GO_DCI_ACCESSKEY" \
+  -e GO_DCI_SECRETKEY="$GO_DCI_SECRETKEY" \
+  quay.io/bapalm/go-dci topics
+```
+
 ## Documentation
+
+- **[Library Guide](./docs/library-guide.md)** - Complete API reference for using go-dci as a library
+- **[Examples](./examples/)** - Runnable example programs
+  - [Basic Usage](./examples/basic-usage/) - Authentication, topics, components, jobs
+  - [Certification Workflow](./examples/certification-workflow/) - Complete certification job lifecycle
+  - [Component Query](./examples/component-query/) - Component filtering and version analysis
 
 ### Tutorials
 
 Step-by-step guides for common workflows:
 
-- [Getting Started](docs/tutorials/01-getting-started.md) - Installation, authentication, first API calls
-- [Certification Workflow](docs/tutorials/02-certification-workflow.md) - Complete job lifecycle
-- [Component Analysis](docs/tutorials/03-component-analysis.md) - Query and analyze components
-
-### Examples
-
-Runnable example programs in the [examples/](examples/) directory:
-
-- [basic-usage](examples/basic-usage/) - Authentication, topics, components, jobs
-- [certification-workflow](examples/certification-workflow/) - Complete certification job lifecycle
-- [component-query](examples/component-query/) - Component filtering and version analysis
-
-### Library Reference
-
-- [Library Guide](docs/library-guide.md) - Complete API reference for Go library usage
+1. [Getting Started](./docs/tutorials/01-getting-started.md) - Installation, authentication, first API calls
+2. [Certification Workflow](./docs/tutorials/02-certification-workflow.md) - Complete job lifecycle
+3. [Component Analysis](./docs/tutorials/03-component-analysis.md) - Query and analyze components
 
 ## Supported DCI API Endpoints
 
-| Endpoint | Method | Status | CLI Command |
-|----------|--------|--------|-------------|
-| `/api/v1/topics` | GET | ✅ Implemented | `topics` |
-| `/api/v1/jobs` | GET | ✅ Implemented | `jobs`, `ocpcount` |
-| `/api/v1/components` | GET | ✅ Implemented | `components` |
-| `/api/v1/identity` | GET | ✅ Implemented | `identity` |
-| `/api/v1/componenttypes` | GET | ✅ Implemented | `componenttypes` |
-| `/api/v1/jobs` | POST | ✅ Implemented | `create-job` |
-| `/api/v1/jobstates` | POST | ✅ Implemented | `update-job-state` |
-| `/api/v1/files` | POST | ✅ Implemented | `upload-file` |
+| Endpoint | CLI Command | Lib | Covered |
+|----------|-------------|-----|---------|
+| `/api/v1/identity` | `identity` | Yes | GET |
+| `/api/v1/topics` | `topics`, `get-topic`, `create-topic`, `update-topic`, `delete-topic`, `topic-components` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/jobs` | `jobs`, `ocpcount`, `create-job`, `get-job`, `update-job`, `delete-job`, `schedule-job`, `job-files` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/components` | `components`, `get-component`, `create-component`, `update-component`, `delete-component` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/componenttypes` | `componenttypes`, `get-componenttype`, `create-componenttype`, `update-componenttype`, `delete-componenttype` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/jobstates` | `update-job-state`, `get-jobstates` | Yes | GET, POST |
+| `/api/v1/files` | `upload-file` | Yes | GET, POST, DELETE |
+| `/api/v1/remotecis` | `get-remotecis`, `get-remoteci`, `create-remoteci`, `update-remoteci`, `delete-remoteci` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/teams` | `get-teams`, `get-team`, `create-team`, `update-team`, `delete-team` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/users` | `get-users`, `get-user`, `create-user`, `update-user`, `delete-user` | Yes | GET, GET/:id, POST, PUT, DELETE |
+| `/api/v1/products` | `get-products`, `get-product` | Yes | GET, GET/:id |
 
-## CLI Usage
+## Authentication
 
-### Build
-
-```bash
-make build
-```
+All API commands require DCI RemoteCI credentials. You can obtain credentials from the [DCI dashboard](https://www.distributed-ci.io/).
 
 ### Configuration
 
@@ -124,7 +157,7 @@ Set up your DCI RemoteCI credentials using one of the following methods:
 #### Option 1: Config File
 
 ```bash
-./go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
+go-dci config set --accesskey <your-access-key> --secretkey <your-secret-key>
 ```
 
 This creates a `.go-dci-config.yaml` file in the current directory.
@@ -155,18 +188,18 @@ export GO_DCI_SECRETKEY=<your-secret-key>
 
 Environment variables take precedence over values in the config file.
 
-### Available Commands
+## Usage Examples
 
-#### `topics` - List Topics
+### `topics` - List Topics
 
 Get all available topics from DCI.
 
 ```bash
 # Get all topics
-./go-dci topics
+go-dci topics
 
 # Output as JSON
-./go-dci topics --output json
+go-dci topics --output json
 ```
 
 ```
@@ -187,16 +220,16 @@ ID: topic-456 | Name: OCP-4.15 | Product: OpenShift Container Platform | State: 
 Total Topics: 2
 ```
 
-#### `identity` - Verify Authentication
+### `identity` - Verify Authentication
 
 Verify your DCI credentials are configured correctly and display identity information.
 
 ```bash
 # Check authentication
-./go-dci identity
+go-dci identity
 
 # Output as JSON
-./go-dci identity --output json
+go-dci identity --output json
 ```
 
 ```
@@ -221,16 +254,16 @@ Team ID:  team-123
 State:    active
 ```
 
-#### `jobs` - Query Jobs
+### `jobs` - Query Jobs
 
 Get all jobs with a specific age in days. Filters for jobs running the [certsuite](https://github.com/redhat-best-practices-for-k8s/certsuite).
 
 ```bash
 # Get jobs from the last 30 days
-./go-dci jobs -d 30
+go-dci jobs -d 30
 
 # Output as JSON
-./go-dci jobs -d 30 --output json
+go-dci jobs -d 30 --output json
 ```
 
 ```
@@ -251,16 +284,16 @@ Job ID: 78ed13e1-841f-4c04-a1c6-8df9028c67cd  -  Certsuite Version: tnf-v5.1.3 (
 Job ID: eb491abd-ec8b-42cc-aa8b-98adf741b236  -  Certsuite Version: tnf-v5.1.3 (Days Since: 11.305408)
 ```
 
-#### `ocpcount` - OCP Version Statistics
+### `ocpcount` - OCP Version Statistics
 
 Get the count of certsuite jobs for each OCP version.
 
 ```bash
 # Get OCP version counts for the last 30 days
-./go-dci ocpcount -d 30
+go-dci ocpcount -d 30
 
 # Output as JSON
-./go-dci ocpcount -d 30 --output json
+go-dci ocpcount -d 30 --output json
 ```
 
 ```
@@ -273,16 +306,16 @@ Flags:
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
-#### `componenttypes` - List Component Types
+### `componenttypes` - List Component Types
 
 Get all available component types from DCI.
 
 ```bash
 # Get all component types
-./go-dci componenttypes
+go-dci componenttypes
 
 # Output as JSON
-./go-dci componenttypes --output json
+go-dci componenttypes --output json
 ```
 
 ```
@@ -304,19 +337,19 @@ ID: ct-789 | Name: rhel | State: active
 Total Component Types: 3
 ```
 
-#### `components` - Query Components
+### `components` - Query Components
 
 Get all components, optionally filtered by topic ID.
 
 ```bash
 # Get all components
-./go-dci components
+go-dci components
 
 # Get components for a specific topic
-./go-dci components --topic <topic-id>
+go-dci components --topic <topic-id>
 
 # Output as JSON
-./go-dci components --output json
+go-dci components --output json
 ```
 
 ```
@@ -338,22 +371,22 @@ ID: def456 | Name: certsuite v5.1.3 | Type: certsuite | Version: v5.1.3 | TopicI
 Total Components: 2
 ```
 
-#### `create-job` - Create a New Job
+### `create-job` - Create a New Job
 
 Create a new job in DCI for a given topic.
 
 ```bash
 # Create a job for a topic
-./go-dci create-job --topic-id <topic-id>
+go-dci create-job --topic-id <topic-id>
 
 # Create a job with specific components
-./go-dci create-job --topic-id <topic-id> --components <comp-id-1>,<comp-id-2>
+go-dci create-job --topic-id <topic-id> --components <comp-id-1>,<comp-id-2>
 
 # Create a job with a comment
-./go-dci create-job --topic-id <topic-id> --comment "Test run for certification"
+go-dci create-job --topic-id <topic-id> --comment "Test run for certification"
 
 # Output as JSON
-./go-dci create-job --topic-id <topic-id> --output json
+go-dci create-job --topic-id <topic-id> --output json
 ```
 
 ```
@@ -381,22 +414,22 @@ State:     active
 Created:   2024-01-01T00:00:00.000000
 ```
 
-#### `update-job-state` - Update Job State
+### `update-job-state` - Update Job State
 
 Update the state of a job (pre-run, running, success, failure, etc.).
 
 ```bash
 # Update job to running state
-./go-dci update-job-state --job-id <job-id> --status running
+go-dci update-job-state --job-id <job-id> --status running
 
 # Update job to success with comment
-./go-dci update-job-state --job-id <job-id> --status success --comment "All tests passed"
+go-dci update-job-state --job-id <job-id> --status success --comment "All tests passed"
 
 # Update job to failure
-./go-dci update-job-state --job-id <job-id> --status failure --comment "Tests failed"
+go-dci update-job-state --job-id <job-id> --status failure --comment "Tests failed"
 
 # Output as JSON
-./go-dci update-job-state --job-id <job-id> --status success --output json
+go-dci update-job-state --job-id <job-id> --status success --output json
 ```
 
 ```
@@ -425,19 +458,19 @@ Status:      running
 Created:     2024-01-01T00:00:00.000000
 ```
 
-#### `upload-file` - Upload File to Job
+### `upload-file` - Upload File to Job
 
 Upload a file (e.g., test results) to a job in DCI.
 
 ```bash
 # Upload a JUnit test results file
-./go-dci upload-file --job-id <job-id> --file /path/to/results.xml
+go-dci upload-file --job-id <job-id> --file /path/to/results.xml
 
 # Upload with custom MIME type
-./go-dci upload-file --job-id <job-id> --file /path/to/results.json --mime application/json
+go-dci upload-file --job-id <job-id> --file /path/to/results.json --mime application/json
 
 # Output as JSON
-./go-dci upload-file --job-id <job-id> --file /path/to/results.xml --output json
+go-dci upload-file --job-id <job-id> --file /path/to/results.xml --output json
 ```
 
 ```
@@ -468,20 +501,10 @@ Created:   2024-01-01T00:00:00.000000
 
 ## Development
 
-### Run Tests
-
 ```bash
-make test
-```
-
-### Run Linter
-
-```bash
-make lint
-```
-
-### Build
-
-```bash
-make build
+make build    # Build binary
+make test     # Run tests
+make lint     # Run linters
+make vet      # Run go vet
+make clean    # Remove binary
 ```
