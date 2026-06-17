@@ -164,14 +164,16 @@ func main() {
 
 	// Get job states history
 	fmt.Println("\n   State History:")
-	states, err := client.GetJobStates(context.Background(), jobID)
+	statesResponses, err := client.GetJobStates(context.Background(), jobID)
 	if err != nil {
 		log.Printf("   Could not get job states: %v\n", err)
 	} else {
-		for _, state := range states.JobStates {
-			fmt.Printf("   - %s at %s\n", state.Status, state.CreatedAt)
-			if state.Comment != "" {
-				fmt.Printf("     Comment: %s\n", state.Comment)
+		for _, statesResp := range statesResponses {
+			for _, state := range statesResp.JobStates {
+				fmt.Printf("   - %s at %s\n", state.Status, state.CreatedAt)
+				if state.Comment != "" {
+					fmt.Printf("     Comment: %s\n", state.Comment)
+				}
 			}
 		}
 	}

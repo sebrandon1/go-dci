@@ -1305,8 +1305,9 @@ func TestGetJobStates_WithJobID_Success(t *testing.T) {
 	result, err := client.GetJobStates(context.Background(), "job-123")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.JobStates, 1)
-	assert.Equal(t, "js-1", result.JobStates[0].ID)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].JobStates, 1)
+	assert.Equal(t, "js-1", result[0].JobStates[0].ID)
 }
 
 func TestGetJobStates_EmptyJobID_Success(t *testing.T) {
@@ -1331,7 +1332,8 @@ func TestGetJobStates_EmptyJobID_Success(t *testing.T) {
 	result, err := client.GetJobStates(context.Background(), "")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.JobStates, 2)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].JobStates, 2)
 }
 
 func TestGetJobStates_Error(t *testing.T) {

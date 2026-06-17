@@ -32,36 +32,53 @@ var getJobStatesCmd = &cobra.Command{
 			}
 		}
 
-		response, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
+		responses, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job states: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
-			return printJobStatesJSON(response)
+			return printJobStatesJSON(responses)
 		}
 
-		printJobStatesStdout(response)
+		printJobStatesStdout(responses)
 
 		return nil
 	},
 }
 
-func printJobStatesStdout(response *lib.JobStatesResponse) {
-	if len(response.JobStates) == 0 {
+func printJobStatesStdout(responses []lib.JobStatesResponse) {
+	totalStates := 0
+	fmt.Println("---")
+	for _, response := range responses {
+		for _, js := range response.JobStates {
+			fmt.Printf("ID: %s | Job ID: %s | Status: %s | Created: %s\n",
+				js.ID, js.JobID, js.Status, js.CreatedAt)
+			totalStates++
+		}
+	}
+
+	if totalStates == 0 {
 		fmt.Println("No job states found.")
 		return
 	}
-	fmt.Println("---")
-	for _, js := range response.JobStates {
-		fmt.Printf("ID: %s | Job ID: %s | Status: %s | Created: %s\n",
-			js.ID, js.JobID, js.Status, js.CreatedAt)
-	}
-	fmt.Printf("Total Job States: %d\n", len(response.JobStates))
+	fmt.Printf("Total Job States: %d\n", totalStates)
 }
 
-func printJobStatesJSON(response *lib.JobStatesResponse) error {
-	jsonBytes, err := json.Marshal(response)
+func printJobStatesJSON(responses []lib.JobStatesResponse) error {
+	// Flatten all job states into a single slice
+	var allJobStates []lib.JobStateEntry
+	for _, response := range responses {
+		allJobStates = append(allJobStates, response.JobStates...)
+	}
+
+	output := struct {
+		JobStates []lib.JobStateEntry `json:"jobstates"`
+	}{
+		JobStates: allJobStates,
+	}
+
+	jsonBytes, err := json.Marshal(output)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
