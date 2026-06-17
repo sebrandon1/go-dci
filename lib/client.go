@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,23 +31,47 @@ const (
 	defaultPageSize = 100
 	// SHA-256 of empty string for unsigned GET requests
 	emptyStringSHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+	// Default HTTP timeouts
+	defaultRequestTimeout      = 30 * time.Second
+	defaultTLSHandshakeTimeout = 5 * time.Second
+	defaultDialTimeout         = 10 * time.Second
 )
 
 type Client struct {
-	BaseURL    string
-	AccessKey  string
-	SecretKey  string
-	httpClient *http.Client
-	MaxRetries int
+	BaseURL         string
+	AccessKey       string
+	SecretKey       string
+	httpClient      *http.Client
+	MaxRetries      int
+	RequestTimeout  time.Duration
+	TLSTimeout      time.Duration
+	DialTimeout     time.Duration
 }
 
 func NewClient(accessKey, secretKey string) *Client {
 	return &Client{
-		BaseURL:    DCIURL,
-		AccessKey:  accessKey,
-		SecretKey:  secretKey,
-		httpClient: &http.Client{},
-		MaxRetries: 3,
+		BaseURL:        DCIURL,
+		AccessKey:      accessKey,
+		SecretKey:      secretKey,
+		httpClient:     newDefaultHTTPClient(),
+		MaxRetries:     3,
+		RequestTimeout: defaultRequestTimeout,
+		TLSTimeout:     defaultTLSHandshakeTimeout,
+		DialTimeout:    defaultDialTimeout,
+	}
+}
+
+func newDefaultHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: defaultRequestTimeout,
+		Transport: &http.Transport{
+			TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+			ResponseHeaderTimeout: defaultRequestTimeout,
+			DialContext: (&net.Dialer{
+				Timeout: defaultDialTimeout,
+			}).DialContext,
+		},
 	}
 }
 

@@ -15,6 +15,7 @@ package main
 
 import (
     "os"
+    "time"
 
     "github.com/sebrandon1/go-dci/lib"
 )
@@ -24,12 +25,32 @@ func main() {
     accessKey := os.Getenv("GO_DCI_ACCESSKEY")
     secretKey := os.Getenv("GO_DCI_SECRETKEY")
 
-    // Create client
+    // Create client with default timeouts
     client := lib.NewClient(accessKey, secretKey)
+
+    // Optional: Customize timeouts for specific network conditions
+    client.RequestTimeout = 60 * time.Second  // Overall request timeout (default: 30s)
+    client.TLSTimeout = 10 * time.Second      // TLS handshake timeout (default: 5s)
+    client.DialTimeout = 15 * time.Second     // Connection dial timeout (default: 10s)
+    client.MaxRetries = 5                     // Max retry attempts (default: 3)
 
     // Use client...
 }
 ```
+
+### Default Timeouts
+
+The client is configured with sensible default timeouts to prevent requests from hanging indefinitely:
+
+- **Request Timeout**: 30 seconds - Maximum time for the entire request/response cycle
+- **TLS Handshake Timeout**: 5 seconds - Maximum time to establish TLS connection
+- **Dial Timeout**: 10 seconds - Maximum time to establish TCP connection
+- **Max Retries**: 3 - Number of retry attempts for retriable errors (5xx responses on GET/DELETE)
+
+These defaults work well for most scenarios. Adjust them if you experience:
+- Frequent timeouts on slow networks (increase timeouts)
+- Need faster failure detection (decrease timeouts)
+- Flaky network connections (increase `MaxRetries`)
 
 ## Authentication
 

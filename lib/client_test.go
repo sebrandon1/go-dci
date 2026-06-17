@@ -26,6 +26,22 @@ func TestNewClient(t *testing.T) {
 	assert.Equal(t, DCIURL, client.BaseURL)
 	assert.NotNil(t, client.httpClient)
 	assert.Equal(t, 3, client.MaxRetries)
+	assert.Equal(t, 30*time.Second, client.RequestTimeout)
+	assert.Equal(t, 5*time.Second, client.TLSTimeout)
+	assert.Equal(t, 10*time.Second, client.DialTimeout)
+}
+
+func TestNewClient_HTTPClientTimeouts(t *testing.T) {
+	client := NewClient("testAccessKey", "testSecretKey")
+
+	// Verify HTTP client has timeout configured
+	assert.Equal(t, 30*time.Second, client.httpClient.Timeout)
+
+	// Verify transport timeouts are configured
+	transport, ok := client.httpClient.Transport.(*http.Transport)
+	assert.True(t, ok, "Transport should be *http.Transport")
+	assert.Equal(t, 5*time.Second, transport.TLSHandshakeTimeout)
+	assert.Equal(t, 30*time.Second, transport.ResponseHeaderTimeout)
 }
 
 func TestGetComponents_EmptyResponse(t *testing.T) {
