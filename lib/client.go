@@ -960,30 +960,43 @@ func (c *Client) UpdateJobState(ctx context.Context, jobID string, status JobSta
 }
 
 // GetJobStates retrieves job states, optionally filtered by job ID
-func (c *Client) GetJobStates(ctx context.Context, jobID string) (*JobStatesResponse, error) {
-	reqURL := fmt.Sprintf("%s/jobstates", c.BaseURL)
+// fetchJobStates is an internal helper to fetch job states with optional job ID filtering
+func (c *Client) fetchJobStates(ctx context.Context, jobID string, requestLimit, offset int) (JobStatesResponse, error) {
+	var filter string
 	if jobID != "" {
-		reqURL = fmt.Sprintf("%s?where=job_id:%s", reqURL, jobID)
+		filter = "job_id:" + jobID
 	}
 
+	reqURL := paginatedURL(c.BaseURL+"/jobstates", requestLimit, offset, filter)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting job states: %w", err)
+		return JobStatesResponse{}, err
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get job states with status code %d: %s", httpResponse.StatusCode, string(body))
+		return JobStatesResponse{}, fmt.Errorf("failed to get job states with status code %d: %s", httpResponse.StatusCode, string(body))
 	}
 
 	var response JobStatesResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return JobStatesResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
+}
+
+// GetJobStates retrieves job states with pagination support
+func (c *Client) GetJobStates(ctx context.Context, jobID string) ([]JobStatesResponse, error) {
+	return paginate(ctx, func(limit, offset int) (JobStatesResponse, int, error) {
+		resp, err := c.fetchJobStates(ctx, jobID, limit, offset)
+		if err != nil {
+			return JobStatesResponse{}, 0, err
+		}
+		return resp, len(resp.JobStates), nil
+	})
 }
 
 // GetFile downloads a file by ID from DCI
