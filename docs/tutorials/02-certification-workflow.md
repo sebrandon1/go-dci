@@ -35,6 +35,7 @@ First, identify the topic for your certification:
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -49,7 +50,8 @@ func main() {
     )
 
     // List available topics
-    topicsResp, err := client.GetTopics()
+    ctx := context.Background()
+    topicsResp, err := client.GetTopics(ctx)
     if err != nil {
         log.Fatalf("Failed to get topics: %v", err)
     }
@@ -72,7 +74,8 @@ Find available components for testing:
 topicID := "your-topic-uuid"
 
 // Get components for the topic
-componentsResp, err := client.GetTopicComponents(topicID)
+ctx := context.Background()
+componentsResp, err := client.GetTopicComponents(ctx, topicID)
 if err != nil {
     log.Fatalf("Failed to get components: %v", err)
 }
@@ -92,7 +95,9 @@ Create a new certification job:
 
 ```go
 // Create job with specific components
+ctx := context.Background()
 job, err := client.CreateJob(
+    ctx,
     topicID,
     componentIDs,              // Components to test against
     "Certification run via API", // Comment
@@ -110,7 +115,8 @@ jobID := job.Job.ID
 Alternatively, schedule a job (auto-selects latest components):
 
 ```go
-job, err := client.ScheduleJob(topicID)
+ctx := context.Background()
+job, err := client.ScheduleJob(ctx, topicID)
 if err != nil {
     log.Fatalf("Failed to schedule job: %v", err)
 }
@@ -122,7 +128,8 @@ Progress the job through its lifecycle:
 
 ```go
 // Move to pre-run
-_, err = client.UpdateJobState(jobID, lib.JobStatePreRun, "Starting pre-run setup")
+ctx := context.Background()
+_, err = client.UpdateJobState(ctx, jobID, lib.JobStatePreRun, "Starting pre-run setup")
 if err != nil {
     log.Fatalf("Failed to update state: %v", err)
 }
@@ -131,7 +138,7 @@ fmt.Println("State: pre-run")
 // Perform pre-run setup here...
 
 // Move to running
-_, err = client.UpdateJobState(jobID, lib.JobStateRunning, "Executing tests")
+_, err = client.UpdateJobState(ctx, jobID, lib.JobStateRunning, "Executing tests")
 if err != nil {
     log.Fatalf("Failed to update state: %v", err)
 }
@@ -159,7 +166,9 @@ Attach test results to the job:
 
 ```go
 // Upload from a file
+ctx := context.Background()
 uploadResp, err := client.UploadFile(
+    ctx,
     jobID,
     "/path/to/results.xml",
     "application/junit",
@@ -175,8 +184,10 @@ if err != nil {
 
 ```go
 // Upload content directly
+ctx := context.Background()
 content := []byte("<testsuite>...</testsuite>")
 uploadResp, err := client.UploadFileContent(
+    ctx,
     jobID,
     "results.xml",
     "application/junit",
@@ -200,13 +211,14 @@ Set the final job state:
 
 ```go
 // Tests passed
-_, err = client.UpdateJobState(jobID, lib.JobStateSuccess, "All tests passed")
+ctx := context.Background()
+_, err = client.UpdateJobState(ctx, jobID, lib.JobStateSuccess, "All tests passed")
 if err != nil {
     log.Fatalf("Failed to update state: %v", err)
 }
 
 // Or if tests failed
-_, err = client.UpdateJobState(jobID, lib.JobStateFailure, "Some tests failed")
+_, err = client.UpdateJobState(ctx, jobID, lib.JobStateFailure, "Some tests failed")
 ```
 
 ## Step 7: Query Job Status
@@ -215,7 +227,8 @@ Check job state at any time:
 
 ```go
 // Get job details
-job, err := client.GetJob(jobID)
+ctx := context.Background()
+job, err := client.GetJob(ctx, jobID)
 if err != nil {
     log.Fatalf("Failed to get job: %v", err)
 }
@@ -229,7 +242,8 @@ fmt.Printf("Updated: %s\n", job.Job.UpdatedAt)
 ### Get Job State History
 
 ```go
-states, err := client.GetJobStates(jobID)
+ctx := context.Background()
+states, err := client.GetJobStates(ctx, jobID)
 if err != nil {
     log.Fatalf("Failed to get states: %v", err)
 }
@@ -246,7 +260,8 @@ for _, state := range states.JobStates {
 ### Get Job Files
 
 ```go
-files, err := client.GetJobFiles(jobID)
+ctx := context.Background()
+files, err := client.GetJobFiles(ctx, jobID)
 if err != nil {
     log.Fatalf("Failed to get files: %v", err)
 }
@@ -263,6 +278,7 @@ for _, file := range files.Files {
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -277,10 +293,11 @@ func main() {
         os.Getenv("GO_DCI_SECRETKEY"),
     )
 
+    ctx := context.Background()
     topicID := "your-topic-id"
 
     // 1. Get components
-    componentsResp, _ := client.GetTopicComponents(topicID)
+    componentsResp, _ := client.GetTopicComponents(ctx, topicID)
     var componentIDs []string
     for _, resp := range componentsResp {
         for _, comp := range resp.Components {
@@ -289,7 +306,7 @@ func main() {
     }
 
     // 2. Create job
-    job, err := client.CreateJob(topicID, componentIDs, "Automated certification")
+    job, err := client.CreateJob(ctx, topicID, componentIDs, "Automated certification")
     if err != nil {
         log.Fatal(err)
     }
@@ -297,23 +314,23 @@ func main() {
     fmt.Printf("Created job: %s\n", jobID)
 
     // 3. Pre-run
-    client.UpdateJobState(jobID, lib.JobStatePreRun, "Setting up environment")
+    client.UpdateJobState(ctx, jobID, lib.JobStatePreRun, "Setting up environment")
     time.Sleep(time.Second)
 
     // 4. Running
-    client.UpdateJobState(jobID, lib.JobStateRunning, "Executing tests")
+    client.UpdateJobState(ctx, jobID, lib.JobStateRunning, "Executing tests")
 
     // 5. Execute your tests here...
     testsPassed := runTests()
 
     // 6. Upload results
-    client.UploadFile(jobID, "results.xml", "application/junit")
+    client.UploadFile(ctx, jobID, "results.xml", "application/junit")
 
     // 7. Set final state
     if testsPassed {
-        client.UpdateJobState(jobID, lib.JobStateSuccess, "All tests passed")
+        client.UpdateJobState(ctx, jobID, lib.JobStateSuccess, "All tests passed")
     } else {
-        client.UpdateJobState(jobID, lib.JobStateFailure, "Some tests failed")
+        client.UpdateJobState(ctx, jobID, lib.JobStateFailure, "Some tests failed")
     }
 
     fmt.Println("Workflow complete!")
@@ -330,9 +347,10 @@ func runTests() bool {
 ```go
 // Retry on transient failures
 func updateStateWithRetry(client *lib.Client, jobID string, state lib.JobState, comment string) error {
+    ctx := context.Background()
     maxRetries := 3
     for i := 0; i < maxRetries; i++ {
-        _, err := client.UpdateJobState(jobID, state, comment)
+        _, err := client.UpdateJobState(ctx, jobID, state, comment)
         if err == nil {
             return nil
         }

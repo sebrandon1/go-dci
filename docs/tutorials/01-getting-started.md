@@ -94,6 +94,7 @@ Test your credentials by getting your identity:
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -108,7 +109,8 @@ func main() {
     client := lib.NewClient(accessKey, secretKey)
 
     // Verify authentication
-    identity, err := client.GetIdentity()
+    ctx := context.Background()
+    identity, err := client.GetIdentity(ctx)
     if err != nil {
         log.Fatalf("Authentication failed: %v", err)
     }
@@ -125,7 +127,8 @@ Topics represent test suites or certification programs:
 
 ```go
 // Get all topics
-topicsResp, err := client.GetTopics()
+ctx := context.Background()
+topicsResp, err := client.GetTopics(ctx)
 if err != nil {
     log.Fatalf("Failed to get topics: %v", err)
 }
@@ -145,7 +148,8 @@ Components represent test artifacts (e.g., OCP versions, test tools):
 
 ```go
 // Get all components
-componentsResp, err := client.GetComponents()
+ctx := context.Background()
+componentsResp, err := client.GetComponents(ctx)
 if err != nil {
     log.Fatalf("Failed to get components: %v", err)
 }
@@ -159,7 +163,7 @@ for _, resp := range componentsResp {
 }
 
 // Get components for a specific topic
-topicComponents, err := client.GetTopicComponents("topic-uuid-here")
+topicComponents, err := client.GetTopicComponents(ctx, "topic-uuid-here")
 ```
 
 ## Understanding DCI Concepts
@@ -187,7 +191,8 @@ Attach test results and logs to jobs.
 ## Error Handling
 
 ```go
-identity, err := client.GetIdentity()
+ctx := context.Background()
+identity, err := client.GetIdentity(ctx)
 if err != nil {
     // Check error type
     if strings.Contains(err.Error(), "401") {

@@ -29,6 +29,7 @@ Each component has:
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -43,7 +44,8 @@ func main() {
     )
 
     // Get all components
-    componentsResp, err := client.GetComponents()
+    ctx := context.Background()
+    componentsResp, err := client.GetComponents(ctx)
     if err != nil {
         log.Fatalf("Failed to get components: %v", err)
     }
@@ -67,7 +69,8 @@ Get components for a specific certification topic:
 ```go
 topicID := "your-topic-uuid"
 
-componentsResp, err := client.GetTopicComponents(topicID)
+ctx := context.Background()
+componentsResp, err := client.GetTopicComponents(ctx, topicID)
 if err != nil {
     log.Fatalf("Failed to get components: %v", err)
 }
@@ -84,7 +87,8 @@ for _, resp := range componentsResp {
 ```go
 topicID := "your-topic-uuid"
 
-componentsResp, err := client.GetComponentsByTopicID(topicID)
+ctx := context.Background()
+componentsResp, err := client.GetComponentsByTopicID(ctx, topicID)
 if err != nil {
     log.Fatalf("Failed to get components: %v", err)
 }
@@ -101,7 +105,8 @@ for _, resp := range componentsResp {
 ```go
 componentID := "component-uuid"
 
-component, err := client.GetComponent(componentID)
+ctx := context.Background()
+component, err := client.GetComponent(ctx, componentID)
 if err != nil {
     log.Fatalf("Failed to get component: %v", err)
 }
@@ -118,7 +123,8 @@ fmt.Printf("Created: %s\n", component.Component.CreatedAt)
 List and understand available component types:
 
 ```go
-typesResp, err := client.GetComponentTypes()
+ctx := context.Background()
+typesResp, err := client.GetComponentTypes(ctx)
 if err != nil {
     log.Fatalf("Failed to get types: %v", err)
 }
@@ -140,6 +146,7 @@ Analyze component versions across topics:
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -155,7 +162,8 @@ func main() {
     )
 
     // Get all components
-    componentsResp, err := client.GetComponents()
+    ctx := context.Background()
+    componentsResp, err := client.GetComponents(ctx)
     if err != nil {
         log.Fatal(err)
     }
@@ -198,6 +206,7 @@ Analyze OpenShift versions in certification jobs:
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -212,7 +221,8 @@ func main() {
     )
 
     // Get recent jobs
-    jobsResp, err := client.GetJobs(30) // Last 30 days
+    ctx := context.Background()
+    jobsResp, err := client.GetJobs(ctx, 30) // Last 30 days
     if err != nil {
         log.Fatal(err)
     }
@@ -225,7 +235,7 @@ func main() {
             // Each job may have OCP version in components
             for _, compRef := range job.Components {
                 // Get component details
-                comp, err := client.GetComponent(compRef.ID)
+                comp, err := client.GetComponent(ctx, compRef.ID)
                 if err != nil {
                     continue
                 }
@@ -248,7 +258,9 @@ func main() {
 Create a new component (admin only):
 
 ```go
+ctx := context.Background()
 component, err := client.CreateComponent(
+    ctx,
     "My Component",      // name
     "ocp",              // type
     "topic-uuid",       // topic ID
@@ -266,7 +278,8 @@ fmt.Printf("Created component: %s\n", component.Component.ID)
 Update component metadata:
 
 ```go
-updated, err := client.UpdateComponent("component-uuid", lib.UpdateComponentRequest{
+ctx := context.Background()
+updated, err := client.UpdateComponent(ctx, "component-uuid", lib.UpdateComponentRequest{
     Name:    "Updated Name",
     Version: "4.15.1",
 })
@@ -282,7 +295,8 @@ fmt.Printf("Updated: %s v%s\n", updated.Component.Name, updated.Component.Versio
 Remove a component (admin only):
 
 ```go
-err := client.DeleteComponent("component-uuid")
+ctx := context.Background()
+err := client.DeleteComponent(ctx, "component-uuid")
 if err != nil {
     log.Fatalf("Failed to delete: %v", err)
 }
@@ -294,7 +308,8 @@ fmt.Println("Component deleted")
 ### Get a Specific Type
 
 ```go
-compType, err := client.GetComponentType("type-uuid")
+ctx := context.Background()
+compType, err := client.GetComponentType(ctx, "type-uuid")
 if err != nil {
     log.Fatal(err)
 }
@@ -304,7 +319,8 @@ fmt.Printf("Type: %s\n", compType.ComponentType.Name)
 ### Create a Type (Admin)
 
 ```go
-newType, err := client.CreateComponentType("my-custom-type")
+ctx := context.Background()
+newType, err := client.CreateComponentType(ctx, "my-custom-type")
 if err != nil {
     log.Fatal(err)
 }
@@ -314,7 +330,8 @@ fmt.Printf("Created type: %s\n", newType.ComponentType.Name)
 ### Update a Type
 
 ```go
-updated, err := client.UpdateComponentType("type-uuid", lib.UpdateComponentTypeRequest{
+ctx := context.Background()
+updated, err := client.UpdateComponentType(ctx, "type-uuid", lib.UpdateComponentTypeRequest{
     Name: "updated-name",
 })
 ```
@@ -322,7 +339,8 @@ updated, err := client.UpdateComponentType("type-uuid", lib.UpdateComponentTypeR
 ### Delete a Type
 
 ```go
-err := client.DeleteComponentType("type-uuid")
+ctx := context.Background()
+err := client.DeleteComponentType(ctx, "type-uuid")
 ```
 
 ## Practical Example: Find Latest Versions
@@ -331,6 +349,7 @@ err := client.DeleteComponentType("type-uuid")
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -346,8 +365,9 @@ func main() {
     )
 
     // Get components for a topic
+    ctx := context.Background()
     topicID := "your-topic-uuid"
-    componentsResp, err := client.GetTopicComponents(topicID)
+    componentsResp, err := client.GetTopicComponents(ctx, topicID)
     if err != nil {
         log.Fatal(err)
     }
