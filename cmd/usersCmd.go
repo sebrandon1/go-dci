@@ -61,10 +61,6 @@ var getUserCmd = &cobra.Command{
 			return err
 		}
 
-		if getUserIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting user with ID: %s\n", getUserIDFlag)
@@ -93,20 +89,12 @@ var createUserCmd = &cobra.Command{
 			return err
 		}
 
-		if createUserNameFlag == "" {
-			return fmt.Errorf("--name is required")
-		}
-		if createUserEmailFlag == "" {
-			return fmt.Errorf("--email is required")
-		}
-		if createUserTeamIDFlag == "" {
-			return fmt.Errorf("--team-id is required")
-		}
-		if createUserPasswordFlag == "" {
-			return fmt.Errorf("--password is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create user: name=%s, email=%s, fullname=%s, team-id=%s\n", createUserNameFlag, createUserEmailFlag, createUserFullnameFlag, createUserTeamIDFlag)
+			return nil
+		}
 
 		printStatus("Creating user: %s\n", createUserNameFlag)
 
@@ -142,10 +130,6 @@ var updateUserCmd = &cobra.Command{
 			return err
 		}
 
-		if updateUserIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateUserRequest{}
@@ -160,6 +144,11 @@ var updateUserCmd = &cobra.Command{
 		}
 		if updateUserStateFlag != "" {
 			updates.State = lib.ResourceState(updateUserStateFlag)
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update user: id=%s, name=%s, email=%s, fullname=%s, state=%s\n", updateUserIDFlag, updateUserNameFlag, updateUserEmailFlag, updateUserFullnameFlag, updateUserStateFlag)
+			return nil
 		}
 
 		printStatus("Updating user: %s\n", updateUserIDFlag)
@@ -189,8 +178,9 @@ var deleteUserCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteUserIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete user: id=%s\n", deleteUserIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -279,19 +269,25 @@ func init() {
 	getUsersCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get user flags
-	getUserCmd.PersistentFlags().StringVar(&getUserIDFlag, "id", "", "User ID (required)")
+	getUserCmd.PersistentFlags().StringVar(&getUserIDFlag, "id", "", "User ID")
+	_ = getUserCmd.MarkPersistentFlagRequired("id")
 	getUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create user flags
-	createUserCmd.PersistentFlags().StringVar(&createUserNameFlag, "name", "", "Username (required)")
-	createUserCmd.PersistentFlags().StringVar(&createUserEmailFlag, "email", "", "User email (required)")
+	createUserCmd.PersistentFlags().StringVar(&createUserNameFlag, "name", "", "Username")
+	_ = createUserCmd.MarkPersistentFlagRequired("name")
+	createUserCmd.PersistentFlags().StringVar(&createUserEmailFlag, "email", "", "User email")
+	_ = createUserCmd.MarkPersistentFlagRequired("email")
 	createUserCmd.PersistentFlags().StringVar(&createUserFullnameFlag, "fullname", "", "User full name")
-	createUserCmd.PersistentFlags().StringVar(&createUserTeamIDFlag, "team-id", "", "Team ID (required)")
-	createUserCmd.PersistentFlags().StringVar(&createUserPasswordFlag, "password", "", "User password (required)")
+	createUserCmd.PersistentFlags().StringVar(&createUserTeamIDFlag, "team-id", "", "Team ID")
+	_ = createUserCmd.MarkPersistentFlagRequired("team-id")
+	createUserCmd.PersistentFlags().StringVar(&createUserPasswordFlag, "password", "", "User password")
+	_ = createUserCmd.MarkPersistentFlagRequired("password")
 	createUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update user flags
-	updateUserCmd.PersistentFlags().StringVar(&updateUserIDFlag, "id", "", "User ID to update (required)")
+	updateUserCmd.PersistentFlags().StringVar(&updateUserIDFlag, "id", "", "User ID to update")
+	_ = updateUserCmd.MarkPersistentFlagRequired("id")
 	updateUserCmd.PersistentFlags().StringVar(&updateUserNameFlag, "name", "", "New username")
 	updateUserCmd.PersistentFlags().StringVar(&updateUserEmailFlag, "email", "", "New email")
 	updateUserCmd.PersistentFlags().StringVar(&updateUserFullnameFlag, "fullname", "", "New full name")
@@ -299,6 +295,7 @@ func init() {
 	updateUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete user flags
-	deleteUserCmd.PersistentFlags().StringVar(&deleteUserIDFlag, "id", "", "User ID to delete (required)")
+	deleteUserCmd.PersistentFlags().StringVar(&deleteUserIDFlag, "id", "", "User ID to delete")
+	_ = deleteUserCmd.MarkPersistentFlagRequired("id")
 	deleteUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

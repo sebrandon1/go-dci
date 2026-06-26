@@ -29,10 +29,6 @@ var getJobCmd = &cobra.Command{
 			return err
 		}
 
-		if getJobIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting job with ID: %s\n", getJobIDFlag)
@@ -61,10 +57,6 @@ var updateJobCmd = &cobra.Command{
 			return err
 		}
 
-		if updateJobIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateJobRequest{}
@@ -77,6 +69,11 @@ var updateJobCmd = &cobra.Command{
 				tags[i] = strings.TrimSpace(tags[i])
 			}
 			updates.Tags = tags
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update job: id=%s, comment=%q, tags=%v\n", updateJobIDFlag, updateJobComment, updates.Tags)
+			return nil
 		}
 
 		printStatus("Updating job: %s\n", updateJobIDFlag)
@@ -106,8 +103,9 @@ var deleteJobCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteJobIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete job: id=%s\n", deleteJobIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -151,11 +149,12 @@ var scheduleJobCmd = &cobra.Command{
 			return err
 		}
 
-		if scheduleJobTopicID == "" {
-			return fmt.Errorf("--topic-id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would schedule job: topic-id=%s\n", scheduleJobTopicID)
+			return nil
+		}
 
 		printStatus("Scheduling job for topic: %s\n", scheduleJobTopicID)
 
@@ -182,10 +181,6 @@ var getJobFilesCmd = &cobra.Command{
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
-		}
-
-		if jobFilesIDFlag == "" {
-			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -266,24 +261,29 @@ func init() {
 	rootCmd.AddCommand(getJobFilesCmd)
 
 	// get job flags
-	getJobCmd.PersistentFlags().StringVar(&getJobIDFlag, "id", "", "Job ID (required)")
+	getJobCmd.PersistentFlags().StringVar(&getJobIDFlag, "id", "", "Job ID")
+	_ = getJobCmd.MarkPersistentFlagRequired("id")
 	getJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update job flags
-	updateJobCmd.PersistentFlags().StringVar(&updateJobIDFlag, "id", "", "Job ID to update (required)")
+	updateJobCmd.PersistentFlags().StringVar(&updateJobIDFlag, "id", "", "Job ID to update")
+	_ = updateJobCmd.MarkPersistentFlagRequired("id")
 	updateJobCmd.PersistentFlags().StringVar(&updateJobComment, "comment", "", "New comment for the job")
 	updateJobCmd.PersistentFlags().StringVar(&updateJobTags, "tags", "", "Comma-separated list of tags")
 	updateJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete job flags
-	deleteJobCmd.PersistentFlags().StringVar(&deleteJobIDFlag, "id", "", "Job ID to delete (required)")
+	deleteJobCmd.PersistentFlags().StringVar(&deleteJobIDFlag, "id", "", "Job ID to delete")
+	_ = deleteJobCmd.MarkPersistentFlagRequired("id")
 	deleteJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// schedule job flags
-	scheduleJobCmd.PersistentFlags().StringVar(&scheduleJobTopicID, "topic-id", "", "Topic ID for the job (required)")
+	scheduleJobCmd.PersistentFlags().StringVar(&scheduleJobTopicID, "topic-id", "", "Topic ID for the job")
+	_ = scheduleJobCmd.MarkPersistentFlagRequired("topic-id")
 	scheduleJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get job files flags
-	getJobFilesCmd.PersistentFlags().StringVar(&jobFilesIDFlag, "id", "", "Job ID (required)")
+	getJobFilesCmd.PersistentFlags().StringVar(&jobFilesIDFlag, "id", "", "Job ID")
+	_ = getJobFilesCmd.MarkPersistentFlagRequired("id")
 	getJobFilesCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

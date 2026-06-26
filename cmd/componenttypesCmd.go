@@ -27,10 +27,6 @@ var getComponentTypeCmd = &cobra.Command{
 			return err
 		}
 
-		if getComponentTypeIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting component type with ID: %s\n", getComponentTypeIDFlag)
@@ -59,11 +55,12 @@ var createComponentTypeCmd = &cobra.Command{
 			return err
 		}
 
-		if createComponentTypeName == "" {
-			return fmt.Errorf("--name is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create component type: name=%s\n", createComponentTypeName)
+			return nil
+		}
 
 		printStatus("Creating component type: %s\n", createComponentTypeName)
 
@@ -92,10 +89,6 @@ var updateComponentTypeCmd = &cobra.Command{
 			return err
 		}
 
-		if updateComponentTypeIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateComponentTypeRequest{}
@@ -104,6 +97,11 @@ var updateComponentTypeCmd = &cobra.Command{
 		}
 		if updateComponentTypeState != "" {
 			updates.State = lib.ResourceState(updateComponentTypeState)
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update component type: id=%s, name=%s, state=%s\n", updateComponentTypeIDFlag, updateComponentTypeName, updateComponentTypeState)
+			return nil
 		}
 
 		printStatus("Updating component type: %s\n", updateComponentTypeIDFlag)
@@ -133,8 +131,9 @@ var deleteComponentTypeCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteComponentTypeIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete component type: id=%s\n", deleteComponentTypeIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -194,20 +193,24 @@ func init() {
 	rootCmd.AddCommand(deleteComponentTypeCmd)
 
 	// get component type flags
-	getComponentTypeCmd.PersistentFlags().StringVar(&getComponentTypeIDFlag, "id", "", "Component Type ID (required)")
+	getComponentTypeCmd.PersistentFlags().StringVar(&getComponentTypeIDFlag, "id", "", "Component Type ID")
+	_ = getComponentTypeCmd.MarkPersistentFlagRequired("id")
 	getComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create component type flags
-	createComponentTypeCmd.PersistentFlags().StringVar(&createComponentTypeName, "name", "", "Component type name (required)")
+	createComponentTypeCmd.PersistentFlags().StringVar(&createComponentTypeName, "name", "", "Component type name")
+	_ = createComponentTypeCmd.MarkPersistentFlagRequired("name")
 	createComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update component type flags
-	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeIDFlag, "id", "", "Component Type ID to update (required)")
+	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeIDFlag, "id", "", "Component Type ID to update")
+	_ = updateComponentTypeCmd.MarkPersistentFlagRequired("id")
 	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeName, "name", "", "New component type name")
 	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeState, "state", "", "New component type state")
 	updateComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete component type flags
-	deleteComponentTypeCmd.PersistentFlags().StringVar(&deleteComponentTypeIDFlag, "id", "", "Component Type ID to delete (required)")
+	deleteComponentTypeCmd.PersistentFlags().StringVar(&deleteComponentTypeIDFlag, "id", "", "Component Type ID to delete")
+	_ = deleteComponentTypeCmd.MarkPersistentFlagRequired("id")
 	deleteComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

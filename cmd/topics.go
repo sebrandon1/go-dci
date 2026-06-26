@@ -29,10 +29,6 @@ var getTopicCmd = &cobra.Command{
 			return err
 		}
 
-		if getTopicIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting topic with ID: %s\n", getTopicIDFlag)
@@ -61,14 +57,6 @@ var createTopicCmd = &cobra.Command{
 			return err
 		}
 
-		if createTopicName == "" {
-			return fmt.Errorf("--name is required")
-		}
-
-		if createTopicProductID == "" {
-			return fmt.Errorf("--product-id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		// Parse component types if provided
@@ -78,6 +66,11 @@ var createTopicCmd = &cobra.Command{
 			for i := range componentTypes {
 				componentTypes[i] = strings.TrimSpace(componentTypes[i])
 			}
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create topic: name=%s, product-id=%s, component-types=%v\n", createTopicName, createTopicProductID, componentTypes)
+			return nil
 		}
 
 		printStatus("Creating topic: %s\n", createTopicName)
@@ -107,15 +100,16 @@ var updateTopicCmd = &cobra.Command{
 			return err
 		}
 
-		if getTopicIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateTopicRequest{}
 		if updateTopicName != "" {
 			updates.Name = updateTopicName
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update topic: id=%s, name=%s\n", getTopicIDFlag, updateTopicName)
+			return nil
 		}
 
 		printStatus("Updating topic: %s\n", getTopicIDFlag)
@@ -145,8 +139,9 @@ var deleteTopicCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteTopicIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete topic: id=%s\n", deleteTopicIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -188,10 +183,6 @@ var getTopicComponentsCmd = &cobra.Command{
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
-		}
-
-		if topicComponentsIDFlag == "" {
-			return fmt.Errorf("--id is required")
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
@@ -250,25 +241,31 @@ func init() {
 	rootCmd.AddCommand(getTopicComponentsCmd)
 
 	// get topic flags
-	getTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID (required)")
+	getTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID")
+	_ = getTopicCmd.MarkPersistentFlagRequired("id")
 	getTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create topic flags
-	createTopicCmd.PersistentFlags().StringVar(&createTopicName, "name", "", "Topic name (required)")
-	createTopicCmd.PersistentFlags().StringVar(&createTopicProductID, "product-id", "", "Product ID (required)")
+	createTopicCmd.PersistentFlags().StringVar(&createTopicName, "name", "", "Topic name")
+	_ = createTopicCmd.MarkPersistentFlagRequired("name")
+	createTopicCmd.PersistentFlags().StringVar(&createTopicProductID, "product-id", "", "Product ID")
+	_ = createTopicCmd.MarkPersistentFlagRequired("product-id")
 	createTopicCmd.PersistentFlags().StringVar(&createTopicComponentTypes, "component-types", "", "Comma-separated list of component type names")
 	createTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update topic flags
-	updateTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID to update (required)")
+	updateTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID to update")
+	_ = updateTopicCmd.MarkPersistentFlagRequired("id")
 	updateTopicCmd.PersistentFlags().StringVar(&updateTopicName, "name", "", "New topic name")
 	updateTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete topic flags
-	deleteTopicCmd.PersistentFlags().StringVar(&deleteTopicIDFlag, "id", "", "Topic ID to delete (required)")
+	deleteTopicCmd.PersistentFlags().StringVar(&deleteTopicIDFlag, "id", "", "Topic ID to delete")
+	_ = deleteTopicCmd.MarkPersistentFlagRequired("id")
 	deleteTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get topic components flags
-	getTopicComponentsCmd.PersistentFlags().StringVar(&topicComponentsIDFlag, "id", "", "Topic ID (required)")
+	getTopicComponentsCmd.PersistentFlags().StringVar(&topicComponentsIDFlag, "id", "", "Topic ID")
+	_ = getTopicComponentsCmd.MarkPersistentFlagRequired("id")
 	getTopicComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

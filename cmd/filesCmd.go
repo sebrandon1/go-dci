@@ -25,10 +25,6 @@ var getFileCmd = &cobra.Command{
 			return err
 		}
 
-		if getFileIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Downloading file with ID: %s\n", getFileIDFlag)
@@ -71,8 +67,9 @@ var deleteFileCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteFileIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete file: id=%s\n", deleteFileIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -112,11 +109,13 @@ func init() {
 	rootCmd.AddCommand(deleteFileCmd)
 
 	// get file flags
-	getFileCmd.PersistentFlags().StringVar(&getFileIDFlag, "id", "", "File ID (required)")
+	getFileCmd.PersistentFlags().StringVar(&getFileIDFlag, "id", "", "File ID")
+	_ = getFileCmd.MarkPersistentFlagRequired("id")
 	getFileCmd.PersistentFlags().StringVar(&getFileOutputPath, "output-path", "", "Path to save the file content")
 	getFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete file flags
-	deleteFileCmd.PersistentFlags().StringVar(&deleteFileIDFlag, "id", "", "File ID to delete (required)")
+	deleteFileCmd.PersistentFlags().StringVar(&deleteFileIDFlag, "id", "", "File ID to delete")
+	_ = deleteFileCmd.MarkPersistentFlagRequired("id")
 	deleteFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
