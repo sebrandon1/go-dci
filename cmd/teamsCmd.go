@@ -173,6 +173,19 @@ var deleteTeamCmd = &cobra.Command{
 			return fmt.Errorf("--id is required")
 		}
 
+		// Confirm deletion
+		confirmed, err := confirmDeletion("team", deleteTeamIDFlag)
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			if outputFormat != OutputFormatJSON {
+				fmt.Println("Deletion canceled")
+			}
+			return nil
+		}
+
+
 		client := lib.NewClient(accessKey, secretKey)
 
 		if outputFormat != OutputFormatJSON {

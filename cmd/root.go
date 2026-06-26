@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,7 +18,36 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 }
 
-var configFile string
+var (
+	configFile string
+	yesFlag    bool
+)
+
+// confirmDeletion prompts the user to confirm a deletion operation.
+// Returns true if the user confirms (or --yes flag is set), false otherwise.
+// Skips prompt if output format is JSON (assumes automation).
+func confirmDeletion(resourceType, resourceID string) (bool, error) {
+	// Skip prompt in JSON mode (automation)
+	if outputFormat == OutputFormatJSON {
+		return true, nil
+	}
+
+	// Skip prompt if --yes flag is set
+	if yesFlag {
+		return true, nil
+	}
+
+	// Interactive confirmation
+	fmt.Printf("Are you sure you want to delete %s '%s'? (yes/no): ", resourceType, resourceID)
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "yes" || response == "y", nil
+}
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -27,6 +58,9 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// Global --yes flag for delete operations
+	rootCmd.PersistentFlags().BoolVarP(&yesFlag, "yes", "y", false, "Skip confirmation prompts")
 }
 
 func initConfig() {
