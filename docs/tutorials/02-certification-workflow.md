@@ -362,6 +362,85 @@ func updateStateWithRetry(client *lib.Client, jobID string, state lib.JobState, 
 }
 ```
 
+## Managing Job Files
+
+### Download Files
+
+Download files attached to a job:
+
+```go
+// Get file by ID
+ctx := context.Background()
+fileContent, filename, err := client.GetFile(ctx, fileID)
+if err != nil {
+    log.Fatalf("Failed to download file: %v", err)
+}
+
+// Save to disk
+err = os.WriteFile(filename, fileContent, 0644)
+if err != nil {
+    log.Fatalf("Failed to save file: %v", err)
+}
+fmt.Printf("Downloaded: %s (%d bytes)\n", filename, len(fileContent))
+```
+
+### Delete Files
+
+Remove files from a job:
+
+```go
+ctx := context.Background()
+err := client.DeleteFile(ctx, fileID)
+if err != nil {
+    log.Fatalf("Failed to delete file: %v", err)
+}
+fmt.Println("File deleted successfully")
+```
+
+### Complete File Management Example
+
+```go
+// List all files for a job
+ctx := context.Background()
+filesResp, err := client.GetJobFiles(ctx, jobID)
+if err != nil {
+    log.Fatalf("Failed to get job files: %v", err)
+}
+
+fmt.Printf("Job has %d files:\n", len(filesResp.Files))
+for _, file := range filesResp.Files {
+    fmt.Printf("  - %s (ID: %s, Size: %d bytes)\n", 
+        file.Name, file.ID, file.Size)
+    
+    // Download each file
+    content, filename, err := client.GetFile(ctx, file.ID)
+    if err != nil {
+        log.Printf("Failed to download %s: %v", file.Name, err)
+        continue
+    }
+    
+    // Save to local directory
+    err = os.WriteFile(fmt.Sprintf("./downloads/%s", filename), content, 0644)
+    if err != nil {
+        log.Printf("Failed to save %s: %v", filename, err)
+    }
+}
+```
+
+## Clean Up After Testing
+
+Delete jobs that are no longer needed:
+
+```go
+// Delete old test jobs
+ctx := context.Background()
+err := client.DeleteJob(ctx, jobID)
+if err != nil {
+    log.Fatalf("Failed to delete job: %v", err)
+}
+fmt.Printf("Job %s deleted\n", jobID)
+```
+
 ## Complete Example
 
 See the [certification-workflow example](../../examples/certification-workflow/main.go) for a complete working program.

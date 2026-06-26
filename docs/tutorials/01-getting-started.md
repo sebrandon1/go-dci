@@ -213,6 +213,89 @@ if err != nil {
 | `GO_DCI_ACCESSKEY` | Your DCI client ID / access key |
 | `GO_DCI_SECRETKEY` | Your DCI API secret key |
 
+## Managing Resources
+
+### Creating and Managing Teams
+
+```go
+// Create a team
+ctx := context.Background()
+teamResp, err := client.CreateTeam(ctx, "my-certification-team")
+if err != nil {
+    log.Fatalf("Failed to create team: %v", err)
+}
+fmt.Printf("Created team: %s (ID: %s)\n", teamResp.Team.Name, teamResp.Team.ID)
+
+// Update team
+updateReq := lib.UpdateTeamRequest{
+    Name: "Updated Team Name",
+}
+updatedTeam, err := client.UpdateTeam(ctx, teamResp.Team.ID, updateReq)
+if err != nil {
+    log.Fatalf("Failed to update team: %v", err)
+}
+
+// List all teams
+teamsResp, err := client.GetTeams(ctx)
+if err != nil {
+    log.Fatalf("Failed to get teams: %v", err)
+}
+for _, team := range teamsResp.Teams {
+    fmt.Printf("Team: %s (ID: %s)\n", team.Name, team.ID)
+}
+```
+
+### Managing Remote CI Systems
+
+```go
+// Create a remote CI
+remoteCI, err := client.CreateRemoteCI(ctx, "ci-system-1", teamResp.Team.ID)
+if err != nil {
+    log.Fatalf("Failed to create remote CI: %v", err)
+}
+
+// Update remote CI
+updateCI := lib.UpdateRemoteCIRequest{
+    Name: "Updated CI Name",
+}
+updatedCI, err := client.UpdateRemoteCI(ctx, remoteCI.RemoteCI.ID, updateCI)
+
+// List all remote CIs
+remoteCIsResp, err := client.GetRemoteCIs(ctx)
+for _, ci := range remoteCIsResp.RemoteCIs {
+    fmt.Printf("RemoteCI: %s (Team: %s)\n", ci.Name, ci.TeamID)
+}
+```
+
+### Managing Users
+
+```go
+// Create a user
+userResp, err := client.CreateUser(ctx, 
+    "jdoe",                    // username
+    "jdoe@example.com",        // email
+    "John Doe",                // full name
+    teamResp.Team.ID,          // team ID
+    "your-secure-password",    // password (use environment variable in production)
+)
+if err != nil {
+    log.Fatalf("Failed to create user: %v", err)
+}
+
+// Update user
+updateUser := lib.UpdateUserRequest{
+    Email: "john.doe@example.com",
+    Fullname: "John Q. Doe",
+}
+updatedUser, err := client.UpdateUser(ctx, userResp.User.ID, updateUser)
+
+// List all users
+usersResp, err := client.GetUsers(ctx)
+for _, user := range usersResp.Users {
+    fmt.Printf("User: %s (%s)\n", user.Name, user.Email)
+}
+```
+
 ## Complete Example
 
 See the [basic-usage example](../../examples/basic-usage/main.go) for a complete working program.

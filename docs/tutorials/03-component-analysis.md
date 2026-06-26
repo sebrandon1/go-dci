@@ -400,6 +400,128 @@ func main() {
 }
 ```
 
+## Topic Management
+
+### Creating Topics
+
+Create a new certification topic (admin only):
+
+```go
+ctx := context.Background()
+topic, err := client.CreateTopic(
+    ctx,
+    "OCP-4.17",                    // name
+    "product-uuid",                // product ID
+    []string{"ocp", "certsuite"},  // component types
+)
+if err != nil {
+    log.Fatalf("Failed to create topic: %v", err)
+}
+fmt.Printf("Created topic: %s (ID: %s)\n", topic.Topic.Name, topic.Topic.ID)
+```
+
+### Getting a Specific Topic
+
+```go
+ctx := context.Background()
+topic, err := client.GetTopic(ctx, "topic-uuid")
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Topic: %s\n", topic.Topic.Name)
+fmt.Printf("Product: %s\n", topic.Topic.ProductID)
+fmt.Printf("State: %s\n", topic.Topic.State)
+```
+
+### Updating Topics
+
+```go
+ctx := context.Background()
+updated, err := client.UpdateTopic(ctx, "topic-uuid", lib.UpdateTopicRequest{
+    Name:  "OCP-4.17.1",
+    State: lib.ResourceStateActive,
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Updated topic: %s\n", updated.Topic.Name)
+```
+
+### Deleting Topics
+
+```go
+ctx := context.Background()
+err := client.DeleteTopic(ctx, "topic-uuid")
+if err != nil {
+    log.Fatalf("Failed to delete topic: %v", err)
+}
+fmt.Println("Topic deleted")
+```
+
+## Complete Workflow: Topic and Component Lifecycle
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+
+    "github.com/sebrandon1/go-dci/lib"
+)
+
+func main() {
+    client := lib.NewClient(
+        os.Getenv("GO_DCI_ACCESSKEY"),
+        os.Getenv("GO_DCI_SECRETKEY"),
+    )
+    ctx := context.Background()
+
+    // 1. Create a topic
+    topic, err := client.CreateTopic(ctx, "OCP-4.17", "product-id", []string{"ocp", "certsuite"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Created topic: %s\n", topic.Topic.ID)
+
+    // 2. Create components for the topic
+    ocpComp, err := client.CreateComponent(ctx, "OpenShift 4.17.0", "ocp", topic.Topic.ID, "4.17.0")
+    if err != nil {
+        log.Fatal(err)
+    }
+    certComp, err := client.CreateComponent(ctx, "certsuite v5.2.0", "certsuite", topic.Topic.ID, "v5.2.0")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Printf("Created components: %s, %s\n", ocpComp.Component.ID, certComp.Component.ID)
+
+    // 3. List topic components
+    components, err := client.GetTopicComponents(ctx, topic.Topic.ID)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Topic has %d components\n", len(components))
+
+    // 4. Update a component version
+    updatedComp, err := client.UpdateComponent(ctx, ocpComp.Component.ID, lib.UpdateComponentRequest{
+        Version: "4.17.1",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Updated component to version: %s\n", updatedComp.Component.Version)
+
+    // 5. Clean up (optional)
+    // client.DeleteComponent(ctx, ocpComp.Component.ID)
+    // client.DeleteComponent(ctx, certComp.Component.ID)
+    // client.DeleteTopic(ctx, topic.Topic.ID)
+}
+```
+
 ## Complete Example
 
 See the [component-query example](../../examples/component-query/main.go) for a complete working program.
@@ -410,3 +532,5 @@ See the [component-query example](../../examples/component-query/main.go) for a 
 2. **Use Topic Filtering** - Filter by topic ID to reduce API calls
 3. **Handle Pagination** - The library handles pagination internally for large result sets
 4. **Version Comparison** - Use semantic versioning libraries for accurate comparisons
+5. **Topic Lifecycle** - Create topics → add components → create jobs → archive when complete
+6. **Component Updates** - Update component versions rather than creating duplicates

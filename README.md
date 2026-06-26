@@ -74,16 +74,16 @@ func main() {
 | Endpoint | CLI Commands |
 |----------|--------------|
 | `/api/v1/identity` | `identity` |
-| `/api/v1/topics` | `topics`, `get-topic`, `create-topic`, `update-topic`, `delete-topic`, `topic-components` |
-| `/api/v1/jobs` | `jobs`, `ocpcount`, `create-job`, `get-job`, `update-job`, `delete-job`, `schedule-job`, `job-files` |
-| `/api/v1/components` | `components`, `get-component`, `create-component`, `update-component`, `delete-component` |
-| `/api/v1/componenttypes` | `componenttypes`, `get-componenttype`, `create-componenttype`, `update-componenttype`, `delete-componenttype` |
-| `/api/v1/jobstates` | `update-job-state`, `get-jobstates` |
-| `/api/v1/files` | `upload-file` |
-| `/api/v1/remotecis` | `get-remotecis`, `get-remoteci`, `create-remoteci`, `update-remoteci`, `delete-remoteci` |
-| `/api/v1/teams` | `get-teams`, `get-team`, `create-team`, `update-team`, `delete-team` |
-| `/api/v1/users` | `get-users`, `get-user`, `create-user`, `update-user`, `delete-user` |
-| `/api/v1/products` | `get-products`, `get-product` |
+| `/api/v1/topics` | `topics`, `topic`, `create-topic`, `update-topic`, `delete-topic`, `topic-components` |
+| `/api/v1/jobs` | `jobs`, `job`, `ocpcount`, `create-job`, `update-job`, `delete-job`, `schedule-job`, `job-files` |
+| `/api/v1/components` | `components`, `component`, `create-component`, `update-component`, `delete-component` |
+| `/api/v1/componenttypes` | `componenttypes`, `componenttype`, `create-componenttype`, `update-componenttype`, `delete-componenttype` |
+| `/api/v1/jobstates` | `jobstates`, `update-job-state` |
+| `/api/v1/files` | `file`, `delete-file`, `upload-file`, `job-files` |
+| `/api/v1/remotecis` | `remotecis`, `remoteci`, `create-remoteci`, `update-remoteci`, `delete-remoteci` |
+| `/api/v1/teams` | `teams`, `team`, `create-team`, `update-team`, `delete-team` |
+| `/api/v1/users` | `users`, `user`, `create-user`, `update-user`, `delete-user` |
+| `/api/v1/products` | `products`, `product` |
 
 ## Development
 
