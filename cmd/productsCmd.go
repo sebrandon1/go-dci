@@ -24,9 +24,7 @@ var getProductsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Println("Getting products...")
-		}
+		printStatus("Getting products...")
 
 		response, err := client.GetProducts(cmd.Context())
 		if err != nil {
@@ -58,9 +56,7 @@ var getProductCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting product with ID: %s\n", getProductIDFlag)
-		}
+		printStatus("Getting product with ID: %s\n", getProductIDFlag)
 
 		response, err := client.GetProduct(cmd.Context(), getProductIDFlag)
 		if err != nil {

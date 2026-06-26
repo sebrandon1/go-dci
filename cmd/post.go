@@ -46,9 +46,7 @@ var createJobCmd = &cobra.Command{
 			}
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Creating job for topic ID: %s\n", createJobTopicID)
-		}
+		printStatus("Creating job for topic ID: %s\n", createJobTopicID)
 
 		response, err := client.CreateJob(cmd.Context(), createJobTopicID, componentIDs, createJobComment)
 		if err != nil {
@@ -97,9 +95,7 @@ var updateJobStateCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating job %s to status: %s\n", updateJobStateJobID, updateJobStateStatus)
-		}
+		printStatus("Updating job %s to status: %s\n", updateJobStateJobID, updateJobStateStatus)
 
 		response, err := client.UpdateJobState(cmd.Context(), updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
 		if err != nil {
@@ -140,9 +136,7 @@ var uploadFileCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Uploading file %s to job %s\n", uploadFilePath, uploadFileJobID)
-		}
+		printStatus("Uploading file %s to job %s\n", uploadFilePath, uploadFileJobID)
 
 		response, err := client.UploadFile(cmd.Context(), uploadFileJobID, uploadFilePath, uploadFileMimeType)
 		if err != nil {
@@ -160,7 +154,7 @@ var uploadFileCmd = &cobra.Command{
 }
 
 func printCreateJobStdout(response *lib.CreateJobResponse) {
-	fmt.Println("Job created successfully!")
+	printStatus("Job created successfully!")
 	fmt.Println("---")
 	fmt.Printf("Job ID:    %s\n", response.Job.ID)
 	fmt.Printf("Topic ID:  %s\n", response.Job.TopicID)
@@ -179,7 +173,7 @@ func printCreateJobJSON(response *lib.CreateJobResponse) error {
 }
 
 func printJobStateStdout(response *lib.JobStateResponse) {
-	fmt.Println("Job state updated successfully!")
+	printStatus("Job state updated successfully!")
 	fmt.Println("---")
 	fmt.Printf("JobState ID: %s\n", response.JobState.ID)
 	fmt.Printf("Job ID:      %s\n", response.JobState.JobID)
@@ -200,7 +194,7 @@ func printJobStateJSON(response *lib.JobStateResponse) error {
 }
 
 func printUploadFileStdout(response *lib.UploadFileResponse) {
-	fmt.Println("File uploaded successfully!")
+	printStatus("File uploaded successfully!")
 	fmt.Println("---")
 	fmt.Printf("File ID:   %s\n", response.File.ID)
 	fmt.Printf("Job ID:    %s\n", response.File.JobID)

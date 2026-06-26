@@ -24,12 +24,10 @@ var getJobStatesCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			if getJobStatesJobIDFlag != "" {
-				fmt.Printf("Getting job states for job ID: %s\n", getJobStatesJobIDFlag)
-			} else {
-				fmt.Println("Getting all job states...")
-			}
+		if getJobStatesJobIDFlag != "" {
+			printStatus("Getting job states for job ID: %s", getJobStatesJobIDFlag)
+		} else {
+			printStatus("Getting all job states...")
 		}
 
 		responses, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)

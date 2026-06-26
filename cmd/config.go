@@ -35,14 +35,14 @@ var setCmd = &cobra.Command{
 			if err := UpdateConfigValue("accesskey", accesskey); err != nil {
 				return fmt.Errorf("setting accesskey: %v", err)
 			}
-			fmt.Println("Access key updated successfully")
+			printStatus("Access key updated successfully")
 		}
 
 		if secretkey != "" {
 			if err := UpdateConfigValue("secretkey", secretkey); err != nil {
 				return fmt.Errorf("setting secretkey: %v", err)
 			}
-			fmt.Println("Secret key updated successfully")
+			printStatus("Secret key updated successfully")
 		}
 
 		return nil

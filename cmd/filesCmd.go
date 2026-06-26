@@ -31,9 +31,7 @@ var getFileCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Downloading file with ID: %s\n", getFileIDFlag)
-		}
+		printStatus("Downloading file with ID: %s\n", getFileIDFlag)
 
 		content, contentType, err := client.GetFile(cmd.Context(), getFileIDFlag)
 		if err != nil {
@@ -83,18 +81,14 @@ var deleteFileCmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting file: %s\n", deleteFileIDFlag)
-		}
+		printStatus("Deleting file: %s\n", deleteFileIDFlag)
 
 		err = client.DeleteFile(cmd.Context(), deleteFileIDFlag)
 		if err != nil {
@@ -106,7 +100,7 @@ var deleteFileCmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("File deleted successfully!")
+			printStatus("File deleted successfully!")
 		}
 
 		return nil

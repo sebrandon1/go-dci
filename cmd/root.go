@@ -19,9 +19,33 @@ var rootCmd = &cobra.Command{
 }
 
 var (
-	configFile string
-	yesFlag    bool
+	configFile  string
+	yesFlag     bool
+	quietFlag   bool
+	verboseFlag bool
 )
+
+// printStatus prints a status message unless --quiet or JSON output is enabled.
+// Accepts format string and args like fmt.Printf to avoid eager string formatting.
+func printStatus(format string, args ...any) {
+	if !quietFlag && outputFormat != OutputFormatJSON {
+		if len(args) > 0 {
+			fmt.Printf(format, args...)
+		} else {
+			fmt.Println(format)
+		}
+	}
+}
+
+// printVerbose prints a verbose debug message if --verbose is enabled.
+// Reserved for future use (HTTP request logging, timing information).
+//
+//nolint:unused
+func printVerbose(message string) {
+	if verboseFlag {
+		fmt.Printf("[VERBOSE] %s\n", message)
+	}
+}
 
 // confirmDeletion prompts the user to confirm a deletion operation.
 // Returns true if the user confirms (or --yes flag is set), false otherwise.
@@ -59,8 +83,10 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Global --yes flag for delete operations
+	// Global flags
 	rootCmd.PersistentFlags().BoolVarP(&yesFlag, "yes", "y", false, "Skip confirmation prompts")
+	rootCmd.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress non-essential output")
+	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Show verbose output (HTTP requests, timing)")
 }
 
 func initConfig() {
