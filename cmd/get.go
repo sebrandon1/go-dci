@@ -132,10 +132,6 @@ var getOcpCountCmd = &cobra.Command{
 			return err
 		}
 
-		if ageInDays == "" {
-			return fmt.Errorf("--age is required")
-		}
-
 		printStatus("Getting all jobs from DCI that are %s days old\n", ageInDays)
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)

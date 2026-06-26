@@ -31,10 +31,6 @@ var createJobCmd = &cobra.Command{
 			return err
 		}
 
-		if createJobTopicID == "" {
-			return fmt.Errorf("--topic-id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		// Parse component IDs if provided
@@ -44,6 +40,11 @@ var createJobCmd = &cobra.Command{
 			for i := range componentIDs {
 				componentIDs[i] = strings.TrimSpace(componentIDs[i])
 			}
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create job: topic-id=%s, components=%v, comment=%q\n", createJobTopicID, componentIDs, createJobComment)
+			return nil
 		}
 
 		printStatus("Creating job for topic ID: %s\n", createJobTopicID)
@@ -72,14 +73,6 @@ var updateJobStateCmd = &cobra.Command{
 			return err
 		}
 
-		if updateJobStateJobID == "" {
-			return fmt.Errorf("--job-id is required")
-		}
-
-		if updateJobStateStatus == "" {
-			return fmt.Errorf("--status is required")
-		}
-
 		// Validate status
 		validStatuses := []string{"new", "pre-run", "running", "post-run", "success", "failure", "killed", "error"}
 		isValid := false
@@ -94,6 +87,11 @@ var updateJobStateCmd = &cobra.Command{
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update job state: job-id=%s, status=%s, comment=%q\n", updateJobStateJobID, updateJobStateStatus, updateJobStateComment)
+			return nil
+		}
 
 		printStatus("Updating job %s to status: %s\n", updateJobStateJobID, updateJobStateStatus)
 
@@ -121,20 +119,17 @@ var uploadFileCmd = &cobra.Command{
 			return err
 		}
 
-		if uploadFileJobID == "" {
-			return fmt.Errorf("--job-id is required")
-		}
-
-		if uploadFilePath == "" {
-			return fmt.Errorf("--file is required")
-		}
-
 		// Default mime type for test results
 		if uploadFileMimeType == "" {
 			uploadFileMimeType = "application/junit"
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would upload file: job-id=%s, file=%s, mime=%s\n", uploadFileJobID, uploadFilePath, uploadFileMimeType)
+			return nil
+		}
 
 		printStatus("Uploading file %s to job %s\n", uploadFilePath, uploadFileJobID)
 
@@ -219,20 +214,25 @@ func init() {
 	rootCmd.AddCommand(uploadFileCmd)
 
 	// create-job flags
-	createJobCmd.PersistentFlags().StringVar(&createJobTopicID, "topic-id", "", "Topic ID for the job (required)")
+	createJobCmd.PersistentFlags().StringVar(&createJobTopicID, "topic-id", "", "Topic ID for the job")
+	_ = createJobCmd.MarkPersistentFlagRequired("topic-id")
 	createJobCmd.PersistentFlags().StringVar(&createJobComponents, "components", "", "Comma-separated list of component IDs")
 	createJobCmd.PersistentFlags().StringVar(&createJobComment, "comment", "", "Optional comment for the job")
 	createJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update-job-state flags
-	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateJobID, "job-id", "", "Job ID to update (required)")
-	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateStatus, "status", "", "New status (pre-run, running, success, failure, etc.) (required)")
+	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateJobID, "job-id", "", "Job ID to update")
+	_ = updateJobStateCmd.MarkPersistentFlagRequired("job-id")
+	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateStatus, "status", "", "New status (pre-run, running, success, failure, etc.)")
+	_ = updateJobStateCmd.MarkPersistentFlagRequired("status")
 	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateComment, "comment", "", "Optional comment for the state change")
 	updateJobStateCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// upload-file flags
-	uploadFileCmd.PersistentFlags().StringVar(&uploadFileJobID, "job-id", "", "Job ID to attach the file to (required)")
-	uploadFileCmd.PersistentFlags().StringVar(&uploadFilePath, "file", "", "Path to the file to upload (required)")
+	uploadFileCmd.PersistentFlags().StringVar(&uploadFileJobID, "job-id", "", "Job ID to attach the file to")
+	_ = uploadFileCmd.MarkPersistentFlagRequired("job-id")
+	uploadFileCmd.PersistentFlags().StringVar(&uploadFilePath, "file", "", "Path to the file to upload")
+	_ = uploadFileCmd.MarkPersistentFlagRequired("file")
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileMimeType, "mime", "application/junit", "MIME type of the file (default: application/junit)")
 	uploadFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

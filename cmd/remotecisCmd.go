@@ -56,10 +56,6 @@ var getRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		if getRemoteCIsCmd_IDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
@@ -88,14 +84,12 @@ var createRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		if createRemoteCINameFlag == "" {
-			return fmt.Errorf("--name is required")
-		}
-		if createRemoteCITeamIDFlag == "" {
-			return fmt.Errorf("--team-id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create remote CI: name=%s, team-id=%s\n", createRemoteCINameFlag, createRemoteCITeamIDFlag)
+			return nil
+		}
 
 		printStatus("Creating remote CI: %s\n", createRemoteCINameFlag)
 
@@ -124,10 +118,6 @@ var updateRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		if updateRemoteCIIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateRemoteCIRequest{}
@@ -136,6 +126,11 @@ var updateRemoteCICmd = &cobra.Command{
 		}
 		if updateRemoteCIStateFlag != "" {
 			updates.State = lib.ResourceState(updateRemoteCIStateFlag)
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update remote CI: id=%s, name=%s, state=%s\n", updateRemoteCIIDFlag, updateRemoteCINameFlag, updateRemoteCIStateFlag)
+			return nil
 		}
 
 		printStatus("Updating remote CI: %s\n", updateRemoteCIIDFlag)
@@ -165,8 +160,9 @@ var deleteRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		if deleteRemoteCIIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete remote CI: id=%s\n", deleteRemoteCIIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -253,21 +249,26 @@ func init() {
 	getRemoteCIsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get remote CI flags
-	getRemoteCICmd.PersistentFlags().StringVar(&getRemoteCIsCmd_IDFlag, "id", "", "Remote CI ID (required)")
+	getRemoteCICmd.PersistentFlags().StringVar(&getRemoteCIsCmd_IDFlag, "id", "", "Remote CI ID")
+	_ = getRemoteCICmd.MarkPersistentFlagRequired("id")
 	getRemoteCICmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create remote CI flags
-	createRemoteCICmd.PersistentFlags().StringVar(&createRemoteCINameFlag, "name", "", "Remote CI name (required)")
-	createRemoteCICmd.PersistentFlags().StringVar(&createRemoteCITeamIDFlag, "team-id", "", "Team ID (required)")
+	createRemoteCICmd.PersistentFlags().StringVar(&createRemoteCINameFlag, "name", "", "Remote CI name")
+	_ = createRemoteCICmd.MarkPersistentFlagRequired("name")
+	createRemoteCICmd.PersistentFlags().StringVar(&createRemoteCITeamIDFlag, "team-id", "", "Team ID")
+	_ = createRemoteCICmd.MarkPersistentFlagRequired("team-id")
 	createRemoteCICmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update remote CI flags
-	updateRemoteCICmd.PersistentFlags().StringVar(&updateRemoteCIIDFlag, "id", "", "Remote CI ID to update (required)")
+	updateRemoteCICmd.PersistentFlags().StringVar(&updateRemoteCIIDFlag, "id", "", "Remote CI ID to update")
+	_ = updateRemoteCICmd.MarkPersistentFlagRequired("id")
 	updateRemoteCICmd.PersistentFlags().StringVar(&updateRemoteCINameFlag, "name", "", "New remote CI name")
 	updateRemoteCICmd.PersistentFlags().StringVar(&updateRemoteCIStateFlag, "state", "", "New remote CI state")
 	updateRemoteCICmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete remote CI flags
-	deleteRemoteCICmd.PersistentFlags().StringVar(&deleteRemoteCIIDFlag, "id", "", "Remote CI ID to delete (required)")
+	deleteRemoteCICmd.PersistentFlags().StringVar(&deleteRemoteCIIDFlag, "id", "", "Remote CI ID to delete")
+	_ = deleteRemoteCICmd.MarkPersistentFlagRequired("id")
 	deleteRemoteCICmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
