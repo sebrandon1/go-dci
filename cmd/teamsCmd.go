@@ -29,9 +29,7 @@ var getTeamsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Println("Getting teams...")
-		}
+		printStatus("Getting teams...")
 
 		response, err := client.GetTeams(cmd.Context())
 		if err != nil {
@@ -63,9 +61,7 @@ var getTeamCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting team with ID: %s\n", getTeamIDFlag)
-		}
+		printStatus("Getting team with ID: %s\n", getTeamIDFlag)
 
 		response, err := client.GetTeam(cmd.Context(), getTeamIDFlag)
 		if err != nil {
@@ -97,9 +93,7 @@ var createTeamCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Creating team: %s\n", createTeamNameFlag)
-		}
+		printStatus("Creating team: %s\n", createTeamNameFlag)
 
 		response, err := client.CreateTeam(cmd.Context(), createTeamNameFlag)
 		if err != nil {
@@ -110,7 +104,7 @@ var createTeamCmd = &cobra.Command{
 			return printTeamJSON(response)
 		}
 
-		fmt.Println("Team created successfully!")
+		printStatus("Team created successfully!")
 		printTeamStdout(response)
 
 		return nil
@@ -140,9 +134,7 @@ var updateTeamCmd = &cobra.Command{
 			updates.State = lib.ResourceState(updateTeamStateFlag)
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating team: %s\n", updateTeamIDFlag)
-		}
+		printStatus("Updating team: %s\n", updateTeamIDFlag)
 
 		response, err := client.UpdateTeam(cmd.Context(), updateTeamIDFlag, updates)
 		if err != nil {
@@ -153,7 +145,7 @@ var updateTeamCmd = &cobra.Command{
 			return printTeamJSON(response)
 		}
 
-		fmt.Println("Team updated successfully!")
+		printStatus("Team updated successfully!")
 		printTeamStdout(response)
 
 		return nil
@@ -179,18 +171,14 @@ var deleteTeamCmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting team: %s\n", deleteTeamIDFlag)
-		}
+		printStatus("Deleting team: %s\n", deleteTeamIDFlag)
 
 		err = client.DeleteTeam(cmd.Context(), deleteTeamIDFlag)
 		if err != nil {
@@ -202,7 +190,7 @@ var deleteTeamCmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("Team deleted successfully!")
+			printStatus("Team deleted successfully!")
 		}
 
 		return nil

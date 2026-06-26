@@ -39,9 +39,7 @@ var getComponentCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting component with ID: %s\n", getComponentIDFlag)
-		}
+		printStatus("Getting component with ID: %s\n", getComponentIDFlag)
 
 		response, err := client.GetComponent(cmd.Context(), getComponentIDFlag)
 		if err != nil {
@@ -81,9 +79,7 @@ var createComponentCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Creating component: %s\n", createComponentName)
-		}
+		printStatus("Creating component: %s\n", createComponentName)
 
 		response, err := client.CreateComponent(cmd.Context(), createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
 		if err != nil {
@@ -94,7 +90,7 @@ var createComponentCmd = &cobra.Command{
 			return printComponentJSON(response)
 		}
 
-		fmt.Println("Component created successfully!")
+		printStatus("Component created successfully!")
 		printComponentStdout(response)
 
 		return nil
@@ -134,9 +130,7 @@ var updateComponentCmd = &cobra.Command{
 			updates.Tags = tags
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating component: %s\n", updateComponentIDFlag)
-		}
+		printStatus("Updating component: %s\n", updateComponentIDFlag)
 
 		response, err := client.UpdateComponent(cmd.Context(), updateComponentIDFlag, updates)
 		if err != nil {
@@ -147,7 +141,7 @@ var updateComponentCmd = &cobra.Command{
 			return printComponentJSON(response)
 		}
 
-		fmt.Println("Component updated successfully!")
+		printStatus("Component updated successfully!")
 		printComponentStdout(response)
 
 		return nil
@@ -173,17 +167,13 @@ var deleteComponentCmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting component: %s\n", deleteComponentIDFlag)
-		}
+		printStatus("Deleting component: %s\n", deleteComponentIDFlag)
 
 		err = client.DeleteComponent(cmd.Context(), deleteComponentIDFlag)
 		if err != nil {
@@ -195,7 +185,7 @@ var deleteComponentCmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("Component deleted successfully!")
+			printStatus("Component deleted successfully!")
 		}
 
 		return nil

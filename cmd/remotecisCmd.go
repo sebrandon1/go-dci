@@ -30,9 +30,7 @@ var getRemoteCIsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Println("Getting remote CIs...")
-		}
+		printStatus("Getting remote CIs...")
 
 		response, err := client.GetRemoteCIs(cmd.Context())
 		if err != nil {
@@ -64,9 +62,7 @@ var getRemoteCICmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
-		}
+		printStatus("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
 
 		response, err := client.GetRemoteCI(cmd.Context(), getRemoteCIsCmd_IDFlag)
 		if err != nil {
@@ -101,9 +97,7 @@ var createRemoteCICmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Creating remote CI: %s\n", createRemoteCINameFlag)
-		}
+		printStatus("Creating remote CI: %s\n", createRemoteCINameFlag)
 
 		response, err := client.CreateRemoteCI(cmd.Context(), createRemoteCINameFlag, createRemoteCITeamIDFlag)
 		if err != nil {
@@ -114,7 +108,7 @@ var createRemoteCICmd = &cobra.Command{
 			return printRemoteCIJSON(response)
 		}
 
-		fmt.Println("Remote CI created successfully!")
+		printStatus("Remote CI created successfully!")
 		printRemoteCIStdout(response)
 
 		return nil
@@ -144,9 +138,7 @@ var updateRemoteCICmd = &cobra.Command{
 			updates.State = lib.ResourceState(updateRemoteCIStateFlag)
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating remote CI: %s\n", updateRemoteCIIDFlag)
-		}
+		printStatus("Updating remote CI: %s\n", updateRemoteCIIDFlag)
 
 		response, err := client.UpdateRemoteCI(cmd.Context(), updateRemoteCIIDFlag, updates)
 		if err != nil {
@@ -157,7 +149,7 @@ var updateRemoteCICmd = &cobra.Command{
 			return printRemoteCIJSON(response)
 		}
 
-		fmt.Println("Remote CI updated successfully!")
+		printStatus("Remote CI updated successfully!")
 		printRemoteCIStdout(response)
 
 		return nil
@@ -183,18 +175,14 @@ var deleteRemoteCICmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting remote CI: %s\n", deleteRemoteCIIDFlag)
-		}
+		printStatus("Deleting remote CI: %s\n", deleteRemoteCIIDFlag)
 
 		err = client.DeleteRemoteCI(cmd.Context(), deleteRemoteCIIDFlag)
 		if err != nil {
@@ -206,7 +194,7 @@ var deleteRemoteCICmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("Remote CI deleted successfully!")
+			printStatus("Remote CI deleted successfully!")
 		}
 
 		return nil

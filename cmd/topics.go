@@ -35,9 +35,7 @@ var getTopicCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting topic with ID: %s\n", getTopicIDFlag)
-		}
+		printStatus("Getting topic with ID: %s\n", getTopicIDFlag)
 
 		response, err := client.GetTopic(cmd.Context(), getTopicIDFlag)
 		if err != nil {
@@ -82,9 +80,7 @@ var createTopicCmd = &cobra.Command{
 			}
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Creating topic: %s\n", createTopicName)
-		}
+		printStatus("Creating topic: %s\n", createTopicName)
 
 		response, err := client.CreateTopic(cmd.Context(), createTopicName, createTopicProductID, componentTypes)
 		if err != nil {
@@ -95,7 +91,7 @@ var createTopicCmd = &cobra.Command{
 			return printTopicJSON(response)
 		}
 
-		fmt.Println("Topic created successfully!")
+		printStatus("Topic created successfully!")
 		printTopicStdout(response)
 
 		return nil
@@ -122,9 +118,7 @@ var updateTopicCmd = &cobra.Command{
 			updates.Name = updateTopicName
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating topic: %s\n", getTopicIDFlag)
-		}
+		printStatus("Updating topic: %s\n", getTopicIDFlag)
 
 		response, err := client.UpdateTopic(cmd.Context(), getTopicIDFlag, updates)
 		if err != nil {
@@ -135,7 +129,7 @@ var updateTopicCmd = &cobra.Command{
 			return printTopicJSON(response)
 		}
 
-		fmt.Println("Topic updated successfully!")
+		printStatus("Topic updated successfully!")
 		printTopicStdout(response)
 
 		return nil
@@ -161,18 +155,14 @@ var deleteTopicCmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting topic: %s\n", deleteTopicIDFlag)
-		}
+		printStatus("Deleting topic: %s\n", deleteTopicIDFlag)
 
 		err = client.DeleteTopic(cmd.Context(), deleteTopicIDFlag)
 		if err != nil {
@@ -184,7 +174,7 @@ var deleteTopicCmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("Topic deleted successfully!")
+			printStatus("Topic deleted successfully!")
 		}
 
 		return nil
@@ -206,9 +196,7 @@ var getTopicComponentsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting components for topic ID: %s\n", topicComponentsIDFlag)
-		}
+		printStatus("Getting components for topic ID: %s\n", topicComponentsIDFlag)
 
 		componentsResponses, err := client.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
 		if err != nil {

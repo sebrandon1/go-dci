@@ -40,9 +40,7 @@ var getTopicsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Println("Getting all topics from DCI")
-		}
+		printStatus("Getting all topics from DCI")
 
 		topicsResponses, err := client.GetTopics(cmd.Context())
 		if err != nil {
@@ -59,7 +57,7 @@ var getTopicsCmd = &cobra.Command{
 		}
 
 		printTopicsStdout(topicsResponses)
-		fmt.Printf("Total Topics: %d\n", totalTopics)
+		printStatus("Total Topics: %d", totalTopics)
 
 		return nil
 	},
@@ -76,9 +74,7 @@ var getComponentTypesCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Println("Getting all component types from DCI")
-		}
+		printStatus("Getting all component types from DCI")
 
 		componentTypesResponses, err := client.GetComponentTypes(cmd.Context())
 		if err != nil {
@@ -95,7 +91,7 @@ var getComponentTypesCmd = &cobra.Command{
 		}
 
 		printComponentTypesStdout(componentTypesResponses)
-		fmt.Printf("Total Component Types: %d\n", totalComponentTypes)
+		printStatus("Total Component Types: %d", totalComponentTypes)
 
 		return nil
 	},
@@ -140,9 +136,7 @@ var getOcpCountCmd = &cobra.Command{
 			return fmt.Errorf("--age is required")
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
-		}
+		printStatus("Getting all jobs from DCI that are %s days old\n", ageInDays)
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)
 		if err != nil {
@@ -182,14 +176,10 @@ var getComponentsCmd = &cobra.Command{
 		var componentsResponses []lib.ComponentsResponse
 
 		if topicID != "" {
-			if outputFormat != OutputFormatJSON {
-				fmt.Printf("Getting components for topic ID: %s\n", topicID)
-			}
+			printStatus("Getting components for topic ID: %s\n", topicID)
 			componentsResponses, err = client.GetComponentsByTopicID(cmd.Context(), topicID)
 		} else {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Getting all components from DCI")
-			}
+			printStatus("Getting all components from DCI")
 			componentsResponses, err = client.GetComponents(cmd.Context())
 		}
 
@@ -207,7 +197,7 @@ var getComponentsCmd = &cobra.Command{
 		}
 
 		printComponentsStdout(componentsResponses)
-		fmt.Printf("Total Components: %d\n", totalComponents)
+		printStatus("Total Components: %d", totalComponents)
 
 		return nil
 	},
@@ -254,9 +244,7 @@ var getJobsCmd = &cobra.Command{
 			// Include the entire end date by advancing to the start of the next day
 			parsedEnd = parsedEnd.AddDate(0, 0, 1)
 
-			if outputFormat != OutputFormatJSON {
-				fmt.Printf("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
-			}
+			printStatus("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
 
 			jobsResponses, err = client.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
 			if err != nil {
@@ -265,9 +253,7 @@ var getJobsCmd = &cobra.Command{
 		} else if startDate != "" || endDate != "" {
 			return fmt.Errorf("both --start-date and --end-date must be provided together")
 		} else {
-			if outputFormat != OutputFormatJSON {
-				fmt.Printf("Getting all jobs from DCI that are %s days old\n", ageInDays)
-			}
+			printStatus("Getting all jobs from DCI that are %s days old\n", ageInDays)
 
 			daysBackLimit, err := strconv.Atoi(ageInDays)
 			if err != nil {
@@ -288,9 +274,7 @@ var getJobsCmd = &cobra.Command{
 					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 						commit := extractCommitVersion(c.Name)
 						daysSince := calculateDaysSince(j.CreatedAt)
-						if outputFormat != OutputFormatJSON {
-							fmt.Printf("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
-						}
+						printStatus("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 
 						jo := lib.JsonCertsuiteInfo{
 							ID:               j.ID,
@@ -305,9 +289,9 @@ var getJobsCmd = &cobra.Command{
 		}
 
 		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Total Certsuite Jobs: %d\n", certsuiteJobsCtr)
-			fmt.Printf("Total DCI Jobs: %d\n", totalJobsCtr)
-			fmt.Printf("Total go-dci runtime: %v\n", time.Since(startRun))
+			printStatus("Total Certsuite Jobs: %d", certsuiteJobsCtr)
+			printStatus("Total DCI Jobs: %d", totalJobsCtr)
+			printStatus("Total go-dci runtime: %v", time.Since(startRun))
 		} else {
 			jsonOutputBytes, err := json.Marshal(jsonOutput)
 			if err != nil {

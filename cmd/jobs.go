@@ -35,9 +35,7 @@ var getJobCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting job with ID: %s\n", getJobIDFlag)
-		}
+		printStatus("Getting job with ID: %s\n", getJobIDFlag)
 
 		response, err := client.GetJob(cmd.Context(), getJobIDFlag)
 		if err != nil {
@@ -81,9 +79,7 @@ var updateJobCmd = &cobra.Command{
 			updates.Tags = tags
 		}
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Updating job: %s\n", updateJobIDFlag)
-		}
+		printStatus("Updating job: %s\n", updateJobIDFlag)
 
 		response, err := client.UpdateJob(cmd.Context(), updateJobIDFlag, updates)
 		if err != nil {
@@ -94,7 +90,7 @@ var updateJobCmd = &cobra.Command{
 			return printJobJSON(response)
 		}
 
-		fmt.Println("Job updated successfully!")
+		printStatus("Job updated successfully!")
 		printJobStdout(response)
 
 		return nil
@@ -120,18 +116,14 @@ var deleteJobCmd = &cobra.Command{
 			return err
 		}
 		if !confirmed {
-			if outputFormat != OutputFormatJSON {
-				fmt.Println("Deletion canceled")
-			}
+			printStatus("Deletion canceled")
 			return nil
 		}
 
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Deleting job: %s\n", deleteJobIDFlag)
-		}
+		printStatus("Deleting job: %s\n", deleteJobIDFlag)
 
 		err = client.DeleteJob(cmd.Context(), deleteJobIDFlag)
 		if err != nil {
@@ -143,7 +135,7 @@ var deleteJobCmd = &cobra.Command{
 			jsonBytes, _ := json.Marshal(result)
 			fmt.Println(string(jsonBytes))
 		} else {
-			fmt.Println("Job deleted successfully!")
+			printStatus("Job deleted successfully!")
 		}
 
 		return nil
@@ -165,9 +157,7 @@ var scheduleJobCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Scheduling job for topic: %s\n", scheduleJobTopicID)
-		}
+		printStatus("Scheduling job for topic: %s\n", scheduleJobTopicID)
 
 		response, err := client.ScheduleJob(cmd.Context(), scheduleJobTopicID)
 		if err != nil {
@@ -178,7 +168,7 @@ var scheduleJobCmd = &cobra.Command{
 			return printCreateJobJSON(response)
 		}
 
-		fmt.Println("Job scheduled successfully!")
+		printStatus("Job scheduled successfully!")
 		printCreateJobStdout(response)
 
 		return nil
@@ -200,9 +190,7 @@ var getJobFilesCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		if outputFormat != OutputFormatJSON {
-			fmt.Printf("Getting files for job ID: %s\n", jobFilesIDFlag)
-		}
+		printStatus("Getting files for job ID: %s\n", jobFilesIDFlag)
 
 		response, err := client.GetJobFiles(cmd.Context(), jobFilesIDFlag)
 		if err != nil {
