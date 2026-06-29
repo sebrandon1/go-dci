@@ -66,6 +66,7 @@ func main() {
 | [Authentication](docs/authentication.md) | Config file and environment variable setup |
 | [CLI Reference](docs/cli-reference.md) | All commands with flags and example output |
 | [Library Guide](docs/library-guide.md) | Complete API reference for using go-dci as a library |
+| [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions for authentication, network, API errors, and more |
 | [Tutorials](docs/tutorials/) | Step-by-step guides for common workflows |
 | [Examples](examples/) | Runnable example programs |
 
