@@ -67,6 +67,7 @@ func main() {
 | [CLI Reference](docs/cli-reference.md) | All commands with flags and example output |
 | [Library Guide](docs/library-guide.md) | Complete API reference for using go-dci as a library |
 | [Tutorials](docs/tutorials/) | Step-by-step guides for common workflows |
+| [Troubleshooting](docs/troubleshooting/) | Common issues and solutions |
 | [Examples](examples/) | Runnable example programs |
 
 ## Common Usage Examples
