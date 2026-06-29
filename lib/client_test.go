@@ -148,7 +148,7 @@ func TestFetchComponents_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.fetchComponents(context.Background(), "", 100, 0)
+	components, err := client.fetchComponents(context.Background(), "", "", "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, components.Components)
 }
@@ -163,7 +163,7 @@ func TestFetchComponents_InvalidJSON(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	components, err := client.fetchComponents(context.Background(), "", 100, 0)
+	components, err := client.fetchComponents(context.Background(), "", "", "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, components.Components)
 }
@@ -404,7 +404,7 @@ func TestFetchComponentTypes_Error(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.fetchComponentTypes(context.Background(), 100, 0)
+	componentTypes, err := client.fetchComponentTypes(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, componentTypes.ComponentTypes)
 }
@@ -419,7 +419,7 @@ func TestFetchComponentTypes_InvalidJSON(t *testing.T) {
 
 	client := newTestClient(server.URL)
 
-	componentTypes, err := client.fetchComponentTypes(context.Background(), 100, 0)
+	componentTypes, err := client.fetchComponentTypes(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, componentTypes.ComponentTypes)
 }
@@ -961,7 +961,7 @@ func TestFetchTopics_Success(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(context.Background(), 100, 0)
+	result, err := client.fetchTopics(context.Background(), "", 100, 0)
 	assert.NoError(t, err)
 	assert.Len(t, result.Topics, 1)
 	assert.Equal(t, "topic-1", result.Topics[0].ID)
@@ -974,7 +974,7 @@ func TestFetchTopics_Error(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(context.Background(), 100, 0)
+	result, err := client.fetchTopics(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Topics)
 }
@@ -988,7 +988,7 @@ func TestFetchTopics_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server.URL)
-	result, err := client.fetchTopics(context.Background(), 100, 0)
+	result, err := client.fetchTopics(context.Background(), "", 100, 0)
 	assert.Error(t, err)
 	assert.Empty(t, result.Topics)
 }
@@ -1882,9 +1882,10 @@ func TestGetTeams_Success(t *testing.T) {
 	result, err := client.GetTeams(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.Teams, 2)
-	assert.Equal(t, "team-1", result.Teams[0].ID)
-	assert.Equal(t, "Team Alpha", result.Teams[0].Name)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].Teams, 2)
+	assert.Equal(t, "team-1", result[0].Teams[0].ID)
+	assert.Equal(t, "Team Alpha", result[0].Teams[0].Name)
 }
 
 func TestGetTeams_Error(t *testing.T) {
@@ -2060,9 +2061,10 @@ func TestGetUsers_Success(t *testing.T) {
 	result, err := client.GetUsers(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.Users, 2)
-	assert.Equal(t, "user-1", result.Users[0].ID)
-	assert.Equal(t, "alice", result.Users[0].Name)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].Users, 2)
+	assert.Equal(t, "user-1", result[0].Users[0].ID)
+	assert.Equal(t, "alice", result[0].Users[0].Name)
 }
 
 func TestGetUsers_Error(t *testing.T) {

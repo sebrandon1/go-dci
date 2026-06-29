@@ -171,6 +171,15 @@ func (c *Client) doJSON(ctx context.Context, method, reqURL string, jsonBody []b
 	return c.doRequest(ctx, method, reqURL, jsonBody, map[string]string{"Content-Type": "application/json"})
 }
 
+// buildFilter creates a DCI API where clause filter for a single field.
+// Returns empty string if value is empty.
+func buildFilter(field, value string) string {
+	if value == "" {
+		return ""
+	}
+	return field + ":" + value
+}
+
 // paginatedURL builds a URL with limit, offset, sort, and optional where filters.
 func paginatedURL(base string, limit, offset int, filters ...string) string {
 	u, err := url.Parse(base)
@@ -250,15 +259,22 @@ func (c *Client) GetIdentity(ctx context.Context) (*IdentityResponse, error) {
 
 // GetComponentTypes retrieves all component types from the DCI API with pagination
 func (c *Client) GetComponentTypes(ctx context.Context) ([]ComponentTypesResponse, error) {
+	return c.GetComponentTypesByName(ctx, "")
+}
+
+// GetComponentTypesByName retrieves component types filtered by name (empty string for all)
+func (c *Client) GetComponentTypesByName(ctx context.Context, name string) ([]ComponentTypesResponse, error) {
 	return paginate(ctx, func(limit, offset int) (ComponentTypesResponse, int, error) {
-		resp, err := c.fetchComponentTypes(ctx, limit, offset)
+		resp, err := c.fetchComponentTypes(ctx, name, limit, offset)
 		return resp, len(resp.ComponentTypes), err
 	})
 }
 
-// fetchComponentTypes is an internal helper to fetch component types with pagination
-func (c *Client) fetchComponentTypes(ctx context.Context, requestLimit, offset int) (ComponentTypesResponse, error) {
-	httpResponse, err := c.doRequest(ctx, http.MethodGet, paginatedURL(c.BaseURL+"/componenttypes", requestLimit, offset), nil, nil)
+// fetchComponentTypes is an internal helper to fetch component types with optional name filtering
+func (c *Client) fetchComponentTypes(ctx context.Context, name string, requestLimit, offset int) (ComponentTypesResponse, error) {
+	filter := buildFilter("name", name)
+	reqURL := paginatedURL(c.BaseURL+"/componenttypes", requestLimit, offset, filter)
+	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return ComponentTypesResponse{}, err
 	}
@@ -376,15 +392,22 @@ func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string
 }
 
 func (c *Client) GetTopics(ctx context.Context) ([]TopicsResponse, error) {
+	return c.GetTopicsByName(ctx, "")
+}
+
+// GetTopicsByName retrieves topics filtered by name (empty string for all)
+func (c *Client) GetTopicsByName(ctx context.Context, name string) ([]TopicsResponse, error) {
 	return paginate(ctx, func(limit, offset int) (TopicsResponse, int, error) {
-		resp, err := c.fetchTopics(ctx, limit, offset)
+		resp, err := c.fetchTopics(ctx, name, limit, offset)
 		return resp, len(resp.Topics), err
 	})
 }
 
-// fetchTopics is an internal helper to fetch topics with pagination
-func (c *Client) fetchTopics(ctx context.Context, requestLimit, offset int) (TopicsResponse, error) {
-	httpResponse, err := c.doRequest(ctx, http.MethodGet, paginatedURL(c.BaseURL+"/topics", requestLimit, offset), nil, nil)
+// fetchTopics is an internal helper to fetch topics with optional name filtering
+func (c *Client) fetchTopics(ctx context.Context, name string, requestLimit, offset int) (TopicsResponse, error) {
+	filter := buildFilter("name", name)
+	reqURL := paginatedURL(c.BaseURL+"/topics", requestLimit, offset, filter)
+	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return TopicsResponse{}, err
 	}
@@ -779,13 +802,18 @@ func (c *Client) fetchJobs(ctx context.Context, requestLimit, offset int) (JobsR
 
 // GetComponents retrieves all components from the DCI API with pagination
 func (c *Client) GetComponents(ctx context.Context) ([]ComponentsResponse, error) {
-	return c.GetComponentsByTopicID(ctx, "")
+	return c.GetComponentsFiltered(ctx, "", "", "")
 }
 
 // GetComponentsByTopicID retrieves components filtered by topic ID (empty string for all)
 func (c *Client) GetComponentsByTopicID(ctx context.Context, topicID string) ([]ComponentsResponse, error) {
+	return c.GetComponentsFiltered(ctx, topicID, "", "")
+}
+
+// GetComponentsFiltered retrieves components with optional filters for topic, type, and name
+func (c *Client) GetComponentsFiltered(ctx context.Context, topicID, componentType, name string) ([]ComponentsResponse, error) {
 	return paginate(ctx, func(limit, offset int) (ComponentsResponse, int, error) {
-		resp, err := c.fetchComponents(ctx, topicID, limit, offset)
+		resp, err := c.fetchComponents(ctx, topicID, componentType, name, limit, offset)
 		return resp, len(resp.Components), err
 	})
 }
@@ -894,14 +922,15 @@ func (c *Client) DeleteComponent(ctx context.Context, componentID string) error 
 	return nil
 }
 
-// fetchComponents is an internal helper to fetch components with optional topic filtering
-func (c *Client) fetchComponents(ctx context.Context, topicID string, requestLimit, offset int) (ComponentsResponse, error) {
-	var filter string
-	if topicID != "" {
-		filter = "topic_id:" + topicID
+// fetchComponents is an internal helper to fetch components with optional filtering
+func (c *Client) fetchComponents(ctx context.Context, topicID, componentType, name string, requestLimit, offset int) (ComponentsResponse, error) {
+	filters := []string{
+		buildFilter("topic_id", topicID),
+		buildFilter("type", componentType),
+		buildFilter("name", name),
 	}
 
-	reqURL := paginatedURL(c.BaseURL+"/components", requestLimit, offset, filter)
+	reqURL := paginatedURL(c.BaseURL+"/components", requestLimit, offset, filters...)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return ComponentsResponse{}, err
@@ -1240,26 +1269,40 @@ func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
 }
 
 // GetTeams retrieves all teams from DCI
-func (c *Client) GetTeams(ctx context.Context) (*TeamsResponse, error) {
-	reqURL := fmt.Sprintf("%s/teams", c.BaseURL)
+func (c *Client) GetTeams(ctx context.Context) ([]TeamsResponse, error) {
+	return c.GetTeamsFiltered(ctx, "")
+}
+
+// GetTeamsFiltered retrieves teams with optional name filter
+func (c *Client) GetTeamsFiltered(ctx context.Context, name string) ([]TeamsResponse, error) {
+	return paginate(ctx, func(limit, offset int) (TeamsResponse, int, error) {
+		resp, err := c.fetchTeams(ctx, name, limit, offset)
+		return resp, len(resp.Teams), err
+	})
+}
+
+// fetchTeams is an internal helper to fetch teams with optional name filtering
+func (c *Client) fetchTeams(ctx context.Context, name string, requestLimit, offset int) (TeamsResponse, error) {
+	filter := buildFilter("name", name)
+	reqURL := paginatedURL(c.BaseURL+"/teams", requestLimit, offset, filter)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting teams: %w", err)
+		return TeamsResponse{}, fmt.Errorf("error getting teams: %w", err)
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
+		return TeamsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TeamsResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return TeamsResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
 }
 
 // GetTeam retrieves a specific team by ID
@@ -1364,26 +1407,40 @@ func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
 }
 
 // GetUsers retrieves all users from DCI
-func (c *Client) GetUsers(ctx context.Context) (*UsersResponse, error) {
-	reqURL := fmt.Sprintf("%s/users", c.BaseURL)
+func (c *Client) GetUsers(ctx context.Context) ([]UsersResponse, error) {
+	return c.GetUsersFiltered(ctx, "")
+}
+
+// GetUsersFiltered retrieves users with optional name filter
+func (c *Client) GetUsersFiltered(ctx context.Context, name string) ([]UsersResponse, error) {
+	return paginate(ctx, func(limit, offset int) (UsersResponse, int, error) {
+		resp, err := c.fetchUsers(ctx, name, limit, offset)
+		return resp, len(resp.Users), err
+	})
+}
+
+// fetchUsers is an internal helper to fetch users with optional name filtering
+func (c *Client) fetchUsers(ctx context.Context, name string, requestLimit, offset int) (UsersResponse, error) {
+	filter := buildFilter("name", name)
+	reqURL := paginatedURL(c.BaseURL+"/users", requestLimit, offset, filter)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting users: %w", err)
+		return UsersResponse{}, fmt.Errorf("error getting users: %w", err)
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
+		return UsersResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UsersResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return UsersResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
 }
 
 // GetUser retrieves a specific user by ID

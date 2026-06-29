@@ -33,7 +33,7 @@ func TestPrintTeamsStdout(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printTeamsStdout(response)
+		printTeamsStdout([]lib.TeamsResponse{*response})
 	})
 }
 
@@ -44,7 +44,7 @@ func TestPrintTeamsStdout_Empty(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printTeamsStdout(response)
+		printTeamsStdout([]lib.TeamsResponse{*response})
 	})
 }
 
@@ -62,7 +62,7 @@ func TestPrintTeamsJSON(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printTeamsJSON(response)
+		printTeamsJSON([]lib.TeamsResponse{*response})
 	})
 }
 

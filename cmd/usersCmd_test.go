@@ -35,7 +35,7 @@ func TestPrintUsersStdout(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printUsersStdout(response)
+		printUsersStdout([]lib.UsersResponse{*response})
 	})
 }
 
@@ -46,7 +46,7 @@ func TestPrintUsersStdout_Empty(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printUsersStdout(response)
+		printUsersStdout([]lib.UsersResponse{*response})
 	})
 }
 
@@ -66,7 +66,7 @@ func TestPrintUsersJSON(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		printUsersJSON(response)
+		printUsersJSON([]lib.UsersResponse{*response})
 	})
 }
 
