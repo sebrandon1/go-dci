@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -46,6 +47,20 @@ func printVerbose(message string) {
 	if verboseFlag {
 		fmt.Printf("[VERBOSE] %s\n", message)
 	}
+}
+
+// validateResourceID validates that a resource ID is non-empty and matches the UUID format used by DCI.
+// Returns an error if validation fails.
+func validateResourceID(id, resourceType string) error {
+	if id == "" {
+		return fmt.Errorf("%s ID is required", resourceType)
+	}
+	// DCI uses UUIDs
+	uuidRegex := regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
+	if !uuidRegex.MatchString(id) {
+		return fmt.Errorf("invalid %s ID format (expected UUID): %s", resourceType, id)
+	}
+	return nil
 }
 
 // confirmDeletion prompts the user to confirm a deletion operation.

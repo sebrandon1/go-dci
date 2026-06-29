@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+	ocpVersionsToLookFor = getOCPVersions()
 )
 
 var getTopicsCmd = &cobra.Command{
@@ -326,10 +326,38 @@ func findOcpVersionFromComponents(components []lib.Components) string {
 func getCredentials() (string, string, error) {
 	accessKey := GetConfigValue("accesskey")
 	secretKey := GetConfigValue("secretkey")
+
 	if accessKey == "" || secretKey == "" {
-		return "", "", errors.New("access key or secret key is not set")
+		return "", "", fmt.Errorf(`DCI credentials not configured
+
+To configure credentials, use one of:
+  1. Config file:  go-dci config set --accesskey <key> --secretkey <secret>
+  2. Environment:  export GO_DCI_ACCESSKEY=<key> GO_DCI_SECRETKEY=<secret>
+
+Get credentials from: https://www.distributed-ci.io/`)
 	}
+
 	return accessKey, secretKey, nil
+}
+
+// getOCPVersions reads the OCP_VERSIONS_TO_TRACK environment variable
+// and returns a slice of OCP versions to track. If the environment variable
+// is not set, it returns a default list of versions.
+func getOCPVersions() []string {
+	envVersions := os.Getenv("OCP_VERSIONS_TO_TRACK")
+	if envVersions == "" {
+		// Return default versions if environment variable is not set
+		return []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+	}
+
+	// Parse comma-separated list
+	versions := strings.Split(envVersions, ",")
+	// Trim whitespace from each version
+	for i, v := range versions {
+		versions[i] = strings.TrimSpace(v)
+	}
+
+	return versions
 }
 
 func countOcpVersions(jobsResponses []lib.JobsResponse) map[string]int {

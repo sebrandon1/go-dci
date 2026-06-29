@@ -67,7 +67,64 @@ func main() {
 | [CLI Reference](docs/cli-reference.md) | All commands with flags and example output |
 | [Library Guide](docs/library-guide.md) | Complete API reference for using go-dci as a library |
 | [Tutorials](docs/tutorials/) | Step-by-step guides for common workflows |
+| [Troubleshooting](docs/troubleshooting/) | Common issues and solutions |
 | [Examples](examples/) | Runnable example programs |
+
+## Common Usage Examples
+
+### Query Recent Jobs
+```bash
+# Get jobs from last 7 days
+go-dci jobs --age 7
+
+# Get jobs in specific date range
+go-dci jobs --start-date 2026-06-01 --end-date 2026-06-15
+
+# Get OCP version statistics
+go-dci ocpcount --age 30
+```
+
+### Work with Components
+```bash
+# List all components
+go-dci components
+
+# Filter by topic
+go-dci components --topic <topic-id>
+
+# Get specific component
+go-dci component --id <component-id>
+
+# Create a new component
+go-dci create-component --name "My Component" --type ocp --topic-id <topic-id> --version 4.15.0
+```
+
+### Manage Jobs
+```bash
+# Get specific job
+go-dci job --id <job-id>
+
+# Create a job
+go-dci create-job --topic-id <topic-id> --remoteci-id <remoteci-id>
+
+# Update job state
+go-dci update-job-state --job-id <job-id> --state success --comment "All tests passed"
+
+# Upload a file to a job
+go-dci upload-file --job-id <job-id> --file results.xml --mime-type application/xml
+```
+
+### File Operations
+```bash
+# List files for a job
+go-dci job-files --job-id <job-id>
+
+# Download a specific file
+go-dci file --id <file-id> --output downloaded-file.xml
+
+# Delete a file
+go-dci delete-file --id <file-id>
+```
 
 ## Supported DCI API Endpoints
 

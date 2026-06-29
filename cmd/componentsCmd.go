@@ -11,23 +11,27 @@ import (
 
 // Variables for component command flags
 var (
-	getComponentIDFlag       string
-	createComponentName      string
-	createComponentType      string
-	createComponentTopicID   string
-	createComponentVersion   string
-	updateComponentIDFlag    string
-	updateComponentName      string
-	updateComponentState     string
-	updateComponentVersion   string
-	updateComponentTags      string
-	deleteComponentIDFlag    string
+	getComponentIDFlag     string
+	createComponentName    string
+	createComponentType    string
+	createComponentTopicID string
+	createComponentVersion string
+	updateComponentIDFlag  string
+	updateComponentName    string
+	updateComponentState   string
+	updateComponentVersion string
+	updateComponentTags    string
+	deleteComponentIDFlag  string
 )
 
 var getComponentCmd = &cobra.Command{
 	Use:   "component",
 	Short: "Get a specific component by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -90,6 +94,10 @@ var updateComponentCmd = &cobra.Command{
 	Use:   "update-component",
 	Short: "Update an existing component in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -142,6 +150,10 @@ var deleteComponentCmd = &cobra.Command{
 	Use:   "delete-component",
 	Short: "Delete a component from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

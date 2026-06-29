@@ -45,7 +45,7 @@ func TestGetFileCmd_MissingCredentials(t *testing.T) {
 	cmd := &cobra.Command{}
 	err := getFileCmd.RunE(cmd, []string{})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "access key or secret key is not set")
+	assert.Contains(t, err.Error(), "DCI credentials not configured")
 }
 
 func TestDeleteFileCmd_MissingCredentials(t *testing.T) {
@@ -54,7 +54,7 @@ func TestDeleteFileCmd_MissingCredentials(t *testing.T) {
 	cmd := &cobra.Command{}
 	err := deleteFileCmd.RunE(cmd, []string{})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "access key or secret key is not set")
+	assert.Contains(t, err.Error(), "DCI credentials not configured")
 }
 
 func TestGetFileCmd_Success(t *testing.T) {
