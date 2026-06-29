@@ -472,12 +472,14 @@ func TestPrintTopicsJSON(t *testing.T) {
 
 func TestCalculateDaysSince(t *testing.T) {
 	yesterday := time.Now().Add(-24 * time.Hour).Format("2006-01-02T15:04:05.999999")
-	days := calculateDaysSince(yesterday)
+	days, err := calculateDaysSince(yesterday)
+	assert.NoError(t, err)
 	assert.InDelta(t, 1.0, days, 0.5)
 }
 
 func TestCalculateDaysSince_InvalidTimestamp(t *testing.T) {
-	assert.NotPanics(t, func() {
-		calculateDaysSince("not-a-timestamp")
-	})
+	days, err := calculateDaysSince("not-a-timestamp")
+	assert.Error(t, err)
+	assert.Equal(t, 0.0, days)
+	assert.Contains(t, err.Error(), "failed to parse timestamp")
 }
