@@ -72,4 +72,3 @@ func TestUpdateConfigValue(t *testing.T) {
 	// Verify the value was set
 	assert.Equal(t, "updatevalue", viper.GetString("updatekey"))
 }
-

@@ -11,19 +11,23 @@ import (
 
 // Variables for topic command flags
 var (
-	getTopicIDFlag           string
-	createTopicName          string
-	createTopicProductID     string
+	getTopicIDFlag            string
+	createTopicName           string
+	createTopicProductID      string
 	createTopicComponentTypes string
-	updateTopicName          string
-	deleteTopicIDFlag        string
-	topicComponentsIDFlag    string
+	updateTopicName           string
+	deleteTopicIDFlag         string
+	topicComponentsIDFlag     string
 )
 
 var getTopicCmd = &cobra.Command{
 	Use:   "topic",
 	Short: "Get a specific topic by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getTopicIDFlag, "topic"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -134,6 +138,10 @@ var deleteTopicCmd = &cobra.Command{
 	Use:   "delete-topic",
 	Short: "Delete a topic from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteTopicIDFlag, "topic"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -153,7 +161,6 @@ var deleteTopicCmd = &cobra.Command{
 			printStatus("Deletion canceled")
 			return nil
 		}
-
 
 		client := lib.NewClient(accessKey, secretKey)
 

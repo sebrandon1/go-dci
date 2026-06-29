@@ -175,7 +175,6 @@ var deleteRemoteCICmd = &cobra.Command{
 			return nil
 		}
 
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Deleting remote CI: %s\n", deleteRemoteCIIDFlag)

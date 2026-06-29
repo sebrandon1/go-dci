@@ -395,20 +395,20 @@ func TestPrintTopicsStdout(t *testing.T) {
 		{
 			Meta: lib.Meta{Count: 1},
 			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct{} `json:"data,omitempty"`
-				Etag                   string   `json:"etag,omitempty"`
-				ExportControl          bool     `json:"export_control,omitempty"`
-				ID                     string   `json:"id,omitempty"`
-				Name                   string   `json:"name,omitempty"`
-				NextTopic              any      `json:"next_topic,omitempty"`
-				NextTopicID            any      `json:"next_topic_id,omitempty"`
+				ComponentTypes         []string    `json:"component_types,omitempty"`
+				ComponentTypesOptional []any       `json:"component_types_optional,omitempty"`
+				CreatedAt              string      `json:"created_at,omitempty"`
+				Data                   struct{}    `json:"data,omitempty"`
+				Etag                   string      `json:"etag,omitempty"`
+				ExportControl          bool        `json:"export_control,omitempty"`
+				ID                     string      `json:"id,omitempty"`
+				Name                   string      `json:"name,omitempty"`
+				NextTopic              any         `json:"next_topic,omitempty"`
+				NextTopicID            any         `json:"next_topic_id,omitempty"`
 				Product                lib.Product `json:"product,omitempty"`
-				ProductID              string   `json:"product_id,omitempty"`
-				State                  string   `json:"state,omitempty"`
-				UpdatedAt              string   `json:"updated_at,omitempty"`
+				ProductID              string      `json:"product_id,omitempty"`
+				State                  string      `json:"state,omitempty"`
+				UpdatedAt              string      `json:"updated_at,omitempty"`
 			}{
 				{
 					ID:        "topic-123",
@@ -437,20 +437,20 @@ func TestPrintTopicsJSON(t *testing.T) {
 		{
 			Meta: lib.Meta{Count: 1},
 			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct{} `json:"data,omitempty"`
-				Etag                   string   `json:"etag,omitempty"`
-				ExportControl          bool     `json:"export_control,omitempty"`
-				ID                     string   `json:"id,omitempty"`
-				Name                   string   `json:"name,omitempty"`
-				NextTopic              any      `json:"next_topic,omitempty"`
-				NextTopicID            any      `json:"next_topic_id,omitempty"`
+				ComponentTypes         []string    `json:"component_types,omitempty"`
+				ComponentTypesOptional []any       `json:"component_types_optional,omitempty"`
+				CreatedAt              string      `json:"created_at,omitempty"`
+				Data                   struct{}    `json:"data,omitempty"`
+				Etag                   string      `json:"etag,omitempty"`
+				ExportControl          bool        `json:"export_control,omitempty"`
+				ID                     string      `json:"id,omitempty"`
+				Name                   string      `json:"name,omitempty"`
+				NextTopic              any         `json:"next_topic,omitempty"`
+				NextTopicID            any         `json:"next_topic_id,omitempty"`
 				Product                lib.Product `json:"product,omitempty"`
-				ProductID              string   `json:"product_id,omitempty"`
-				State                  string   `json:"state,omitempty"`
-				UpdatedAt              string   `json:"updated_at,omitempty"`
+				ProductID              string      `json:"product_id,omitempty"`
+				State                  string      `json:"state,omitempty"`
+				UpdatedAt              string      `json:"updated_at,omitempty"`
 			}{
 				{
 					ID:            "topic-123",
@@ -472,12 +472,13 @@ func TestPrintTopicsJSON(t *testing.T) {
 
 func TestCalculateDaysSince(t *testing.T) {
 	yesterday := time.Now().Add(-24 * time.Hour).Format("2006-01-02T15:04:05.999999")
-	days := calculateDaysSince(yesterday)
+	days, err := calculateDaysSince(yesterday)
+	assert.NoError(t, err)
 	assert.InDelta(t, 1.0, days, 0.5)
 }
 
 func TestCalculateDaysSince_InvalidTimestamp(t *testing.T) {
-	assert.NotPanics(t, func() {
-		calculateDaysSince("not-a-timestamp")
-	})
+	_, err := calculateDaysSince("not-a-timestamp")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid date format")
 }

@@ -11,9 +11,9 @@ import (
 
 // Variables for file command flags
 var (
-	getFileIDFlag    string
+	getFileIDFlag     string
 	getFileOutputPath string
-	deleteFileIDFlag string
+	deleteFileIDFlag  string
 )
 
 var getFileCmd = &cobra.Command{
@@ -81,7 +81,6 @@ var deleteFileCmd = &cobra.Command{
 			printStatus("Deletion canceled")
 			return nil
 		}
-
 
 		client := lib.NewClient(accessKey, secretKey)
 

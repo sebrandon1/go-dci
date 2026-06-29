@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -26,8 +27,21 @@ const (
 )
 
 var (
-	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+	ocpVersionsToLookFor = getOCPVersions()
 )
+
+func getOCPVersions() []string {
+	envVersions := os.Getenv("OCP_VERSIONS_TO_TRACK")
+	if envVersions != "" {
+		versions := strings.Split(envVersions, ",")
+		for i := range versions {
+			versions[i] = strings.TrimSpace(versions[i])
+		}
+		return versions
+	}
+	// Default list
+	return []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+}
 
 var getTopicsCmd = &cobra.Command{
 	Use:   "topics",
@@ -269,7 +283,10 @@ var getJobsCmd = &cobra.Command{
 				for _, c := range j.Components {
 					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 						commit := extractCommitVersion(c.Name)
-						daysSince := calculateDaysSince(j.CreatedAt)
+						daysSince, err := calculateDaysSince(j.CreatedAt)
+						if err != nil {
+							return fmt.Errorf("failed to calculate days since creation for job %s: %v", j.ID, err)
+						}
 						printStatus("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 
 						jo := lib.JsonCertsuiteInfo{
@@ -383,9 +400,12 @@ func extractCommitVersion(componentName string) string {
 	return "unknown"
 }
 
-func calculateDaysSince(createdAt string) float64 {
-	createdTime, _ := time.Parse(dateFormat, createdAt)
-	return time.Since(createdTime).Hours() / 24
+func calculateDaysSince(createdAt string) (float64, error) {
+	createdTime, err := time.Parse(dateFormat, createdAt)
+	if err != nil {
+		return 0, fmt.Errorf("invalid date format: %v", err)
+	}
+	return time.Since(createdTime).Hours() / 24, nil
 }
 
 func printComponentsStdout(componentsResponses []lib.ComponentsResponse) {

@@ -10,18 +10,18 @@ import (
 
 // Variables for user command flags
 var (
-	getUserIDFlag         string
-	createUserNameFlag    string
-	createUserEmailFlag   string
+	getUserIDFlag          string
+	createUserNameFlag     string
+	createUserEmailFlag    string
 	createUserFullnameFlag string
-	createUserTeamIDFlag  string
+	createUserTeamIDFlag   string
 	createUserPasswordFlag string
-	updateUserIDFlag      string
-	updateUserNameFlag    string
-	updateUserEmailFlag   string
+	updateUserIDFlag       string
+	updateUserNameFlag     string
+	updateUserEmailFlag    string
 	updateUserFullnameFlag string
-	updateUserStateFlag   string
-	deleteUserIDFlag      string
+	updateUserStateFlag    string
+	deleteUserIDFlag       string
 )
 
 var getUsersCmd = &cobra.Command{
@@ -192,7 +192,6 @@ var deleteUserCmd = &cobra.Command{
 			printStatus("Deletion canceled")
 			return nil
 		}
-
 
 		client := lib.NewClient(accessKey, secretKey)
 

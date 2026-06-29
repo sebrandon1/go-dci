@@ -146,7 +146,6 @@ var deleteComponentTypeCmd = &cobra.Command{
 			return nil
 		}
 
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Deleting component type: %s\n", deleteComponentTypeIDFlag)

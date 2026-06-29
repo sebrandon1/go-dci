@@ -103,4 +103,3 @@ func TestPrintUploadFileJSON(t *testing.T) {
 		printUploadFileJSON(response)
 	})
 }
-
