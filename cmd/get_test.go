@@ -471,7 +471,7 @@ func TestPrintTopicsJSON(t *testing.T) {
 }
 
 func TestCalculateDaysSince(t *testing.T) {
-	yesterday := time.Now().Add(-24 * time.Hour).Format("2006-01-02T15:04:05.999999")
+	yesterday := time.Now().Add(-24 * time.Hour).Format(dateFormat)
 	days := calculateDaysSince(yesterday)
 	assert.InDelta(t, 1.0, days, 0.5)
 }
