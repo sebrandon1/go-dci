@@ -39,3 +39,19 @@ Environment variables take precedence over values in the config file.
 ---
 
 Next: [CLI Reference](cli-reference.md)
+
+## Optional Environment Variables
+
+Additional environment variables for customizing behavior:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OCP_VERSIONS_TO_TRACK` | Comma-separated list of OCP versions to track in the `ocpcount` command | `4.12,4.13,4.14,4.15,4.16,4.17,4.18,4.19,4.20` |
+
+Example:
+
+```bash
+# Track only specific OCP versions
+export OCP_VERSIONS_TO_TRACK="4.16,4.17,4.18"
+go-dci ocpcount -d 30
+```

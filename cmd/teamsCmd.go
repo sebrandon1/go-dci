@@ -174,7 +174,6 @@ var deleteTeamCmd = &cobra.Command{
 			return nil
 		}
 
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Deleting team: %s\n", deleteTeamIDFlag)

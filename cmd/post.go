@@ -11,15 +11,15 @@ import (
 
 // Variables for POST command flags
 var (
-	createJobTopicID     string
-	createJobComponents  string
-	createJobComment     string
-	updateJobStateJobID  string
-	updateJobStateStatus string
+	createJobTopicID      string
+	createJobComponents   string
+	createJobComment      string
+	updateJobStateJobID   string
+	updateJobStateStatus  string
 	updateJobStateComment string
-	uploadFileJobID      string
-	uploadFilePath       string
-	uploadFileMimeType   string
+	uploadFileJobID       string
+	uploadFilePath        string
+	uploadFileMimeType    string
 )
 
 var createJobCmd = &cobra.Command{
@@ -236,4 +236,3 @@ func init() {
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileMimeType, "mime", "application/junit", "MIME type of the file (default: application/junit)")
 	uploadFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
-

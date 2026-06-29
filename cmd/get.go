@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -26,8 +27,21 @@ const (
 )
 
 var (
-	ocpVersionsToLookFor = []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+	ocpVersionsToLookFor = getOCPVersions()
 )
+
+func getOCPVersions() []string {
+	envVersions := os.Getenv("OCP_VERSIONS_TO_TRACK")
+	if envVersions != "" {
+		versions := strings.Split(envVersions, ",")
+		for i := range versions {
+			versions[i] = strings.TrimSpace(versions[i])
+		}
+		return versions
+	}
+	// Default list
+	return []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}
+}
 
 var getTopicsCmd = &cobra.Command{
 	Use:   "topics",

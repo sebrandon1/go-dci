@@ -235,7 +235,8 @@ func (c *Client) GetIdentity(ctx context.Context) (*IdentityResponse, error) {
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("authentication failed with status code: %d", httpResponse.StatusCode)
+		body, _ := io.ReadAll(httpResponse.Body)
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var identity IdentityResponse
@@ -285,7 +286,7 @@ func (c *Client) GetComponentType(ctx context.Context, componentTypeID string) (
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get component type with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var componentType ComponentTypeResponse
@@ -317,7 +318,7 @@ func (c *Client) CreateComponentType(ctx context.Context, name string) (*Compone
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create component type with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ComponentTypeResponse
@@ -345,7 +346,7 @@ func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update component type with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ComponentTypeResponse
@@ -368,7 +369,7 @@ func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete component type with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -411,7 +412,7 @@ func (c *Client) GetTopic(ctx context.Context, topicID string) (*TopicResponse, 
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get topic with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var topic TopicResponse
@@ -444,7 +445,7 @@ func (c *Client) CreateTopic(ctx context.Context, name, productID string, compon
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create topic with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TopicResponse
@@ -472,7 +473,7 @@ func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates Update
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update topic with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TopicResponse
@@ -495,7 +496,7 @@ func (c *Client) DeleteTopic(ctx context.Context, topicID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete topic with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -645,7 +646,7 @@ func (c *Client) GetJob(ctx context.Context, jobID string) (*JobResponse, error)
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get job with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var job JobResponse
@@ -673,7 +674,7 @@ func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobR
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update job with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response JobResponse
@@ -696,7 +697,7 @@ func (c *Client) DeleteJob(ctx context.Context, jobID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete job with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -723,7 +724,7 @@ func (c *Client) ScheduleJob(ctx context.Context, topicID string) (*CreateJobRes
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to schedule job with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response CreateJobResponse
@@ -746,7 +747,7 @@ func (c *Client) GetJobFiles(ctx context.Context, jobID string) (*FilesResponse,
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get job files with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response FilesResponse
@@ -801,7 +802,7 @@ func (c *Client) GetComponent(ctx context.Context, componentID string) (*Compone
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get component with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var component ComponentResponse
@@ -836,7 +837,7 @@ func (c *Client) CreateComponent(ctx context.Context, name, componentType, topic
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create component with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ComponentResponse
@@ -864,7 +865,7 @@ func (c *Client) UpdateComponent(ctx context.Context, componentID string, update
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update component with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ComponentResponse
@@ -887,7 +888,7 @@ func (c *Client) DeleteComponent(ctx context.Context, componentID string) error 
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete component with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -939,7 +940,7 @@ func (c *Client) CreateJob(ctx context.Context, topicID string, componentIDs []s
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create job with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response CreateJobResponse
@@ -973,7 +974,7 @@ func (c *Client) UpdateJobState(ctx context.Context, jobID string, status JobSta
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update job state with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response JobStateResponse
@@ -1002,7 +1003,7 @@ func (c *Client) fetchJobStates(ctx context.Context, jobID string, requestLimit,
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return JobStatesResponse{}, fmt.Errorf("failed to get job states with status code %d: %s", httpResponse.StatusCode, string(body))
+		return JobStatesResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response JobStatesResponse
@@ -1036,7 +1037,7 @@ func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, er
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, "", fmt.Errorf("failed to get file with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, "", formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	content, err := io.ReadAll(httpResponse.Body)
@@ -1060,7 +1061,7 @@ func (c *Client) DeleteFile(ctx context.Context, fileID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete file with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -1102,7 +1103,7 @@ func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content [
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to upload file with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UploadFileResponse
@@ -1125,7 +1126,7 @@ func (c *Client) GetRemoteCIs(ctx context.Context) (*RemoteCIsResponse, error) {
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get remote CIs with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response RemoteCIsResponse
@@ -1148,7 +1149,7 @@ func (c *Client) GetRemoteCI(ctx context.Context, remoteciID string) (*RemoteCIR
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get remote CI with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response RemoteCIResponse
@@ -1181,7 +1182,7 @@ func (c *Client) CreateRemoteCI(ctx context.Context, name, teamID string) (*Remo
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create remote CI with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response RemoteCIResponse
@@ -1209,7 +1210,7 @@ func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates 
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update remote CI with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response RemoteCIResponse
@@ -1232,7 +1233,7 @@ func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete remote CI with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -1250,7 +1251,7 @@ func (c *Client) GetTeams(ctx context.Context) (*TeamsResponse, error) {
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get teams with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TeamsResponse
@@ -1273,7 +1274,7 @@ func (c *Client) GetTeam(ctx context.Context, teamID string) (*TeamResponse, err
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get team with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TeamResponse
@@ -1305,7 +1306,7 @@ func (c *Client) CreateTeam(ctx context.Context, name string) (*TeamResponse, er
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create team with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TeamResponse
@@ -1333,7 +1334,7 @@ func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTe
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update team with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response TeamResponse
@@ -1356,7 +1357,7 @@ func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete team with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -1374,7 +1375,7 @@ func (c *Client) GetUsers(ctx context.Context) (*UsersResponse, error) {
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get users with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UsersResponse
@@ -1397,7 +1398,7 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*UserResponse, err
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get user with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UserResponse
@@ -1433,7 +1434,7 @@ func (c *Client) CreateUser(ctx context.Context, name, email, fullname, teamID, 
 
 	if httpResponse.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to create user with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UserResponse
@@ -1461,7 +1462,7 @@ func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUs
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to update user with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response UserResponse
@@ -1484,7 +1485,7 @@ func (c *Client) DeleteUser(ctx context.Context, userID string) error {
 
 	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return fmt.Errorf("failed to delete user with status code %d: %s", httpResponse.StatusCode, string(body))
+		return formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	return nil
@@ -1502,7 +1503,7 @@ func (c *Client) GetProducts(ctx context.Context) (*ProductsResponse, error) {
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get products with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ProductsResponse
@@ -1525,7 +1526,7 @@ func (c *Client) GetProduct(ctx context.Context, productID string) (*ProductResp
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, fmt.Errorf("failed to get product with status code %d: %s", httpResponse.StatusCode, string(body))
+		return nil, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ProductResponse

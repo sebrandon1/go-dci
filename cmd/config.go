@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,6 +18,33 @@ func UpdateConfigValue(key, value string) error {
 		return fmt.Errorf("failed to write config: %w", err)
 	}
 	return nil
+}
+
+func printConfigView() {
+	accessKey := GetConfigValue("accesskey")
+	secretKey := GetConfigValue("secretkey")
+
+	fmt.Println("Configuration:")
+	if accessKey != "" {
+		fmt.Printf("  Access Key: %s\n", accessKey)
+	} else {
+		fmt.Println("  Access Key: (not set)")
+	}
+
+	if secretKey != "" {
+		fmt.Printf("  Secret Key: %s\n", redactSecret(secretKey))
+	} else {
+		fmt.Println("  Secret Key: (not set)")
+	}
+
+	fmt.Printf("  Config File: %s\n", viper.ConfigFileUsed())
+}
+
+func redactSecret(secret string) string {
+	if len(secret) <= 8 {
+		return "********"
+	}
+	return secret[:4] + "..." + strings.Repeat("*", len(secret)-8) + "..." + secret[len(secret)-4:]
 }
 
 var configCmd = &cobra.Command{
@@ -75,7 +103,7 @@ var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View the configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		viper.Debug()
+		printConfigView()
 
 		return nil
 	},
