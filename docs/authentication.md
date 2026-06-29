@@ -36,6 +36,22 @@ export GO_DCI_SECRETKEY=<your-secret-key>
 
 Environment variables take precedence over values in the config file.
 
+## Additional Configuration
+
+### OCP Version Tracking
+
+The `ocpcount` command tracks specific OCP versions by default. You can customize which versions to track using the `OCP_VERSIONS_TO_TRACK` environment variable:
+
+```bash
+export OCP_VERSIONS_TO_TRACK="4.15,4.16,4.17"
+```
+
+If not set, the following versions are tracked by default: 4.12, 4.13, 4.14, 4.15, 4.16, 4.17, 4.18, 4.19, 4.20.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OCP_VERSIONS_TO_TRACK` | Comma-separated list of OCP versions to track in `ocpcount` command | 4.12, 4.13, 4.14, 4.15, 4.16, 4.17, 4.18, 4.19, 4.20 |
+
 ---
 
 Next: [CLI Reference](cli-reference.md)
