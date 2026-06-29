@@ -16,11 +16,12 @@ var (
 	updateTeamNameFlag  string
 	updateTeamStateFlag string
 	deleteTeamIDFlag    string
+	teamsNameFilter     string
 )
 
 var getTeamsCmd = &cobra.Command{
 	Use:   "teams",
-	Short: "Get all teams from DCI",
+	Short: "Get all teams from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -29,9 +30,13 @@ var getTeamsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		printStatus("Getting teams...")
+		if teamsNameFilter != "" {
+			printStatus("Getting teams matching name: %s\n", teamsNameFilter)
+		} else {
+			printStatus("Getting teams...")
+		}
 
-		response, err := client.GetTeams(cmd.Context())
+		response, err := client.GetTeamsFiltered(cmd.Context(), teamsNameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get teams: %v", err)
 		}
@@ -196,21 +201,38 @@ var deleteTeamCmd = &cobra.Command{
 	},
 }
 
-func printTeamsStdout(response *lib.TeamsResponse) {
-	if len(response.Teams) == 0 {
+func printTeamsStdout(responses []lib.TeamsResponse) {
+	totalTeams := 0
+	for _, resp := range responses {
+		totalTeams += len(resp.Teams)
+	}
+
+	if totalTeams == 0 {
 		fmt.Println("No teams found.")
 		return
 	}
+
 	fmt.Println("---")
-	for _, team := range response.Teams {
-		fmt.Printf("ID: %s | Name: %s | State: %s | External: %v\n",
-			team.ID, team.Name, team.State, team.External)
+	for _, resp := range responses {
+		for _, team := range resp.Teams {
+			fmt.Printf("ID: %s | Name: %s | State: %s | External: %v\n",
+				team.ID, team.Name, team.State, team.External)
+		}
 	}
-	fmt.Printf("Total Teams: %d\n", len(response.Teams))
+	fmt.Printf("Total Teams: %d\n", totalTeams)
 }
 
-func printTeamsJSON(response *lib.TeamsResponse) error {
-	jsonBytes, err := json.Marshal(response)
+func printTeamsJSON(responses []lib.TeamsResponse) error {
+	// Flatten all teams from paginated responses
+	var allTeams []lib.Team
+	for _, resp := range responses {
+		allTeams = append(allTeams, resp.Teams...)
+	}
+
+	jsonBytes, err := json.Marshal(map[string]interface{}{
+		"teams": allTeams,
+		"total": len(allTeams),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
@@ -246,6 +268,7 @@ func init() {
 	rootCmd.AddCommand(deleteTeamCmd)
 
 	// get teams flags
+	getTeamsCmd.PersistentFlags().StringVarP(&teamsNameFilter, "name", "n", "", "Filter teams by name")
 	getTeamsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get team flags

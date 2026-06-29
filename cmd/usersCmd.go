@@ -22,11 +22,12 @@ var (
 	updateUserFullnameFlag string
 	updateUserStateFlag   string
 	deleteUserIDFlag      string
+	usersNameFilter       string
 )
 
 var getUsersCmd = &cobra.Command{
 	Use:   "users",
-	Short: "Get all users from DCI",
+	Short: "Get all users from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -35,9 +36,13 @@ var getUsersCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		printStatus("Getting users...")
+		if usersNameFilter != "" {
+			printStatus("Getting users matching name: %s\n", usersNameFilter)
+		} else {
+			printStatus("Getting users...")
+		}
 
-		response, err := client.GetUsers(cmd.Context())
+		response, err := client.GetUsersFiltered(cmd.Context(), usersNameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get users: %v", err)
 		}
@@ -215,21 +220,38 @@ var deleteUserCmd = &cobra.Command{
 	},
 }
 
-func printUsersStdout(response *lib.UsersResponse) {
-	if len(response.Users) == 0 {
+func printUsersStdout(responses []lib.UsersResponse) {
+	totalUsers := 0
+	for _, resp := range responses {
+		totalUsers += len(resp.Users)
+	}
+
+	if totalUsers == 0 {
 		fmt.Println("No users found.")
 		return
 	}
+
 	fmt.Println("---")
-	for _, user := range response.Users {
-		fmt.Printf("ID: %s | Name: %s | Email: %s | State: %s\n",
-			user.ID, user.Name, user.Email, user.State)
+	for _, resp := range responses {
+		for _, user := range resp.Users {
+			fmt.Printf("ID: %s | Name: %s | Email: %s | State: %s\n",
+				user.ID, user.Name, user.Email, user.State)
+		}
 	}
-	fmt.Printf("Total Users: %d\n", len(response.Users))
+	fmt.Printf("Total Users: %d\n", totalUsers)
 }
 
-func printUsersJSON(response *lib.UsersResponse) error {
-	jsonBytes, err := json.Marshal(response)
+func printUsersJSON(responses []lib.UsersResponse) error {
+	// Flatten all users from paginated responses
+	var allUsers []lib.User
+	for _, resp := range responses {
+		allUsers = append(allUsers, resp.Users...)
+	}
+
+	jsonBytes, err := json.Marshal(map[string]interface{}{
+		"users": allUsers,
+		"total": len(allUsers),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
@@ -266,6 +288,7 @@ func init() {
 	rootCmd.AddCommand(deleteUserCmd)
 
 	// get users flags
+	getUsersCmd.PersistentFlags().StringVarP(&usersNameFilter, "name", "n", "", "Filter users by name")
 	getUsersCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get user flags

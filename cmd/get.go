@@ -17,6 +17,8 @@ var outputFormat string
 var topicID string
 var startDate string
 var endDate string
+var nameFilter string
+var typeFilter string
 
 const (
 	dateFormat         = "2006-01-02T15:04:05.999999"
@@ -31,7 +33,7 @@ var (
 
 var getTopicsCmd = &cobra.Command{
 	Use:   "topics",
-	Short: "Get all topics from DCI",
+	Short: "Get all topics from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -40,9 +42,13 @@ var getTopicsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		printStatus("Getting all topics from DCI")
+		if nameFilter != "" {
+			printStatus("Getting topics matching name: %s\n", nameFilter)
+		} else {
+			printStatus("Getting all topics from DCI")
+		}
 
-		topicsResponses, err := client.GetTopics(cmd.Context())
+		topicsResponses, err := client.GetTopicsByName(cmd.Context(), nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get topics: %v", err)
 		}
@@ -65,7 +71,7 @@ var getTopicsCmd = &cobra.Command{
 
 var getComponentTypesCmd = &cobra.Command{
 	Use:   "componenttypes",
-	Short: "Get all component types from DCI",
+	Short: "Get all component types from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -74,9 +80,13 @@ var getComponentTypesCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		printStatus("Getting all component types from DCI")
+		if nameFilter != "" {
+			printStatus("Getting component types matching name: %s\n", nameFilter)
+		} else {
+			printStatus("Getting all component types from DCI")
+		}
 
-		componentTypesResponses, err := client.GetComponentTypes(cmd.Context())
+		componentTypesResponses, err := client.GetComponentTypesByName(cmd.Context(), nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get component types: %v", err)
 		}
@@ -160,7 +170,7 @@ var getOcpCountCmd = &cobra.Command{
 
 var getComponentsCmd = &cobra.Command{
 	Use:   "components",
-	Short: "Get all components, optionally filtered by topic ID",
+	Short: "Get all components, optionally filtered by topic, type, or name",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -169,16 +179,24 @@ var getComponentsCmd = &cobra.Command{
 
 		client := lib.NewClient(accessKey, secretKey)
 
-		var componentsResponses []lib.ComponentsResponse
-
-		if topicID != "" {
-			printStatus("Getting components for topic ID: %s\n", topicID)
-			componentsResponses, err = client.GetComponentsByTopicID(cmd.Context(), topicID)
+		var statusMsg string
+		if topicID != "" || typeFilter != "" || nameFilter != "" {
+			statusMsg = "Getting components with filters:"
+			if topicID != "" {
+				statusMsg += fmt.Sprintf(" topic=%s", topicID)
+			}
+			if typeFilter != "" {
+				statusMsg += fmt.Sprintf(" type=%s", typeFilter)
+			}
+			if nameFilter != "" {
+				statusMsg += fmt.Sprintf(" name=%s", nameFilter)
+			}
+			printStatus("%s\n", statusMsg)
 		} else {
 			printStatus("Getting all components from DCI")
-			componentsResponses, err = client.GetComponents(cmd.Context())
 		}
 
+		componentsResponses, err := client.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get components: %v", err)
 		}
@@ -582,11 +600,15 @@ func init() {
 	getOcpCountCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getComponentsCmd.PersistentFlags().StringVarP(&topicID, "topic", "t", "", "Filter components by topic ID")
+	getComponentsCmd.PersistentFlags().StringVar(&typeFilter, "type", "", "Filter components by type")
+	getComponentsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter components by name")
 	getComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getIdentityCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
+	getComponentTypesCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter component types by name")
 	getComponentTypesCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
+	getTopicsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter topics by name")
 	getTopicsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
