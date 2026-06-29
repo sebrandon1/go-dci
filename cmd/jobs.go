@@ -24,6 +24,10 @@ var getJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "Get a specific job by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getJobIDFlag, "job"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -52,6 +56,10 @@ var updateJobCmd = &cobra.Command{
 	Use:   "update-job",
 	Short: "Update an existing job in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateJobIDFlag, "job"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -98,6 +106,10 @@ var deleteJobCmd = &cobra.Command{
 	Use:   "delete-job",
 	Short: "Delete a job from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteJobIDFlag, "job"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -117,7 +129,6 @@ var deleteJobCmd = &cobra.Command{
 			printStatus("Deletion canceled")
 			return nil
 		}
-
 
 		client := lib.NewClient(accessKey, secretKey)
 
@@ -143,6 +154,11 @@ var deleteJobCmd = &cobra.Command{
 var scheduleJobCmd = &cobra.Command{
 	Use:   "schedule-job",
 	Short: "Schedule a job with auto-selected components",
+	Example: `  # Schedule a job (components auto-selected)
+  go-dci schedule-job --topic-id abc123
+
+  # Preview with dry-run
+  go-dci schedule-job --topic-id abc123 --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {

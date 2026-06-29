@@ -11,23 +11,27 @@ import (
 
 // Variables for component command flags
 var (
-	getComponentIDFlag       string
-	createComponentName      string
-	createComponentType      string
-	createComponentTopicID   string
-	createComponentVersion   string
-	updateComponentIDFlag    string
-	updateComponentName      string
-	updateComponentState     string
-	updateComponentVersion   string
-	updateComponentTags      string
-	deleteComponentIDFlag    string
+	getComponentIDFlag     string
+	createComponentName    string
+	createComponentType    string
+	createComponentTopicID string
+	createComponentVersion string
+	updateComponentIDFlag  string
+	updateComponentName    string
+	updateComponentState   string
+	updateComponentVersion string
+	updateComponentTags    string
+	deleteComponentIDFlag  string
 )
 
 var getComponentCmd = &cobra.Command{
 	Use:   "component",
 	Short: "Get a specific component by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -55,6 +59,14 @@ var getComponentCmd = &cobra.Command{
 var createComponentCmd = &cobra.Command{
 	Use:   "create-component",
 	Short: "Create a new component in DCI",
+	Example: `  # Create a component
+  go-dci create-component --name test --type ocp --topic-id abc123
+
+  # Create with version
+  go-dci create-component --name my-component --type registry --topic-id abc123 --version 1.0.0
+
+  # Preview with dry-run
+  go-dci create-component --name test --type ocp --topic-id abc123 --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -89,7 +101,22 @@ var createComponentCmd = &cobra.Command{
 var updateComponentCmd = &cobra.Command{
 	Use:   "update-component",
 	Short: "Update an existing component in DCI",
+	Example: `  # Update component name
+  go-dci update-component --id abc123 --name "new-name"
+
+  # Update version and state
+  go-dci update-component --id abc123 --version 2.0.0 --state active
+
+  # Add tags
+  go-dci update-component --id abc123 --tags "production,stable"
+
+  # Preview with dry-run
+  go-dci update-component --id abc123 --name "new-name" --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -141,7 +168,16 @@ var updateComponentCmd = &cobra.Command{
 var deleteComponentCmd = &cobra.Command{
 	Use:   "delete-component",
 	Short: "Delete a component from DCI",
+	Example: `  # Delete a component (will prompt for confirmation)
+  go-dci delete-component --id abc123
+
+  # Preview deletion with dry-run
+  go-dci delete-component --id abc123 --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteComponentIDFlag, "component"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

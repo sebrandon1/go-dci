@@ -11,20 +11,31 @@ import (
 
 // Variables for POST command flags
 var (
-	createJobTopicID     string
-	createJobComponents  string
-	createJobComment     string
-	updateJobStateJobID  string
-	updateJobStateStatus string
+	createJobTopicID      string
+	createJobComponents   string
+	createJobComment      string
+	updateJobStateJobID   string
+	updateJobStateStatus  string
 	updateJobStateComment string
-	uploadFileJobID      string
-	uploadFilePath       string
-	uploadFileMimeType   string
+	uploadFileJobID       string
+	uploadFilePath        string
+	uploadFileMimeType    string
 )
 
 var createJobCmd = &cobra.Command{
 	Use:   "create-job",
 	Short: "Create a new job in DCI",
+	Example: `  # Create a job for a topic
+  go-dci create-job --topic-id abc123
+
+  # Create with specific components
+  go-dci create-job --topic-id abc123 --components comp1,comp2,comp3
+
+  # Create with comment
+  go-dci create-job --topic-id abc123 --comment "Testing new build"
+
+  # Preview with dry-run
+  go-dci create-job --topic-id abc123 --components comp1 --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -67,6 +78,17 @@ var createJobCmd = &cobra.Command{
 var updateJobStateCmd = &cobra.Command{
 	Use:   "update-job-state",
 	Short: "Update the state of a job (pre-run, running, success, failure, etc.)",
+	Example: `  # Start a job
+  go-dci update-job-state --job-id abc123 --status running
+
+  # Mark job as successful
+  go-dci update-job-state --job-id abc123 --status success
+
+  # Mark as failed with comment
+  go-dci update-job-state --job-id abc123 --status failure --comment "Test timeout"
+
+  # Preview with dry-run
+  go-dci update-job-state --job-id abc123 --status running --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -113,6 +135,14 @@ var updateJobStateCmd = &cobra.Command{
 var uploadFileCmd = &cobra.Command{
 	Use:   "upload-file",
 	Short: "Upload a file (e.g., test results) to a job in DCI",
+	Example: `  # Upload test results (default MIME type: application/junit)
+  go-dci upload-file --job-id abc123 --file results.xml
+
+  # Upload with custom MIME type
+  go-dci upload-file --job-id abc123 --file logs.txt --mime text/plain
+
+  # Preview with dry-run
+  go-dci upload-file --job-id abc123 --file results.xml --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
@@ -236,4 +266,3 @@ func init() {
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileMimeType, "mime", "application/junit", "MIME type of the file (default: application/junit)")
 	uploadFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
-
