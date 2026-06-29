@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -323,9 +322,17 @@ func findOcpVersionFromComponents(components []lib.Components) string {
 func getCredentials() (string, string, error) {
 	accessKey := GetConfigValue("accesskey")
 	secretKey := GetConfigValue("secretkey")
+
 	if accessKey == "" || secretKey == "" {
-		return "", "", errors.New("access key or secret key is not set")
+		return "", "", fmt.Errorf(`DCI credentials not configured
+
+To configure credentials, use one of:
+  1. Config file:  go-dci config set --accesskey <key> --secretkey <secret>
+  2. Environment:  export GO_DCI_ACCESSKEY=<key> GO_DCI_SECRETKEY=<secret>
+
+Get credentials from: https://www.distributed-ci.io/`)
 	}
+
 	return accessKey, secretKey, nil
 }
 
