@@ -269,7 +269,10 @@ var getJobsCmd = &cobra.Command{
 				for _, c := range j.Components {
 					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
 						commit := extractCommitVersion(c.Name)
-						daysSince := calculateDaysSince(j.CreatedAt)
+						daysSince, err := calculateDaysSince(j.CreatedAt)
+						if err != nil {
+							return err
+						}
 						printStatus("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
 
 						jo := lib.JsonCertsuiteInfo{
@@ -411,9 +414,12 @@ func extractCommitVersion(componentName string) string {
 	return "unknown"
 }
 
-func calculateDaysSince(createdAt string) float64 {
-	createdTime, _ := time.Parse(dateFormat, createdAt)
-	return time.Since(createdTime).Hours() / 24
+func calculateDaysSince(createdAt string) (float64, error) {
+	createdTime, err := time.Parse(dateFormat, createdAt)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse timestamp '%s': %w", createdAt, err)
+	}
+	return time.Since(createdTime).Hours() / 24, nil
 }
 
 func printComponentsStdout(componentsResponses []lib.ComponentsResponse) {
