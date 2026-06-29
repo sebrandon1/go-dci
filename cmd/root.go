@@ -23,6 +23,7 @@ var (
 	yesFlag     bool
 	quietFlag   bool
 	verboseFlag bool
+	dryRunFlag  bool
 )
 
 // printStatus prints a status message unless --quiet or JSON output is enabled.
@@ -87,6 +88,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&yesFlag, "yes", "y", false, "Skip confirmation prompts")
 	rootCmd.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress non-essential output")
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Show verbose output (HTTP requests, timing)")
+	rootCmd.PersistentFlags().BoolVar(&dryRunFlag, "dry-run", false, "Show what would happen without executing")
 }
 
 func initConfig() {

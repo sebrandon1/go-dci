@@ -55,10 +55,6 @@ var getTeamCmd = &cobra.Command{
 			return err
 		}
 
-		if getTeamIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting team with ID: %s\n", getTeamIDFlag)
@@ -87,11 +83,12 @@ var createTeamCmd = &cobra.Command{
 			return err
 		}
 
-		if createTeamNameFlag == "" {
-			return fmt.Errorf("--name is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would create team: name=%s\n", createTeamNameFlag)
+			return nil
+		}
 
 		printStatus("Creating team: %s\n", createTeamNameFlag)
 
@@ -120,10 +117,6 @@ var updateTeamCmd = &cobra.Command{
 			return err
 		}
 
-		if updateTeamIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateTeamRequest{}
@@ -132,6 +125,11 @@ var updateTeamCmd = &cobra.Command{
 		}
 		if updateTeamStateFlag != "" {
 			updates.State = lib.ResourceState(updateTeamStateFlag)
+		}
+
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would update team: id=%s, name=%s, state=%s\n", updateTeamIDFlag, updateTeamNameFlag, updateTeamStateFlag)
+			return nil
 		}
 
 		printStatus("Updating team: %s\n", updateTeamIDFlag)
@@ -161,8 +159,9 @@ var deleteTeamCmd = &cobra.Command{
 			return err
 		}
 
-		if deleteTeamIDFlag == "" {
-			return fmt.Errorf("--id is required")
+		if dryRunFlag {
+			printStatus("[DRY RUN] Would delete team: id=%s\n", deleteTeamIDFlag)
+			return nil
 		}
 
 		// Confirm deletion
@@ -250,20 +249,24 @@ func init() {
 	getTeamsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get team flags
-	getTeamCmd.PersistentFlags().StringVar(&getTeamIDFlag, "id", "", "Team ID (required)")
+	getTeamCmd.PersistentFlags().StringVar(&getTeamIDFlag, "id", "", "Team ID")
+	_ = getTeamCmd.MarkPersistentFlagRequired("id")
 	getTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create team flags
-	createTeamCmd.PersistentFlags().StringVar(&createTeamNameFlag, "name", "", "Team name (required)")
+	createTeamCmd.PersistentFlags().StringVar(&createTeamNameFlag, "name", "", "Team name")
+	_ = createTeamCmd.MarkPersistentFlagRequired("name")
 	createTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update team flags
-	updateTeamCmd.PersistentFlags().StringVar(&updateTeamIDFlag, "id", "", "Team ID to update (required)")
+	updateTeamCmd.PersistentFlags().StringVar(&updateTeamIDFlag, "id", "", "Team ID to update")
+	_ = updateTeamCmd.MarkPersistentFlagRequired("id")
 	updateTeamCmd.PersistentFlags().StringVar(&updateTeamNameFlag, "name", "", "New team name")
 	updateTeamCmd.PersistentFlags().StringVar(&updateTeamStateFlag, "state", "", "New team state")
 	updateTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete team flags
-	deleteTeamCmd.PersistentFlags().StringVar(&deleteTeamIDFlag, "id", "", "Team ID to delete (required)")
+	deleteTeamCmd.PersistentFlags().StringVar(&deleteTeamIDFlag, "id", "", "Team ID to delete")
+	_ = deleteTeamCmd.MarkPersistentFlagRequired("id")
 	deleteTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

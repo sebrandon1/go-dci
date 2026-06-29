@@ -50,10 +50,6 @@ var getProductCmd = &cobra.Command{
 			return err
 		}
 
-		if getProductIDFlag == "" {
-			return fmt.Errorf("--id is required")
-		}
-
 		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting product with ID: %s\n", getProductIDFlag)
@@ -123,6 +119,7 @@ func init() {
 	getProductsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get product flags
-	getProductCmd.PersistentFlags().StringVar(&getProductIDFlag, "id", "", "Product ID (required)")
+	getProductCmd.PersistentFlags().StringVar(&getProductIDFlag, "id", "", "Product ID")
+	_ = getProductCmd.MarkPersistentFlagRequired("id")
 	getProductCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

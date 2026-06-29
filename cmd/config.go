@@ -54,9 +54,6 @@ var unsetCmd = &cobra.Command{
 	Short: "Unset a key value pair from the configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key, _ := cmd.Flags().GetString("key")
-		if key == "" {
-			return fmt.Errorf("--key flag is required")
-		}
 
 		if !viper.IsSet(key) {
 			fmt.Printf("Key '%s' does not exist in configuration\n", key)
@@ -90,6 +87,7 @@ func init() {
 	setCmd.PersistentFlags().StringP("secretkey", "s", "", "The secret key to set in the configuration.")
 
 	unsetCmd.PersistentFlags().StringP("key", "k", "", "The key to unset from the configuration (e.g., accesskey, secretkey)")
+	_ = unsetCmd.MarkPersistentFlagRequired("key")
 
 	configCmd.AddCommand(setCmd)
 	configCmd.AddCommand(unsetCmd)
