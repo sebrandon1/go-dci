@@ -7,6 +7,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	configKeyAccessKey = "accesskey"
+	configKeySecretKey = "secretkey"
+)
+
 func GetConfigValue(key string) string {
 	return viper.GetString(key)
 }
@@ -19,6 +24,15 @@ func UpdateConfigValue(key, value string) error {
 	return nil
 }
 
+// formatConfigValue formats a config key-value pair for display.
+// If value is empty, displays the fallback message instead.
+func formatConfigValue(label, value, fallback string) string {
+	if value != "" {
+		return fmt.Sprintf("  %-12s %s\n", label+":", value)
+	}
+	return fmt.Sprintf("  %-12s %s\n", label+":", fallback)
+}
+
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Set or get configuration values",
@@ -28,18 +42,18 @@ var setCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Set a key value pair to the configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accesskey, _ := cmd.Flags().GetString("accesskey")
-		secretkey, _ := cmd.Flags().GetString("secretkey")
+		accesskey, _ := cmd.Flags().GetString(configKeyAccessKey)
+		secretkey, _ := cmd.Flags().GetString(configKeySecretKey)
 
 		if accesskey != "" {
-			if err := UpdateConfigValue("accesskey", accesskey); err != nil {
+			if err := UpdateConfigValue(configKeyAccessKey, accesskey); err != nil {
 				return fmt.Errorf("setting accesskey: %v", err)
 			}
 			printStatus("Access key updated successfully")
 		}
 
 		if secretkey != "" {
-			if err := UpdateConfigValue("secretkey", secretkey); err != nil {
+			if err := UpdateConfigValue(configKeySecretKey, secretkey); err != nil {
 				return fmt.Errorf("setting secretkey: %v", err)
 			}
 			printStatus("Secret key updated successfully")
@@ -75,7 +89,20 @@ var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View the configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		viper.Debug()
+		fmt.Println("Configuration:")
+
+		accessKey := GetConfigValue(configKeyAccessKey)
+		fmt.Print(formatConfigValue("Access Key", accessKey, "(not set)"))
+
+		secretKey := GetConfigValue(configKeySecretKey)
+		maskedValue := ""
+		if secretKey != "" {
+			maskedValue = "***"
+		}
+		fmt.Print(formatConfigValue("Secret Key", maskedValue, "(not set)"))
+
+		configFile := viper.ConfigFileUsed()
+		fmt.Print(formatConfigValue("Config File", configFile, ".go-dci-config.yaml (default)"))
 
 		return nil
 	},
