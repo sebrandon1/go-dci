@@ -280,7 +280,7 @@ func TestGetIdentity_AuthenticationFailed(t *testing.T) {
 	identity, err := client.GetIdentity(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, identity)
-	assert.Contains(t, err.Error(), "authentication failed")
+	assert.Contains(t, err.Error(), "Authentication failed")
 }
 
 func TestGetIdentity_InvalidJSON(t *testing.T) {
@@ -509,7 +509,7 @@ func TestCreateJob_Error(t *testing.T) {
 	response, err := client.CreateJob(context.Background(), "invalid-topic", nil, "")
 	assert.Error(t, err)
 	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "failed to create job")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateJobState_Success(t *testing.T) {
@@ -610,7 +610,7 @@ func TestUpdateJobState_Error(t *testing.T) {
 	response, err := client.UpdateJobState(context.Background(), "nonexistent-job", JobStateRunning, "")
 	assert.Error(t, err)
 	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "failed to update job state")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUploadFileContent_Success(t *testing.T) {
@@ -661,7 +661,7 @@ func TestUploadFileContent_Error(t *testing.T) {
 	response, err := client.UploadFileContent(context.Background(), "invalid-job", "test.xml", "application/junit", []byte("content"))
 	assert.Error(t, err)
 	assert.Nil(t, response)
-	assert.Contains(t, err.Error(), "failed to upload file")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateJobRequest_Struct(t *testing.T) {
@@ -786,7 +786,7 @@ func TestGetTopic_Error(t *testing.T) {
 	result, err := client.GetTopic(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get topic")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateTopic_Success(t *testing.T) {
@@ -828,7 +828,7 @@ func TestCreateTopic_Error(t *testing.T) {
 	result, err := client.CreateTopic(context.Background(), "bad", "bad", nil)
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create topic")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateTopic_Success(t *testing.T) {
@@ -862,7 +862,7 @@ func TestUpdateTopic_Error(t *testing.T) {
 	result, err := client.UpdateTopic(context.Background(), "nonexistent", UpdateTopicRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update topic")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteTopic_Success(t *testing.T) {
@@ -889,7 +889,7 @@ func TestDeleteTopic_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteTopic(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete topic")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetTopicComponents_Success(t *testing.T) {
@@ -1154,7 +1154,7 @@ func TestGetJob_Error(t *testing.T) {
 	result, err := client.GetJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get job")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateJob_Success(t *testing.T) {
@@ -1188,7 +1188,7 @@ func TestUpdateJob_Error(t *testing.T) {
 	result, err := client.UpdateJob(context.Background(), "nonexistent", UpdateJobRequest{Comment: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update job")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteJob_Success(t *testing.T) {
@@ -1215,7 +1215,7 @@ func TestDeleteJob_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteJob(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete job")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestScheduleJob_Success(t *testing.T) {
@@ -1256,7 +1256,7 @@ func TestScheduleJob_Error(t *testing.T) {
 	result, err := client.ScheduleJob(context.Background(), "bad-topic")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to schedule job")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetJobFiles_Success(t *testing.T) {
@@ -1297,7 +1297,7 @@ func TestGetJobFiles_Error(t *testing.T) {
 	result, err := client.GetJobFiles(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get job files")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetJobStates_WithJobID_Success(t *testing.T) {
@@ -1364,7 +1364,7 @@ func TestGetJobStates_Error(t *testing.T) {
 	result, err := client.GetJobStates(context.Background(), "job-123")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get job states")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestFetchJobs_Success(t *testing.T) {
@@ -1444,7 +1444,7 @@ func TestGetComponent_Error(t *testing.T) {
 	result, err := client.GetComponent(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get component")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateComponent_Success(t *testing.T) {
@@ -1487,7 +1487,7 @@ func TestCreateComponent_Error(t *testing.T) {
 	result, err := client.CreateComponent(context.Background(), "bad", "bad", "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create component")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateComponent_Success(t *testing.T) {
@@ -1521,7 +1521,7 @@ func TestUpdateComponent_Error(t *testing.T) {
 	result, err := client.UpdateComponent(context.Background(), "nonexistent", UpdateComponentRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update component")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteComponent_Success(t *testing.T) {
@@ -1548,7 +1548,7 @@ func TestDeleteComponent_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteComponent(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete component")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetComponentType_Success(t *testing.T) {
@@ -1583,7 +1583,7 @@ func TestGetComponentType_Error(t *testing.T) {
 	result, err := client.GetComponentType(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get component type")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateComponentType_Success(t *testing.T) {
@@ -1618,7 +1618,7 @@ func TestCreateComponentType_Error(t *testing.T) {
 	result, err := client.CreateComponentType(context.Background(), "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create component type")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateComponentType_Success(t *testing.T) {
@@ -1652,7 +1652,7 @@ func TestUpdateComponentType_Error(t *testing.T) {
 	result, err := client.UpdateComponentType(context.Background(), "nonexistent", UpdateComponentTypeRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update component type")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteComponentType_Success(t *testing.T) {
@@ -1679,7 +1679,7 @@ func TestDeleteComponentType_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteComponentType(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete component type")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetRemoteCIs_Success(t *testing.T) {
@@ -1720,7 +1720,7 @@ func TestGetRemoteCIs_Error(t *testing.T) {
 	result, err := client.GetRemoteCIs(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get remote CIs")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetRemoteCI_Success(t *testing.T) {
@@ -1755,7 +1755,7 @@ func TestGetRemoteCI_Error(t *testing.T) {
 	result, err := client.GetRemoteCI(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get remote CI")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateRemoteCI_Success(t *testing.T) {
@@ -1796,7 +1796,7 @@ func TestCreateRemoteCI_Error(t *testing.T) {
 	result, err := client.CreateRemoteCI(context.Background(), "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create remote CI")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateRemoteCI_Success(t *testing.T) {
@@ -1830,7 +1830,7 @@ func TestUpdateRemoteCI_Error(t *testing.T) {
 	result, err := client.UpdateRemoteCI(context.Background(), "nonexistent", UpdateRemoteCIRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update remote CI")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteRemoteCI_Success(t *testing.T) {
@@ -1857,7 +1857,7 @@ func TestDeleteRemoteCI_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteRemoteCI(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete remote CI")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetTeams_Success(t *testing.T) {
@@ -1899,7 +1899,7 @@ func TestGetTeams_Error(t *testing.T) {
 	result, err := client.GetTeams(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get teams")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetTeam_Success(t *testing.T) {
@@ -1934,7 +1934,7 @@ func TestGetTeam_Error(t *testing.T) {
 	result, err := client.GetTeam(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get team")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateTeam_Success(t *testing.T) {
@@ -1974,7 +1974,7 @@ func TestCreateTeam_Error(t *testing.T) {
 	result, err := client.CreateTeam(context.Background(), "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create team")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateTeam_Success(t *testing.T) {
@@ -2008,7 +2008,7 @@ func TestUpdateTeam_Error(t *testing.T) {
 	result, err := client.UpdateTeam(context.Background(), "nonexistent", UpdateTeamRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update team")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteTeam_Success(t *testing.T) {
@@ -2035,7 +2035,7 @@ func TestDeleteTeam_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteTeam(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete team")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetUsers_Success(t *testing.T) {
@@ -2077,7 +2077,7 @@ func TestGetUsers_Error(t *testing.T) {
 	result, err := client.GetUsers(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get users")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetUser_Success(t *testing.T) {
@@ -2112,7 +2112,7 @@ func TestGetUser_Error(t *testing.T) {
 	result, err := client.GetUser(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get user")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestCreateUser_Success(t *testing.T) {
@@ -2155,7 +2155,7 @@ func TestCreateUser_Error(t *testing.T) {
 	result, err := client.CreateUser(context.Background(), "bad", "bad", "bad", "bad", "bad")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to create user")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUpdateUser_Success(t *testing.T) {
@@ -2189,7 +2189,7 @@ func TestUpdateUser_Error(t *testing.T) {
 	result, err := client.UpdateUser(context.Background(), "nonexistent", UpdateUserRequest{Name: "x"})
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to update user")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteUser_Success(t *testing.T) {
@@ -2216,7 +2216,7 @@ func TestDeleteUser_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteUser(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete user")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetProducts_Success(t *testing.T) {
@@ -2258,7 +2258,7 @@ func TestGetProducts_Error(t *testing.T) {
 	result, err := client.GetProducts(context.Background())
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get products")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetProduct_Success(t *testing.T) {
@@ -2293,7 +2293,7 @@ func TestGetProduct_Error(t *testing.T) {
 	result, err := client.GetProduct(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to get product")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestGetFile_Success(t *testing.T) {
@@ -2330,7 +2330,7 @@ func TestGetFile_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, content)
 	assert.Empty(t, contentType)
-	assert.Contains(t, err.Error(), "failed to get file")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDeleteFile_Success(t *testing.T) {
@@ -2357,7 +2357,7 @@ func TestDeleteFile_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	err := client.DeleteFile(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete file")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestUploadFile_Success(t *testing.T) {
@@ -2420,7 +2420,7 @@ func TestUploadFile_Error(t *testing.T) {
 	result, err := client.UploadFile(context.Background(), "bad-job", filePath, "application/xml")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "failed to upload file")
+	assert.Contains(t, err.Error(), "HTTP")
 }
 
 func TestDoRequest_RetryOn500(t *testing.T) {
