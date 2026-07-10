@@ -29,9 +29,19 @@ make lint
 make vet
 ```
 
+### Coverage
+```bash
+make coverage
+```
+
 ### Clean
 ```bash
 make clean
+```
+
+### Run (build + execute)
+```bash
+make run
 ```
 
 ### Check API Alignment
@@ -50,19 +60,20 @@ make check-swagger-alignment
 
 ## Supported DCI API Endpoints
 
-| Endpoint | CLI Command |
+| Endpoint | CLI Commands |
 |----------|-------------|
-| `/api/v1/topics` | `topics` |
-| `/api/v1/jobs` | `jobs`, `ocpcount`, `create-job` |
-| `/api/v1/components` | `components` |
+| `/api/v1/topics` | `topics`, `topic`, `create-topic`, `update-topic`, `delete-topic`, `topic-components` |
+| `/api/v1/jobs` | `jobs`, `job`, `create-job`, `update-job`, `delete-job`, `schedule-job`, `job-files`, `ocpcount` |
+| `/api/v1/components` | `components`, `component`, `create-component`, `update-component`, `delete-component` |
+| `/api/v1/componenttypes` | `componenttypes`, `componenttype`, `create-componenttype`, `update-componenttype`, `delete-componenttype` |
+| `/api/v1/remotecis` | `remotecis`, `remoteci`, `create-remoteci`, `update-remoteci`, `delete-remoteci` |
+| `/api/v1/teams` | `teams`, `team`, `create-team`, `update-team`, `delete-team` |
+| `/api/v1/users` | `users`, `user`, `create-user`, `update-user`, `delete-user` |
+| `/api/v1/products` | `products`, `product` |
+| `/api/v1/files` | `file`, `delete-file`, `upload-file` |
+| `/api/v1/jobstates` | `jobstates`, `update-job-state` |
 | `/api/v1/identity` | `identity` |
-| `/api/v1/componenttypes` | `componenttypes` |
-| `/api/v1/jobstates` | `update-job-state` |
-| `/api/v1/files` | `upload-file` |
-| `/api/v1/products` | `products` |
-| `/api/v1/remotecis` | `remotecis` |
-| `/api/v1/teams` | `teams` |
-| `/api/v1/users` | `users` |
+| Config | `config set`, `config unset`, `config view` |
 
 ## Configuration
 
