@@ -15,6 +15,7 @@ var (
 	createTopicName           string
 	createTopicProductID      string
 	createTopicComponentTypes string
+	updateTopicIDFlag         string
 	updateTopicName           string
 	deleteTopicIDFlag         string
 	topicComponentsIDFlag     string
@@ -99,6 +100,10 @@ var updateTopicCmd = &cobra.Command{
 	Use:   "update-topic",
 	Short: "Update an existing topic in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateTopicIDFlag, "topic"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -112,13 +117,13 @@ var updateTopicCmd = &cobra.Command{
 		}
 
 		if dryRunFlag {
-			printStatus("[DRY RUN] Would update topic: id=%s, name=%s\n", getTopicIDFlag, updateTopicName)
+			printStatus("[DRY RUN] Would update topic: id=%s, name=%s\n", updateTopicIDFlag, updateTopicName)
 			return nil
 		}
 
-		printStatus("Updating topic: %s\n", getTopicIDFlag)
+		printStatus("Updating topic: %s\n", updateTopicIDFlag)
 
-		response, err := client.UpdateTopic(cmd.Context(), getTopicIDFlag, updates)
+		response, err := client.UpdateTopic(cmd.Context(), updateTopicIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update topic: %v", err)
 		}
@@ -261,7 +266,7 @@ func init() {
 	createTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update topic flags
-	updateTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID to update")
+	updateTopicCmd.PersistentFlags().StringVar(&updateTopicIDFlag, "id", "", "Topic ID to update")
 	_ = updateTopicCmd.MarkPersistentFlagRequired("id")
 	updateTopicCmd.PersistentFlags().StringVar(&updateTopicName, "name", "", "New topic name")
 	updateTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
