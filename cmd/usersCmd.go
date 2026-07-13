@@ -61,6 +61,10 @@ var getUserCmd = &cobra.Command{
 	Use:   "user",
 	Short: "Get a specific user by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getUserIDFlag, "user"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -130,6 +134,10 @@ var updateUserCmd = &cobra.Command{
 	Use:   "update-user",
 	Short: "Update an existing user in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateUserIDFlag, "user"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -178,6 +186,10 @@ var deleteUserCmd = &cobra.Command{
 	Use:   "delete-user",
 	Short: "Delete a user from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteUserIDFlag, "user"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

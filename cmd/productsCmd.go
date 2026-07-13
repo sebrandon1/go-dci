@@ -45,6 +45,10 @@ var getProductCmd = &cobra.Command{
 	Use:   "product",
 	Short: "Get a specific product by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getProductIDFlag, "product"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

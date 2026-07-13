@@ -155,6 +155,10 @@ var scheduleJobCmd = &cobra.Command{
 	Use:   "schedule-job",
 	Short: "Schedule a job with auto-selected components",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(scheduleJobTopicID, "topic"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -189,6 +193,10 @@ var getJobFilesCmd = &cobra.Command{
 	Use:   "job-files",
 	Short: "Get all files for a specific job",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(jobFilesIDFlag, "job"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

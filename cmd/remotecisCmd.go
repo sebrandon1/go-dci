@@ -51,6 +51,10 @@ var getRemoteCICmd = &cobra.Command{
 	Use:   "remoteci",
 	Short: "Get a specific remote CI by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getRemoteCIsCmd_IDFlag, "remote CI"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -113,6 +117,10 @@ var updateRemoteCICmd = &cobra.Command{
 	Use:   "update-remoteci",
 	Short: "Update an existing remote CI in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateRemoteCIIDFlag, "remote CI"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -155,6 +163,10 @@ var deleteRemoteCICmd = &cobra.Command{
 	Use:   "delete-remoteci",
 	Short: "Delete a remote CI from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteRemoteCIIDFlag, "remote CI"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

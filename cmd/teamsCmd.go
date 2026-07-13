@@ -55,6 +55,10 @@ var getTeamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Get a specific team by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getTeamIDFlag, "team"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -117,6 +121,10 @@ var updateTeamCmd = &cobra.Command{
 	Use:   "update-team",
 	Short: "Update an existing team in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateTeamIDFlag, "team"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -159,6 +167,10 @@ var deleteTeamCmd = &cobra.Command{
 	Use:   "delete-team",
 	Short: "Delete a team from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteTeamIDFlag, "team"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

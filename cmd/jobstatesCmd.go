@@ -17,6 +17,12 @@ var getJobStatesCmd = &cobra.Command{
 	Use:   "jobstates",
 	Short: "Get job states, optionally filtered by job ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if getJobStatesJobIDFlag != "" {
+			if err := validateResourceID(getJobStatesJobIDFlag, "job"); err != nil {
+				return err
+			}
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

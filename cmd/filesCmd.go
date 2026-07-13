@@ -20,6 +20,10 @@ var getFileCmd = &cobra.Command{
 	Use:   "file",
 	Short: "Download a file by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getFileIDFlag, "file"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -62,6 +66,10 @@ var deleteFileCmd = &cobra.Command{
 	Use:   "delete-file",
 	Short: "Delete a file from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteFileIDFlag, "file"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

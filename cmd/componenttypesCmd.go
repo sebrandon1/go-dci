@@ -22,6 +22,10 @@ var getComponentTypeCmd = &cobra.Command{
 	Use:   "componenttype",
 	Short: "Get a specific component type by ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(getComponentTypeIDFlag, "component type"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -84,6 +88,10 @@ var updateComponentTypeCmd = &cobra.Command{
 	Use:   "update-componenttype",
 	Short: "Update an existing component type in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateComponentTypeIDFlag, "component type"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -126,6 +134,10 @@ var deleteComponentTypeCmd = &cobra.Command{
 	Use:   "delete-componenttype",
 	Short: "Delete a component type from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(deleteComponentTypeIDFlag, "component type"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

@@ -192,6 +192,10 @@ var getTopicComponentsCmd = &cobra.Command{
 	Use:   "topic-components",
 	Short: "Get all components for a specific topic",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(topicComponentsIDFlag, "topic"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
