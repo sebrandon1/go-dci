@@ -1704,8 +1704,9 @@ func TestGetRemoteCIs_Success(t *testing.T) {
 	result, err := client.GetRemoteCIs(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.RemoteCIs, 2)
-	assert.Equal(t, "rci-1", result.RemoteCIs[0].ID)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].RemoteCIs, 2)
+	assert.Equal(t, "rci-1", result[0].RemoteCIs[0].ID)
 }
 
 func TestGetRemoteCIs_Error(t *testing.T) {
@@ -1719,7 +1720,7 @@ func TestGetRemoteCIs_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	result, err := client.GetRemoteCIs(context.Background())
 	assert.Error(t, err)
-	assert.Nil(t, result)
+	assert.Empty(t, result)
 	assert.Contains(t, err.Error(), "HTTP")
 }
 
@@ -2243,9 +2244,10 @@ func TestGetProducts_Success(t *testing.T) {
 	result, err := client.GetProducts(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result.Products, 2)
-	assert.Equal(t, "prod-1", result.Products[0].ID)
-	assert.Equal(t, "RHEL", result.Products[0].Name)
+	assert.Len(t, result, 1)
+	assert.Len(t, result[0].Products, 2)
+	assert.Equal(t, "prod-1", result[0].Products[0].ID)
+	assert.Equal(t, "RHEL", result[0].Products[0].Name)
 }
 
 func TestGetProducts_Error(t *testing.T) {
@@ -2259,7 +2261,7 @@ func TestGetProducts_Error(t *testing.T) {
 	client := newTestClient(server.URL)
 	result, err := client.GetProducts(context.Background())
 	assert.Error(t, err)
-	assert.Nil(t, result)
+	assert.Empty(t, result)
 	assert.Contains(t, err.Error(), "HTTP")
 }
 

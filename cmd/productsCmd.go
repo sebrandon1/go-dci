@@ -26,16 +26,16 @@ var getProductsCmd = &cobra.Command{
 
 		printStatus("Getting products...")
 
-		response, err := client.GetProducts(cmd.Context())
+		responses, err := client.GetProducts(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get products: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
-			return printProductsJSON(response)
+			return printProductsJSON(responses)
 		}
 
-		printProductsStdout(response)
+		printProductsStdout(responses)
 
 		return nil
 	},
@@ -73,21 +73,34 @@ var getProductCmd = &cobra.Command{
 	},
 }
 
-func printProductsStdout(response *lib.ProductsResponse) {
-	if len(response.Products) == 0 {
+func printProductsStdout(responses []lib.ProductsResponse) {
+	total := 0
+	for _, resp := range responses {
+		total += len(resp.Products)
+	}
+	if total == 0 {
 		fmt.Println("No products found.")
 		return
 	}
 	fmt.Println("---")
-	for _, product := range response.Products {
-		fmt.Printf("ID: %s | Name: %s | Label: %s | State: %s\n",
-			product.ID, product.Name, product.Label, product.State)
+	for _, resp := range responses {
+		for _, product := range resp.Products {
+			fmt.Printf("ID: %s | Name: %s | Label: %s | State: %s\n",
+				product.ID, product.Name, product.Label, product.State)
+		}
 	}
-	fmt.Printf("Total Products: %d\n", len(response.Products))
+	fmt.Printf("Total Products: %d\n", total)
 }
 
-func printProductsJSON(response *lib.ProductsResponse) error {
-	jsonBytes, err := json.Marshal(response)
+func printProductsJSON(responses []lib.ProductsResponse) error {
+	var all []lib.Product
+	for _, resp := range responses {
+		all = append(all, resp.Products...)
+	}
+	jsonBytes, err := json.Marshal(map[string]any{
+		"products": all,
+		"total":    len(all),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}
