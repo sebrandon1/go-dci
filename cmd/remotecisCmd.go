@@ -32,16 +32,16 @@ var getRemoteCIsCmd = &cobra.Command{
 
 		printStatus("Getting remote CIs...")
 
-		response, err := client.GetRemoteCIs(cmd.Context())
+		responses, err := client.GetRemoteCIs(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get remote CIs: %v", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
-			return printRemoteCIsJSON(response)
+			return printRemoteCIsJSON(responses)
 		}
 
-		printRemoteCIsStdout(response)
+		printRemoteCIsStdout(responses)
 
 		return nil
 	},
@@ -209,21 +209,34 @@ var deleteRemoteCICmd = &cobra.Command{
 	},
 }
 
-func printRemoteCIsStdout(response *lib.RemoteCIsResponse) {
-	if len(response.RemoteCIs) == 0 {
+func printRemoteCIsStdout(responses []lib.RemoteCIsResponse) {
+	total := 0
+	for _, resp := range responses {
+		total += len(resp.RemoteCIs)
+	}
+	if total == 0 {
 		fmt.Println("No remote CIs found.")
 		return
 	}
 	fmt.Println("---")
-	for _, rci := range response.RemoteCIs {
-		fmt.Printf("ID: %s | Name: %s | Team ID: %s | State: %s\n",
-			rci.ID, rci.Name, rci.TeamID, rci.State)
+	for _, resp := range responses {
+		for _, rci := range resp.RemoteCIs {
+			fmt.Printf("ID: %s | Name: %s | Team ID: %s | State: %s\n",
+				rci.ID, rci.Name, rci.TeamID, rci.State)
+		}
 	}
-	fmt.Printf("Total Remote CIs: %d\n", len(response.RemoteCIs))
+	fmt.Printf("Total Remote CIs: %d\n", total)
 }
 
-func printRemoteCIsJSON(response *lib.RemoteCIsResponse) error {
-	jsonBytes, err := json.Marshal(response)
+func printRemoteCIsJSON(responses []lib.RemoteCIsResponse) error {
+	var all []lib.RemoteCI
+	for _, resp := range responses {
+		all = append(all, resp.RemoteCIs...)
+	}
+	jsonBytes, err := json.Marshal(map[string]any{
+		"remotecis": all,
+		"total":     len(all),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %v", err)
 	}

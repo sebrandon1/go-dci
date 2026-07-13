@@ -121,11 +121,19 @@ func main() {
 	products, err := client.GetProducts(context.Background())
 	if err != nil {
 		log.Printf("   Could not get products: %v\n", err)
-	} else if len(products.Products) == 0 {
-		fmt.Println("   No products found")
 	} else {
-		for _, product := range products.Products {
-			fmt.Printf("   - %s (ID: %s)\n", product.Name, product.ID[:8]+"...")
+		total := 0
+		for _, resp := range products {
+			total += len(resp.Products)
+		}
+		if total == 0 {
+			fmt.Println("   No products found")
+		} else {
+			for _, resp := range products {
+				for _, product := range resp.Products {
+					fmt.Printf("   - %s (ID: %s)\n", product.Name, product.ID[:8]+"...")
+				}
+			}
 		}
 	}
 

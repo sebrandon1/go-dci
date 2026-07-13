@@ -1144,26 +1144,33 @@ func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content [
 }
 
 // GetRemoteCIs retrieves all remote CIs from DCI
-func (c *Client) GetRemoteCIs(ctx context.Context) (*RemoteCIsResponse, error) {
-	reqURL := fmt.Sprintf("%s/remotecis", c.BaseURL)
+func (c *Client) GetRemoteCIs(ctx context.Context) ([]RemoteCIsResponse, error) {
+	return paginate(ctx, func(limit, offset int) (RemoteCIsResponse, int, error) {
+		resp, err := c.fetchRemoteCIs(ctx, limit, offset)
+		return resp, len(resp.RemoteCIs), err
+	})
+}
+
+func (c *Client) fetchRemoteCIs(ctx context.Context, requestLimit, offset int) (RemoteCIsResponse, error) {
+	reqURL := paginatedURL(c.BaseURL+"/remotecis", requestLimit, offset)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting remote CIs: %w", err)
+		return RemoteCIsResponse{}, fmt.Errorf("error getting remote CIs: %w", err)
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
+		return RemoteCIsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response RemoteCIsResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return RemoteCIsResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
 }
 
 // GetRemoteCI retrieves a specific remote CI by ID
@@ -1549,26 +1556,33 @@ func (c *Client) DeleteUser(ctx context.Context, userID string) error {
 }
 
 // GetProducts retrieves all products from DCI
-func (c *Client) GetProducts(ctx context.Context) (*ProductsResponse, error) {
-	reqURL := fmt.Sprintf("%s/products", c.BaseURL)
+func (c *Client) GetProducts(ctx context.Context) ([]ProductsResponse, error) {
+	return paginate(ctx, func(limit, offset int) (ProductsResponse, int, error) {
+		resp, err := c.fetchProducts(ctx, limit, offset)
+		return resp, len(resp.Products), err
+	})
+}
+
+func (c *Client) fetchProducts(ctx context.Context, requestLimit, offset int) (ProductsResponse, error) {
+	reqURL := paginatedURL(c.BaseURL+"/products", requestLimit, offset)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting products: %w", err)
+		return ProductsResponse{}, fmt.Errorf("error getting products: %w", err)
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
+		return ProductsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response ProductsResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return ProductsResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
 }
 
 // GetProduct retrieves a specific product by ID
