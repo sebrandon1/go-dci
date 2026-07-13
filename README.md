@@ -27,6 +27,7 @@ go-dci topics
 package main
 
 import (
+    "context"
     "fmt"
     "log"
     "os"
@@ -40,13 +41,13 @@ func main() {
         os.Getenv("GO_DCI_SECRETKEY"),
     )
 
-    identity, err := client.GetIdentity()
+    identity, err := client.GetIdentity(context.Background())
     if err != nil {
         log.Fatalf("Authentication failed: %v", err)
     }
     fmt.Printf("Authenticated as: %s\n", identity.Identity.Name)
 
-    topics, err := client.GetTopics()
+    topics, err := client.GetTopics(context.Background())
     if err != nil {
         log.Fatal(err)
     }
@@ -105,22 +106,22 @@ go-dci create-component --name "My Component" --type ocp --topic-id <topic-id> -
 go-dci job --id <job-id>
 
 # Create a job
-go-dci create-job --topic-id <topic-id> --remoteci-id <remoteci-id>
+go-dci create-job --topic-id <topic-id> --components <component-id1>,<component-id2>
 
 # Update job state
-go-dci update-job-state --job-id <job-id> --state success --comment "All tests passed"
+go-dci update-job-state --job-id <job-id> --status success --comment "All tests passed"
 
 # Upload a file to a job
-go-dci upload-file --job-id <job-id> --file results.xml --mime-type application/xml
+go-dci upload-file --job-id <job-id> --file results.xml --mime application/xml
 ```
 
 ### File Operations
 ```bash
 # List files for a job
-go-dci job-files --job-id <job-id>
+go-dci job-files --id <job-id>
 
 # Download a specific file
-go-dci file --id <file-id> --output downloaded-file.xml
+go-dci file --id <file-id> --output-path downloaded-file.xml
 
 # Delete a file
 go-dci delete-file --id <file-id>
