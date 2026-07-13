@@ -68,6 +68,10 @@ var updateJobStateCmd = &cobra.Command{
 	Use:   "update-job-state",
 	Short: "Update the state of a job (pre-run, running, success, failure, etc.)",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateResourceID(updateJobStateJobID, "job"); err != nil {
+			return err
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err

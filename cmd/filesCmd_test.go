@@ -42,6 +42,9 @@ func TestDeleteFileCmd_MissingID(t *testing.T) {
 func TestGetFileCmd_MissingCredentials(t *testing.T) {
 	viper.Reset()
 
+	getFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	defer func() { getFileIDFlag = "" }()
+
 	cmd := &cobra.Command{}
 	err := getFileCmd.RunE(cmd, []string{})
 	assert.Error(t, err)
@@ -50,6 +53,9 @@ func TestGetFileCmd_MissingCredentials(t *testing.T) {
 
 func TestDeleteFileCmd_MissingCredentials(t *testing.T) {
 	viper.Reset()
+
+	deleteFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	defer func() { deleteFileIDFlag = "" }()
 
 	cmd := &cobra.Command{}
 	err := deleteFileCmd.RunE(cmd, []string{})
