@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,9 +17,19 @@ func GetConfigValue(key string) string {
 	return viper.GetString(key)
 }
 
+func writeConfigSecure() error {
+	if err := viper.WriteConfig(); err != nil {
+		return err
+	}
+	if path := viper.ConfigFileUsed(); path != "" {
+		return os.Chmod(path, 0600)
+	}
+	return nil
+}
+
 func UpdateConfigValue(key, value string) error {
 	viper.Set(key, value)
-	if err := viper.WriteConfig(); err != nil {
+	if err := writeConfigSecure(); err != nil {
 		return fmt.Errorf("failed to write config: %w", err)
 	}
 	return nil
@@ -85,8 +96,7 @@ var unsetCmd = &cobra.Command{
 		}
 
 		viper.Set(key, nil)
-		err := viper.WriteConfig()
-		if err != nil {
+		if err := writeConfigSecure(); err != nil {
 			return fmt.Errorf("writing config: %v", err)
 		}
 		fmt.Printf("Unset key '%s' from configuration\n", key)
@@ -108,7 +118,7 @@ var viewCmd = &cobra.Command{
 		fmt.Print(formatConfigValue("Secret Key", maskCredential(secretKey), "(not set)"))
 
 		configFile := viper.ConfigFileUsed()
-		fmt.Print(formatConfigValue("Config File", configFile, ".go-dci-config.yaml (default)"))
+		fmt.Print(formatConfigValue("Config File", configFile, "(not set)"))
 
 		return nil
 	},

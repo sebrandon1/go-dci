@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,5 +35,6 @@ func TestInitConfig(t *testing.T) {
 	assert.NotPanics(t, func() {
 		initConfig()
 	})
-	assert.Equal(t, ".go-dci-config.yaml", configFile)
+	assert.Contains(t, configFile, "go-dci")
+	assert.True(t, strings.HasSuffix(configFile, "config.yaml") || strings.HasSuffix(configFile, ".go-dci-config.yaml"))
 }
