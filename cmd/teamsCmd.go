@@ -23,12 +23,6 @@ var getTeamsCmd = &cobra.Command{
 	Use:   "teams",
 	Short: "Get all teams from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if teamsNameFilter != "" {
 			printStatus("Getting teams matching name: %s\n", teamsNameFilter)
@@ -36,7 +30,7 @@ var getTeamsCmd = &cobra.Command{
 			printStatus("Getting teams...")
 		}
 
-		response, err := client.GetTeamsFiltered(cmd.Context(), teamsNameFilter)
+		response, err := dciClient.GetTeamsFiltered(cmd.Context(), teamsNameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get teams: %w", err)
 		}
@@ -59,16 +53,10 @@ var getTeamCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting team with ID: %s\n", getTeamIDFlag)
 
-		response, err := client.GetTeam(cmd.Context(), getTeamIDFlag)
+		response, err := dciClient.GetTeam(cmd.Context(), getTeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get team: %w", err)
 		}
@@ -87,12 +75,6 @@ var createTeamCmd = &cobra.Command{
 	Use:   "create-team",
 	Short: "Create a new team in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would create team: name=%s\n", createTeamNameFlag)
@@ -101,7 +83,7 @@ var createTeamCmd = &cobra.Command{
 
 		printStatus("Creating team: %s\n", createTeamNameFlag)
 
-		response, err := client.CreateTeam(cmd.Context(), createTeamNameFlag)
+		response, err := dciClient.CreateTeam(cmd.Context(), createTeamNameFlag)
 		if err != nil {
 			return fmt.Errorf("failed to create team: %w", err)
 		}
@@ -125,12 +107,6 @@ var updateTeamCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateTeamRequest{}
 		if updateTeamNameFlag != "" {
@@ -147,7 +123,7 @@ var updateTeamCmd = &cobra.Command{
 
 		printStatus("Updating team: %s\n", updateTeamIDFlag)
 
-		response, err := client.UpdateTeam(cmd.Context(), updateTeamIDFlag, updates)
+		response, err := dciClient.UpdateTeam(cmd.Context(), updateTeamIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update team: %w", err)
 		}
@@ -171,11 +147,6 @@ var deleteTeamCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete team: id=%s\n", deleteTeamIDFlag)
 			return nil
@@ -191,12 +162,9 @@ var deleteTeamCmd = &cobra.Command{
 			return nil
 		}
 
-
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting team: %s\n", deleteTeamIDFlag)
 
-		err = client.DeleteTeam(cmd.Context(), deleteTeamIDFlag)
+		err = dciClient.DeleteTeam(cmd.Context(), deleteTeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete team: %w", err)
 		}

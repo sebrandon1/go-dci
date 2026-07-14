@@ -29,16 +29,10 @@ var getTopicCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting topic with ID: %s\n", getTopicIDFlag)
 
-		response, err := client.GetTopic(cmd.Context(), getTopicIDFlag)
+		response, err := dciClient.GetTopic(cmd.Context(), getTopicIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get topic: %w", err)
 		}
@@ -57,12 +51,6 @@ var createTopicCmd = &cobra.Command{
 	Use:   "create-topic",
 	Short: "Create a new topic in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		// Parse component types if provided
 		var componentTypes []string
@@ -80,7 +68,7 @@ var createTopicCmd = &cobra.Command{
 
 		printStatus("Creating topic: %s\n", createTopicName)
 
-		response, err := client.CreateTopic(cmd.Context(), createTopicName, createTopicProductID, componentTypes)
+		response, err := dciClient.CreateTopic(cmd.Context(), createTopicName, createTopicProductID, componentTypes)
 		if err != nil {
 			return fmt.Errorf("failed to create topic: %w", err)
 		}
@@ -104,12 +92,6 @@ var updateTopicCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateTopicRequest{}
 		if updateTopicName != "" {
@@ -123,7 +105,7 @@ var updateTopicCmd = &cobra.Command{
 
 		printStatus("Updating topic: %s\n", updateTopicIDFlag)
 
-		response, err := client.UpdateTopic(cmd.Context(), updateTopicIDFlag, updates)
+		response, err := dciClient.UpdateTopic(cmd.Context(), updateTopicIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update topic: %w", err)
 		}
@@ -147,11 +129,6 @@ var deleteTopicCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete topic: id=%s\n", deleteTopicIDFlag)
 			return nil
@@ -167,11 +144,9 @@ var deleteTopicCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting topic: %s\n", deleteTopicIDFlag)
 
-		err = client.DeleteTopic(cmd.Context(), deleteTopicIDFlag)
+		err = dciClient.DeleteTopic(cmd.Context(), deleteTopicIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete topic: %w", err)
 		}
@@ -196,16 +171,10 @@ var getTopicComponentsCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting components for topic ID: %s\n", topicComponentsIDFlag)
 
-		componentsResponses, err := client.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
+		componentsResponses, err := dciClient.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get topic components: %w", err)
 		}
