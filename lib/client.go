@@ -239,6 +239,40 @@ func paginate[T any](ctx context.Context, fetch func(limit, offset int) (T, int,
 	return collection, nil
 }
 
+func paginateUntil[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error), shouldContinue func(page T) bool) ([]T, error) {
+	var collection []T
+	offset := 0
+
+	for {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+
+		page, count, err := fetch(defaultPageSize, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		collection = append(collection, page)
+
+		if count < defaultPageSize {
+			break
+		}
+
+		if !shouldContinue(page) {
+			break
+		}
+
+		if offset >= maxRecords {
+			break
+		}
+
+		offset += defaultPageSize
+	}
+
+	return collection, nil
+}
+
 // GetIdentity retrieves the authenticated user/remoteci identity from the DCI API
 func (c *Client) GetIdentity(ctx context.Context) (*IdentityResponse, error) {
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, c.BaseURL+"/identity", nil, nil)
@@ -557,109 +591,39 @@ func (c *Client) fetchTopicComponents(ctx context.Context, topicID string, reque
 }
 
 func (c *Client) GetJobs(ctx context.Context, daysBackLimit int) ([]JobsResponse, error) {
-	var jobCollection []JobsResponse
-
-	// Default values to page through the results
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		outOfDateRangeJobReturned := false
-
-		jobs, err := c.fetchJobs(ctx, requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		jobCollection = append(jobCollection, jobs)
-
-		// Increment the offset
-		offset += requestLimit
-
-		// Check if the job is out of the date range
-		for _, job := range jobs.Jobs {
-			// Parse the created at date
+	return paginateUntil(ctx, func(limit, offset int) (JobsResponse, int, error) {
+		resp, err := c.fetchJobs(ctx, limit, offset)
+		return resp, len(resp.Jobs), err
+	}, func(page JobsResponse) bool {
+		for _, job := range page.Jobs {
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
 				continue
 			}
-
-			// If the job is out of the date range, we can stop the loop
 			if time.Since(createdAt).Hours() > float64(daysBackLimit*24) {
-				outOfDateRangeJobReturned = true
-				break
+				return false
 			}
 		}
-
-		// If the number of jobs returned is less than the request limit, we have reached the end
-		if len(jobs.Jobs) < requestLimit {
-			break
-		}
-
-		// If we have reached the end, we can stop the loop
-		if outOfDateRangeJobReturned {
-			break
-		}
-
-		// If we have reached the maximum number of records, we can stop the loop
-		if len(jobCollection) >= maxRecords {
-			break
-		}
-	}
-
-	return jobCollection, nil
+		return true
+	})
 }
 
 func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time) ([]JobsResponse, error) {
-	var jobCollection []JobsResponse
-
-	// Default values to page through the results
-	requestLimit := defaultPageSize
-	offset := 0
-
-	for {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		jobs, err := c.fetchJobs(ctx, requestLimit, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, job := range jobs.Jobs {
-			// Parse the created at date
+	return paginateUntil(ctx, func(limit, offset int) (JobsResponse, int, error) {
+		resp, err := c.fetchJobs(ctx, limit, offset)
+		return resp, len(resp.Jobs), err
+	}, func(page JobsResponse) bool {
+		for _, job := range page.Jobs {
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
 				continue
 			}
-
-			// If the job is within the date range, add it to jobCollection
-			if createdAt.After(startDate) && createdAt.Before(endDate) {
-				jobCollection = append(jobCollection, jobs)
-				break
+			if createdAt.Before(startDate) {
+				return false
 			}
 		}
-
-		// Increment the offset for the next page
-		offset += requestLimit
-
-		// If the number of jobs returned is less than the request limit, we have reached the end
-		if len(jobs.Jobs) < requestLimit {
-			break
-		}
-
-		// If we have reached the maximum number of records, we can stop the loop
-		if len(jobCollection) >= maxRecords {
-			break
-		}
-	}
-
-	return jobCollection, nil
+		return true
+	})
 }
 
 // GetJob retrieves a single job by ID from the DCI API
