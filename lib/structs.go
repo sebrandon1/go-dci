@@ -223,24 +223,8 @@ type JobsResponse struct {
 }
 
 type TopicsResponse struct {
-	Meta   Meta `json:"_meta,omitempty"`
-	Topics []struct {
-		ComponentTypes         []string `json:"component_types,omitempty"`
-		ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-		CreatedAt              string   `json:"created_at,omitempty"`
-		Data                   struct {
-		} `json:"data,omitempty"`
-		Etag          string  `json:"etag,omitempty"`
-		ExportControl bool    `json:"export_control,omitempty"`
-		ID            string  `json:"id,omitempty"`
-		Name          string  `json:"name,omitempty"`
-		NextTopic     any     `json:"next_topic,omitempty"`
-		NextTopicID   any     `json:"next_topic_id,omitempty"`
-		Product       Product `json:"product,omitempty"`
-		ProductID     string  `json:"product_id,omitempty"`
-		State         string  `json:"state,omitempty"`
-		UpdatedAt     string  `json:"updated_at,omitempty"`
-	} `json:"topics,omitempty"`
+	Meta   Meta    `json:"_meta,omitempty"`
+	Topics []Topic `json:"topics,omitempty"`
 }
 
 type ComponentsResponse struct {
@@ -287,18 +271,20 @@ type ComponentType struct {
 
 // Topic represents a single topic in DCI
 type Topic struct {
-	ID                     string   `json:"id,omitempty"`
-	Name                   string   `json:"name,omitempty"`
-	ComponentTypes         []string `json:"component_types,omitempty"`
-	ComponentTypesOptional []string `json:"component_types_optional,omitempty"`
-	ProductID              string   `json:"product_id,omitempty"`
-	NextTopicID            string   `json:"next_topic_id,omitempty"`
-	ExportControl          bool     `json:"export_control,omitempty"`
-	State                  string   `json:"state,omitempty"`
-	Etag                   string   `json:"etag,omitempty"`
-	CreatedAt              string   `json:"created_at,omitempty"`
-	UpdatedAt              string   `json:"updated_at,omitempty"`
-	Product                Product  `json:"product,omitempty"`
+	ID                     string    `json:"id,omitempty"`
+	Name                   string    `json:"name,omitempty"`
+	ComponentTypes         []string  `json:"component_types,omitempty"`
+	ComponentTypesOptional []string  `json:"component_types_optional,omitempty"`
+	ProductID              string    `json:"product_id,omitempty"`
+	NextTopicID            string    `json:"next_topic_id,omitempty"`
+	NextTopic              any       `json:"next_topic,omitempty"`
+	ExportControl          bool      `json:"export_control,omitempty"`
+	State                  string    `json:"state,omitempty"`
+	Etag                   string    `json:"etag,omitempty"`
+	Data                   struct{}  `json:"data,omitempty"`
+	CreatedAt              string    `json:"created_at,omitempty"`
+	UpdatedAt              string    `json:"updated_at,omitempty"`
+	Product                Product   `json:"product,omitempty"`
 }
 
 // TopicResponse represents a single topic response from the API

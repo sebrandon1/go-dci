@@ -712,23 +712,7 @@ func TestGetTopics_Success(t *testing.T) {
 
 		response := TopicsResponse{
 			Meta: Meta{Count: 1},
-			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct {
-				} `json:"data,omitempty"`
-				Etag          string  `json:"etag,omitempty"`
-				ExportControl bool    `json:"export_control,omitempty"`
-				ID            string  `json:"id,omitempty"`
-				Name          string  `json:"name,omitempty"`
-				NextTopic     any     `json:"next_topic,omitempty"`
-				NextTopicID   any     `json:"next_topic_id,omitempty"`
-				Product       Product `json:"product,omitempty"`
-				ProductID     string  `json:"product_id,omitempty"`
-				State         string  `json:"state,omitempty"`
-				UpdatedAt     string  `json:"updated_at,omitempty"`
-			}{
+			Topics: []Topic{
 				{
 					ID:        "topic-1",
 					Name:      "OCP-4.14",
@@ -945,23 +929,7 @@ func TestFetchTopics_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := TopicsResponse{
 			Meta: Meta{Count: 1},
-			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct {
-				} `json:"data,omitempty"`
-				Etag          string  `json:"etag,omitempty"`
-				ExportControl bool    `json:"export_control,omitempty"`
-				ID            string  `json:"id,omitempty"`
-				Name          string  `json:"name,omitempty"`
-				NextTopic     any     `json:"next_topic,omitempty"`
-				NextTopicID   any     `json:"next_topic_id,omitempty"`
-				Product       Product `json:"product,omitempty"`
-				ProductID     string  `json:"product_id,omitempty"`
-				State         string  `json:"state,omitempty"`
-				UpdatedAt     string  `json:"updated_at,omitempty"`
-			}{
+			Topics: []Topic{
 				{ID: "topic-1", Name: "test"},
 			},
 		}
