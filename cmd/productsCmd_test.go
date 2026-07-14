@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,4 +113,45 @@ func TestPrintProductJSON(t *testing.T) {
 		err := printProductJSON(response)
 		assert.NoError(t, err)
 	})
+}
+
+func TestGetProductCmd_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(lib.ProductResponse{Product: lib.Product{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "RHOCP"}})
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	getProductIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	outputFormat = OutputFormatStdout
+	defer func() { getProductIDFlag = "" }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getProductCmd.RunE(cmd, []string{})
+	assert.NoError(t, err)
+}
+
+func TestGetProductCmd_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	getProductIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	outputFormat = OutputFormatStdout
+	defer func() { getProductIDFlag = "" }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getProductCmd.RunE(cmd, []string{})
+	assert.Error(t, err)
 }
