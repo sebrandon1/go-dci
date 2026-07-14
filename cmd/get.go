@@ -13,7 +13,6 @@ import (
 )
 
 var ageInDays string
-var outputFormat string
 var topicID string
 var startDate string
 var endDate string
@@ -21,10 +20,8 @@ var nameFilter string
 var typeFilter string
 
 const (
-	dateFormat         = "2006-01-02T15:04:05.999999"
-	dateFormatDay      = "2006-01-02"
-	OutputFormatJSON   = "json"
-	OutputFormatStdout = "stdout"
+	dateFormat    = "2006-01-02T15:04:05.999999"
+	dateFormatDay = "2006-01-02"
 )
 
 var (
@@ -594,21 +591,15 @@ func init() {
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&startDate, "start-date", "s", "", "Start date for job query (YYYY-MM-DD)")
 	getJobsCmd.PersistentFlags().StringVarP(&endDate, "end-date", "e", "", "End date for job query (YYYY-MM-DD)")
-	getJobsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
-	getOcpCountCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getComponentsCmd.PersistentFlags().StringVarP(&topicID, "topic", "t", "", "Filter components by topic ID")
 	getComponentsCmd.PersistentFlags().StringVar(&typeFilter, "type", "", "Filter components by type")
 	getComponentsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter components by name")
-	getComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
-	getIdentityCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getComponentTypesCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter component types by name")
-	getComponentTypesCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	getTopicsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter topics by name")
-	getTopicsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

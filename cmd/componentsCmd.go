@@ -231,7 +231,6 @@ func init() {
 	// get component flags
 	getComponentCmd.PersistentFlags().StringVar(&getComponentIDFlag, "id", "", "Component ID")
 	_ = getComponentCmd.MarkPersistentFlagRequired("id")
-	getComponentCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create component flags
 	createComponentCmd.PersistentFlags().StringVar(&createComponentName, "name", "", "Component name")
@@ -241,7 +240,6 @@ func init() {
 	createComponentCmd.PersistentFlags().StringVar(&createComponentTopicID, "topic-id", "", "Topic ID")
 	_ = createComponentCmd.MarkPersistentFlagRequired("topic-id")
 	createComponentCmd.PersistentFlags().StringVar(&createComponentVersion, "version", "", "Component version")
-	createComponentCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update component flags
 	updateComponentCmd.PersistentFlags().StringVar(&updateComponentIDFlag, "id", "", "Component ID to update")
@@ -250,10 +248,8 @@ func init() {
 	updateComponentCmd.PersistentFlags().StringVar(&updateComponentState, "state", "", "New component state")
 	updateComponentCmd.PersistentFlags().StringVar(&updateComponentVersion, "version", "", "New component version")
 	updateComponentCmd.PersistentFlags().StringVar(&updateComponentTags, "tags", "", "Comma-separated list of tags")
-	updateComponentCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete component flags
 	deleteComponentCmd.PersistentFlags().StringVar(&deleteComponentIDFlag, "id", "", "Component ID to delete")
 	_ = deleteComponentCmd.MarkPersistentFlagRequired("id")
-	deleteComponentCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

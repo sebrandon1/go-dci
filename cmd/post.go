@@ -222,7 +222,6 @@ func init() {
 	_ = createJobCmd.MarkPersistentFlagRequired("topic-id")
 	createJobCmd.PersistentFlags().StringVar(&createJobComponents, "components", "", "Comma-separated list of component IDs")
 	createJobCmd.PersistentFlags().StringVar(&createJobComment, "comment", "", "Optional comment for the job")
-	createJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update-job-state flags
 	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateJobID, "job-id", "", "Job ID to update")
@@ -230,7 +229,6 @@ func init() {
 	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateStatus, "status", "", "New status (pre-run, running, success, failure, etc.)")
 	_ = updateJobStateCmd.MarkPersistentFlagRequired("status")
 	updateJobStateCmd.PersistentFlags().StringVar(&updateJobStateComment, "comment", "", "Optional comment for the state change")
-	updateJobStateCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// upload-file flags
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileJobID, "job-id", "", "Job ID to attach the file to")
@@ -238,6 +236,5 @@ func init() {
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFilePath, "file", "", "Path to the file to upload")
 	_ = uploadFileCmd.MarkPersistentFlagRequired("file")
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileMimeType, "mime", "application/junit", "MIME type of the file (default: application/junit)")
-	uploadFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
 

@@ -281,27 +281,22 @@ func init() {
 
 	// get teams flags
 	getTeamsCmd.PersistentFlags().StringVarP(&teamsNameFilter, "name", "n", "", "Filter teams by name")
-	getTeamsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get team flags
 	getTeamCmd.PersistentFlags().StringVar(&getTeamIDFlag, "id", "", "Team ID")
 	_ = getTeamCmd.MarkPersistentFlagRequired("id")
-	getTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create team flags
 	createTeamCmd.PersistentFlags().StringVar(&createTeamNameFlag, "name", "", "Team name")
 	_ = createTeamCmd.MarkPersistentFlagRequired("name")
-	createTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update team flags
 	updateTeamCmd.PersistentFlags().StringVar(&updateTeamIDFlag, "id", "", "Team ID to update")
 	_ = updateTeamCmd.MarkPersistentFlagRequired("id")
 	updateTeamCmd.PersistentFlags().StringVar(&updateTeamNameFlag, "name", "", "New team name")
 	updateTeamCmd.PersistentFlags().StringVar(&updateTeamStateFlag, "state", "", "New team state")
-	updateTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete team flags
 	deleteTeamCmd.PersistentFlags().StringVar(&deleteTeamIDFlag, "id", "", "Team ID to delete")
 	_ = deleteTeamCmd.MarkPersistentFlagRequired("id")
-	deleteTeamCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

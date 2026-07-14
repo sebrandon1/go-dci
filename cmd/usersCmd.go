@@ -319,12 +319,10 @@ func init() {
 
 	// get users flags
 	getUsersCmd.PersistentFlags().StringVarP(&usersNameFilter, "name", "n", "", "Filter users by name")
-	getUsersCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get user flags
 	getUserCmd.PersistentFlags().StringVar(&getUserIDFlag, "id", "", "User ID")
 	_ = getUserCmd.MarkPersistentFlagRequired("id")
-	getUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create user flags
 	createUserCmd.PersistentFlags().StringVar(&createUserNameFlag, "name", "", "Username")
@@ -335,7 +333,6 @@ func init() {
 	createUserCmd.PersistentFlags().StringVar(&createUserTeamIDFlag, "team-id", "", "Team ID")
 	_ = createUserCmd.MarkPersistentFlagRequired("team-id")
 	createUserCmd.PersistentFlags().StringVar(&createUserPasswordFlag, "password", "", "User password (prompts interactively if omitted)")
-	createUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update user flags
 	updateUserCmd.PersistentFlags().StringVar(&updateUserIDFlag, "id", "", "User ID to update")
@@ -344,10 +341,8 @@ func init() {
 	updateUserCmd.PersistentFlags().StringVar(&updateUserEmailFlag, "email", "", "New email")
 	updateUserCmd.PersistentFlags().StringVar(&updateUserFullnameFlag, "fullname", "", "New full name")
 	updateUserCmd.PersistentFlags().StringVar(&updateUserStateFlag, "state", "", "New user state")
-	updateUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete user flags
 	deleteUserCmd.PersistentFlags().StringVar(&deleteUserIDFlag, "id", "", "User ID to delete")
 	_ = deleteUserCmd.MarkPersistentFlagRequired("id")
-	deleteUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
