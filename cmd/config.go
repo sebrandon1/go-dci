@@ -33,6 +33,16 @@ func formatConfigValue(label, value, fallback string) string {
 	return fmt.Sprintf("  %-12s %s\n", label+":", fallback)
 }
 
+func maskCredential(value string) string {
+	if value == "" {
+		return ""
+	}
+	if len(value) <= 4 {
+		return "****"
+	}
+	return "****" + value[len(value)-4:]
+}
+
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Set or get configuration values",
@@ -92,14 +102,10 @@ var viewCmd = &cobra.Command{
 		fmt.Println("Configuration:")
 
 		accessKey := GetConfigValue(configKeyAccessKey)
-		fmt.Print(formatConfigValue("Access Key", accessKey, "(not set)"))
+		fmt.Print(formatConfigValue("Access Key", maskCredential(accessKey), "(not set)"))
 
 		secretKey := GetConfigValue(configKeySecretKey)
-		maskedValue := ""
-		if secretKey != "" {
-			maskedValue = "***"
-		}
-		fmt.Print(formatConfigValue("Secret Key", maskedValue, "(not set)"))
+		fmt.Print(formatConfigValue("Secret Key", maskCredential(secretKey), "(not set)"))
 
 		configFile := viper.ConfigFileUsed()
 		fmt.Print(formatConfigValue("Config File", configFile, ".go-dci-config.yaml (default)"))
