@@ -68,14 +68,14 @@ var setCmd = &cobra.Command{
 
 		if accesskey != "" {
 			if err := UpdateConfigValue(configKeyAccessKey, accesskey); err != nil {
-				return fmt.Errorf("setting accesskey: %v", err)
+				return fmt.Errorf("setting accesskey: %w", err)
 			}
 			printStatus("Access key updated successfully")
 		}
 
 		if secretkey != "" {
 			if err := UpdateConfigValue(configKeySecretKey, secretkey); err != nil {
-				return fmt.Errorf("setting secretkey: %v", err)
+				return fmt.Errorf("setting secretkey: %w", err)
 			}
 			printStatus("Secret key updated successfully")
 		}
@@ -97,7 +97,7 @@ var unsetCmd = &cobra.Command{
 
 		viper.Set(key, nil)
 		if err := writeConfigSecure(); err != nil {
-			return fmt.Errorf("writing config: %v", err)
+			return fmt.Errorf("writing config: %w", err)
 		}
 		fmt.Printf("Unset key '%s' from configuration\n", key)
 

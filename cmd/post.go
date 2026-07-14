@@ -51,7 +51,7 @@ var createJobCmd = &cobra.Command{
 
 		response, err := client.CreateJob(cmd.Context(), createJobTopicID, componentIDs, createJobComment)
 		if err != nil {
-			return fmt.Errorf("failed to create job: %v", err)
+			return fmt.Errorf("failed to create job: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -101,7 +101,7 @@ var updateJobStateCmd = &cobra.Command{
 
 		response, err := client.UpdateJobState(cmd.Context(), updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
 		if err != nil {
-			return fmt.Errorf("failed to update job state: %v", err)
+			return fmt.Errorf("failed to update job state: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -139,7 +139,7 @@ var uploadFileCmd = &cobra.Command{
 
 		response, err := client.UploadFile(cmd.Context(), uploadFileJobID, uploadFilePath, uploadFileMimeType)
 		if err != nil {
-			return fmt.Errorf("failed to upload file: %v", err)
+			return fmt.Errorf("failed to upload file: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -165,7 +165,7 @@ func printCreateJobStdout(response *lib.CreateJobResponse) {
 func printCreateJobJSON(response *lib.CreateJobResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -186,7 +186,7 @@ func printJobStateStdout(response *lib.JobStateResponse) {
 func printJobStateJSON(response *lib.JobStateResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -206,7 +206,7 @@ func printUploadFileStdout(response *lib.UploadFileResponse) {
 func printUploadFileJSON(response *lib.UploadFileResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

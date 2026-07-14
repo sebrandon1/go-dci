@@ -38,7 +38,7 @@ var getJobStatesCmd = &cobra.Command{
 
 		responses, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get job states: %v", err)
+			return fmt.Errorf("failed to get job states: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -84,7 +84,7 @@ func printJobStatesJSON(responses []lib.JobStatesResponse) error {
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

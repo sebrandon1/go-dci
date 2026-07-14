@@ -35,12 +35,12 @@ var getFileCmd = &cobra.Command{
 
 		content, contentType, err := client.GetFile(cmd.Context(), getFileIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get file: %v", err)
+			return fmt.Errorf("failed to get file: %w", err)
 		}
 
 		if getFileOutputPath != "" {
 			if err := os.WriteFile(getFileOutputPath, content, 0644); err != nil {
-				return fmt.Errorf("failed to write file: %v", err)
+				return fmt.Errorf("failed to write file: %w", err)
 			}
 			fmt.Printf("File saved to: %s\n", getFileOutputPath)
 		} else if outputFormat == OutputFormatJSON {
@@ -97,7 +97,7 @@ var deleteFileCmd = &cobra.Command{
 
 		err = client.DeleteFile(cmd.Context(), deleteFileIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete file: %v", err)
+			return fmt.Errorf("failed to delete file: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {

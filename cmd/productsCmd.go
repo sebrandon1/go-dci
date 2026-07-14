@@ -28,7 +28,7 @@ var getProductsCmd = &cobra.Command{
 
 		responses, err := client.GetProducts(cmd.Context())
 		if err != nil {
-			return fmt.Errorf("failed to get products: %v", err)
+			return fmt.Errorf("failed to get products: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -60,7 +60,7 @@ var getProductCmd = &cobra.Command{
 
 		response, err := client.GetProduct(cmd.Context(), getProductIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get product: %v", err)
+			return fmt.Errorf("failed to get product: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -102,7 +102,7 @@ func printProductsJSON(responses []lib.ProductsResponse) error {
 		"total":    len(all),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -122,7 +122,7 @@ func printProductStdout(response *lib.ProductResponse) {
 func printProductJSON(response *lib.ProductResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

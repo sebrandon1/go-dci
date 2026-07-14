@@ -40,7 +40,7 @@ var getTopicCmd = &cobra.Command{
 
 		response, err := client.GetTopic(cmd.Context(), getTopicIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get topic: %v", err)
+			return fmt.Errorf("failed to get topic: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -82,7 +82,7 @@ var createTopicCmd = &cobra.Command{
 
 		response, err := client.CreateTopic(cmd.Context(), createTopicName, createTopicProductID, componentTypes)
 		if err != nil {
-			return fmt.Errorf("failed to create topic: %v", err)
+			return fmt.Errorf("failed to create topic: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -125,7 +125,7 @@ var updateTopicCmd = &cobra.Command{
 
 		response, err := client.UpdateTopic(cmd.Context(), updateTopicIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update topic: %v", err)
+			return fmt.Errorf("failed to update topic: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -173,7 +173,7 @@ var deleteTopicCmd = &cobra.Command{
 
 		err = client.DeleteTopic(cmd.Context(), deleteTopicIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete topic: %v", err)
+			return fmt.Errorf("failed to delete topic: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -207,7 +207,7 @@ var getTopicComponentsCmd = &cobra.Command{
 
 		componentsResponses, err := client.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get topic components: %v", err)
+			return fmt.Errorf("failed to get topic components: %w", err)
 		}
 
 		totalComponents := 0
@@ -243,7 +243,7 @@ func printTopicStdout(response *lib.TopicResponse) {
 func printTopicJSON(response *lib.TopicResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

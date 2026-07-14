@@ -43,7 +43,7 @@ var getComponentCmd = &cobra.Command{
 
 		response, err := client.GetComponent(cmd.Context(), getComponentIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get component: %v", err)
+			return fmt.Errorf("failed to get component: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -76,7 +76,7 @@ var createComponentCmd = &cobra.Command{
 
 		response, err := client.CreateComponent(cmd.Context(), createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
 		if err != nil {
-			return fmt.Errorf("failed to create component: %v", err)
+			return fmt.Errorf("failed to create component: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -132,7 +132,7 @@ var updateComponentCmd = &cobra.Command{
 
 		response, err := client.UpdateComponent(cmd.Context(), updateComponentIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update component: %v", err)
+			return fmt.Errorf("failed to update component: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -180,7 +180,7 @@ var deleteComponentCmd = &cobra.Command{
 
 		err = client.DeleteComponent(cmd.Context(), deleteComponentIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete component: %v", err)
+			return fmt.Errorf("failed to delete component: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -216,7 +216,7 @@ func printComponentStdout(response *lib.ComponentResponse) {
 func printComponentJSON(response *lib.ComponentResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
