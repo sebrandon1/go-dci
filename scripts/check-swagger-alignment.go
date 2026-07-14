@@ -98,11 +98,11 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 	var endpoints []ImplementedEndpoint
 
 	// Patterns to match endpoint definitions
-	// Matches: DCIURL + "/path" or c.BaseURL + "/path" or fmt.Sprintf patterns
 	urlConcatPattern := regexp.MustCompile(`(?:` + baseURLVar + `)\s*\+\s*"(/[^"]+)"`)
 	sprintfPattern := regexp.MustCompile(`fmt\.Sprintf\s*\(\s*"%s(/[^"]+)"`)
-	// Match HTTP method from http.NewRequest or helper function calls
-	methodPattern := regexp.MustCompile(`(?:http\.NewRequest|httpGetWithAWSAuth|httpGetSimpleWithAWSAuth|httpPostWithAWSAuth|httpPostFileWithAWSAuth)\s*\(\s*(?:"(GET|POST|PUT|DELETE|PATCH)")?`)
+	resourceURLPattern := regexp.MustCompile(`resource(?:Sub)?URL\(` + baseURLVar + `,\s*"(\w+)"`)
+	// Match HTTP method from http.NewRequest, doRequest, or doJSON calls
+	methodPattern := regexp.MustCompile(`(?:http\.NewRequest|c\.doRequest|c\.doJSON)\s*\(\s*(?:ctx,\s*)?(?:http\.Method(Get|Post|Put|Delete|Patch)|"(GET|POST|PUT|DELETE|PATCH)")`)
 
 	err := filepath.Walk(libPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -121,52 +121,30 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 		scanner := bufio.NewScanner(file)
 		var currentMethod string
 		var currentFunc string
+		var pendingURLs []string
 
-		for scanner.Scan() {
-			line := scanner.Text()
+		funcPattern := regexp.MustCompile(`func\s+(?:\([^)]+\)\s+)?(\w+)`)
 
-			// Track current function name
-			if funcMatch := regexp.MustCompile(`func\s+(?:\([^)]+\)\s+)?(\w+)`).FindStringSubmatch(line); len(funcMatch) > 1 {
-				currentFunc = funcMatch[1]
-				currentMethod = "" // Reset method for new function
-			}
-
-			// Look for HTTP method
-			if methodMatch := methodPattern.FindStringSubmatch(line); len(methodMatch) > 1 && methodMatch[1] != "" {
-				currentMethod = methodMatch[1]
-			}
-
-			// Detect method from function names if not explicit
-			if currentMethod == "" {
-				funcLower := strings.ToLower(currentFunc)
-				if strings.HasPrefix(funcLower, "get") || strings.HasPrefix(funcLower, "fetch") {
-					currentMethod = "GET"
-				} else if strings.HasPrefix(funcLower, "create") || strings.HasPrefix(funcLower, "upload") || strings.HasPrefix(funcLower, "schedule") {
-					currentMethod = "POST"
-				} else if strings.HasPrefix(funcLower, "update") {
-					currentMethod = "PUT"
-				} else if strings.HasPrefix(funcLower, "delete") {
-					currentMethod = "DELETE"
-				}
-			}
-
-			// Look for URL patterns
-			var urlPath string
-			if matches := urlConcatPattern.FindStringSubmatch(line); len(matches) > 1 {
-				urlPath = matches[1]
-			} else if matches := sprintfPattern.FindStringSubmatch(line); len(matches) > 1 {
-				urlPath = matches[1]
-			}
-
-			if urlPath != "" {
-				// Normalize the path (replace %s, %d with {})
+		recordPending := func() {
+			for _, urlPath := range pendingURLs {
 				normalizedPath := normalizePath(urlPath)
 				method := currentMethod
 				if method == "" {
-					method = "GET" // Default assumption
+					funcLower := strings.ToLower(currentFunc)
+					switch {
+					case strings.HasPrefix(funcLower, "get") || strings.HasPrefix(funcLower, "fetch"):
+						method = "GET"
+					case strings.HasPrefix(funcLower, "create") || strings.HasPrefix(funcLower, "upload") || strings.HasPrefix(funcLower, "schedule"):
+						method = "POST"
+					case strings.HasPrefix(funcLower, "update"):
+						method = "PUT"
+					case strings.HasPrefix(funcLower, "delete"):
+						method = "DELETE"
+					default:
+						method = "GET"
+					}
 				}
 
-				// Check if this endpoint is already added (avoid duplicates)
 				isDuplicate := false
 				for _, ep := range endpoints {
 					if ep.Method == method && ep.Path == normalizedPath && ep.Function == currentFunc {
@@ -184,7 +162,38 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 					})
 				}
 			}
+			pendingURLs = nil
 		}
+
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			// Track current function name — record pending URLs from previous function first
+			if funcMatch := funcPattern.FindStringSubmatch(line); len(funcMatch) > 1 {
+				recordPending()
+				currentFunc = funcMatch[1]
+				currentMethod = ""
+			}
+
+			// Look for HTTP method
+			if methodMatch := methodPattern.FindStringSubmatch(line); len(methodMatch) > 1 {
+				if methodMatch[1] != "" {
+					currentMethod = strings.ToUpper(methodMatch[1])
+				} else if methodMatch[2] != "" {
+					currentMethod = methodMatch[2]
+				}
+			}
+
+			// Collect URL patterns (recorded at next function boundary)
+			if matches := urlConcatPattern.FindStringSubmatch(line); len(matches) > 1 {
+				pendingURLs = append(pendingURLs, matches[1])
+			} else if matches := sprintfPattern.FindStringSubmatch(line); len(matches) > 1 {
+				pendingURLs = append(pendingURLs, matches[1])
+			} else if matches := resourceURLPattern.FindStringSubmatch(line); len(matches) > 1 {
+				pendingURLs = append(pendingURLs, "/"+matches[1]+"/{id}")
+			}
+		}
+		recordPending()
 
 		return scanner.Err()
 	})
@@ -195,6 +204,8 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 func normalizePath(path string) string {
 	// Replace %s, %d, %v with {}
 	path = regexp.MustCompile(`%[sdv]`).ReplaceAllString(path, "{}")
+	// Replace {param_name} with {} (from resourceURL helper)
+	path = regexp.MustCompile(`\{[^}]+\}`).ReplaceAllString(path, "{}")
 	// Remove trailing slashes for comparison
 	path = strings.TrimSuffix(path, "/")
 	return path
