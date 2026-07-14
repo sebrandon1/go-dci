@@ -163,6 +163,7 @@ func printCreateJobStdout(response *lib.CreateJobResponse) {
 }
 
 func printCreateJobJSON(response *lib.CreateJobResponse) error {
+	lib.RedactJob(&response.Job)
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)

@@ -231,6 +231,9 @@ func printRemoteCIsStdout(responses []lib.RemoteCIsResponse) {
 func printRemoteCIsJSON(responses []lib.RemoteCIsResponse) error {
 	var all []lib.RemoteCI
 	for _, resp := range responses {
+		for i := range resp.RemoteCIs {
+			lib.RedactRemoteCI(&resp.RemoteCIs[i])
+		}
 		all = append(all, resp.RemoteCIs...)
 	}
 	jsonBytes, err := json.Marshal(map[string]any{
@@ -255,6 +258,7 @@ func printRemoteCIStdout(response *lib.RemoteCIResponse) {
 }
 
 func printRemoteCIJSON(response *lib.RemoteCIResponse) error {
+	lib.RedactRemoteCI(&response.RemoteCI)
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)

@@ -242,6 +242,7 @@ func printJobStdout(response *lib.JobResponse) {
 }
 
 func printJobJSON(response *lib.JobResponse) error {
+	lib.RedactJob(&response.Job)
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
