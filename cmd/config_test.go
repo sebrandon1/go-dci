@@ -73,3 +73,11 @@ func TestUpdateConfigValue(t *testing.T) {
 	assert.Equal(t, "updatevalue", viper.GetString("updatekey"))
 }
 
+func TestMaskCredential(t *testing.T) {
+	assert.Equal(t, "", maskCredential(""))
+	assert.Equal(t, "****", maskCredential("abc"))
+	assert.Equal(t, "****", maskCredential("abcd"))
+	assert.Equal(t, "****fghi", maskCredential("abcdefghi"))
+	assert.Equal(t, "****cdef", maskCredential("abcdef"))
+}
+
