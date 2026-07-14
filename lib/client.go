@@ -50,29 +50,26 @@ type Client struct {
 }
 
 func NewClient(accessKey, secretKey string) *Client {
-	return &Client{
+	c := &Client{
 		BaseURL:        DCIURL,
 		AccessKey:      accessKey,
 		SecretKey:      secretKey,
-		httpClient:     newDefaultHTTPClient(),
 		MaxRetries:     3,
 		RequestTimeout: defaultRequestTimeout,
 		TLSTimeout:     defaultTLSHandshakeTimeout,
 		DialTimeout:    defaultDialTimeout,
 	}
-}
-
-func newDefaultHTTPClient() *http.Client {
-	return &http.Client{
-		Timeout: defaultRequestTimeout,
+	c.httpClient = &http.Client{
+		Timeout: c.RequestTimeout,
 		Transport: &http.Transport{
-			TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
-			ResponseHeaderTimeout: defaultRequestTimeout,
+			TLSHandshakeTimeout:   c.TLSTimeout,
+			ResponseHeaderTimeout: c.RequestTimeout,
 			DialContext: (&net.Dialer{
-				Timeout: defaultDialTimeout,
+				Timeout: c.DialTimeout,
 			}).DialContext,
 		},
 	}
+	return c
 }
 
 func isRetryable(method string, statusCode int) bool {
