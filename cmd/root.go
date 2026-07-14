@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -118,21 +119,39 @@ func init() {
 }
 
 func initConfig() {
-	configFile = ".go-dci-config.yaml"
 	viper.SetConfigType("yaml")
-	viper.SetConfigFile(configFile)
-
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("GO_DCI")
 
-	// If the config file is not found, create it
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = "."
+	}
+	dciConfigDir := filepath.Join(configDir, "go-dci")
+	configFile = filepath.Join(dciConfigDir, "config.yaml")
+
+	legacyFile := ".go-dci-config.yaml"
+	_, legacyErr := os.Stat(legacyFile)
+	_, newErr := os.Stat(configFile)
+
+	if legacyErr == nil && newErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: using legacy config %s\n", legacyFile)
+		fmt.Fprintf(os.Stderr, "  Migrate to: %s\n", configFile)
+		configFile = legacyFile
+	}
+
+	viper.SetConfigFile(configFile)
+
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		if err := viper.WriteConfig(); err != nil {
-			fmt.Printf("Warning: could not create config file: %v\n", err)
+		if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not create config dir: %v\n", err)
+		}
+		if err := os.WriteFile(configFile, []byte("{}\n"), 0600); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not create config file: %v\n", err)
 		}
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Error reading config file: ", err)
+		fmt.Fprintln(os.Stderr, "Error reading config file:", err)
 	}
 }
