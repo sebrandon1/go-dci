@@ -46,7 +46,7 @@ var getUsersCmd = &cobra.Command{
 
 		response, err := client.GetUsersFiltered(cmd.Context(), usersNameFilter)
 		if err != nil {
-			return fmt.Errorf("failed to get users: %v", err)
+			return fmt.Errorf("failed to get users: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -78,7 +78,7 @@ var getUserCmd = &cobra.Command{
 
 		response, err := client.GetUser(cmd.Context(), getUserIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get user: %v", err)
+			return fmt.Errorf("failed to get user: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -134,7 +134,7 @@ var createUserCmd = &cobra.Command{
 			password,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create user: %v", err)
+			return fmt.Errorf("failed to create user: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -186,7 +186,7 @@ var updateUserCmd = &cobra.Command{
 
 		response, err := client.UpdateUser(cmd.Context(), updateUserIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update user: %v", err)
+			return fmt.Errorf("failed to update user: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -235,7 +235,7 @@ var deleteUserCmd = &cobra.Command{
 
 		err = client.DeleteUser(cmd.Context(), deleteUserIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete user: %v", err)
+			return fmt.Errorf("failed to delete user: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -283,7 +283,7 @@ func printUsersJSON(responses []lib.UsersResponse) error {
 		"total": len(allUsers),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -304,7 +304,7 @@ func printUserStdout(response *lib.UserResponse) {
 func printUserJSON(response *lib.UserResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

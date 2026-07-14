@@ -50,7 +50,7 @@ var getTopicsCmd = &cobra.Command{
 
 		topicsResponses, err := client.GetTopicsByName(cmd.Context(), nameFilter)
 		if err != nil {
-			return fmt.Errorf("failed to get topics: %v", err)
+			return fmt.Errorf("failed to get topics: %w", err)
 		}
 
 		totalTopics := 0
@@ -88,7 +88,7 @@ var getComponentTypesCmd = &cobra.Command{
 
 		componentTypesResponses, err := client.GetComponentTypesByName(cmd.Context(), nameFilter)
 		if err != nil {
-			return fmt.Errorf("failed to get component types: %v", err)
+			return fmt.Errorf("failed to get component types: %w", err)
 		}
 
 		totalComponentTypes := 0
@@ -120,7 +120,7 @@ var getIdentityCmd = &cobra.Command{
 
 		identity, err := client.GetIdentity(cmd.Context())
 		if err != nil {
-			return fmt.Errorf("authentication failed: %v", err)
+			return fmt.Errorf("authentication failed: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -153,7 +153,7 @@ var getOcpCountCmd = &cobra.Command{
 
 		jobsResponses, err := client.GetJobs(cmd.Context(), daysBackLimit)
 		if err != nil {
-			return fmt.Errorf("getting jobs: %v", err)
+			return fmt.Errorf("getting jobs: %w", err)
 		}
 
 		ocpVersionCount := countOcpVersions(jobsResponses)
@@ -198,7 +198,7 @@ var getComponentsCmd = &cobra.Command{
 
 		componentsResponses, err := client.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter)
 		if err != nil {
-			return fmt.Errorf("failed to get components: %v", err)
+			return fmt.Errorf("failed to get components: %w", err)
 		}
 
 		totalComponents := 0
@@ -262,7 +262,7 @@ var getJobsCmd = &cobra.Command{
 
 			jobsResponses, err = client.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
 			if err != nil {
-				return fmt.Errorf("failed to get jobs: %v", err)
+				return fmt.Errorf("failed to get jobs: %w", err)
 			}
 		} else if startDate != "" || endDate != "" {
 			return fmt.Errorf("both --start-date and --end-date must be provided together")
@@ -276,7 +276,7 @@ var getJobsCmd = &cobra.Command{
 
 			jobsResponses, err = client.GetJobs(cmd.Context(), daysBackLimit)
 			if err != nil {
-				return fmt.Errorf("failed to get jobs: %v", err)
+				return fmt.Errorf("failed to get jobs: %w", err)
 			}
 		}
 
@@ -312,7 +312,7 @@ var getJobsCmd = &cobra.Command{
 		} else {
 			jsonOutputBytes, err := json.Marshal(jsonOutput)
 			if err != nil {
-				return fmt.Errorf("failed to marshal JSON output: %v", err)
+				return fmt.Errorf("failed to marshal JSON output: %w", err)
 			}
 			fmt.Println(string(jsonOutputBytes))
 		}
@@ -418,7 +418,7 @@ func printOcpVersionCountJSON(ocpVersionCount map[string]int) error {
 
 	jsonOutputBytes, err := json.Marshal(jsonOutput)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonOutputBytes))
 	return nil
@@ -464,7 +464,7 @@ func printComponentsJSON(componentsResponses []lib.ComponentsResponse) error {
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -496,7 +496,7 @@ func printIdentityStdout(identity *lib.IdentityResponse) {
 func printIdentityJSON(identity *lib.IdentityResponse) error {
 	jsonBytes, err := json.Marshal(identity)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -525,7 +525,7 @@ func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesRespons
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -577,7 +577,7 @@ func printTopicsJSON(topicsResponses []lib.TopicsResponse) error {
 
 	jsonBytes, err := json.Marshal(output)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

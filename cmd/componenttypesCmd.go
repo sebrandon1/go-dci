@@ -37,7 +37,7 @@ var getComponentTypeCmd = &cobra.Command{
 
 		response, err := client.GetComponentType(cmd.Context(), getComponentTypeIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get component type: %v", err)
+			return fmt.Errorf("failed to get component type: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -70,7 +70,7 @@ var createComponentTypeCmd = &cobra.Command{
 
 		response, err := client.CreateComponentType(cmd.Context(), createComponentTypeName)
 		if err != nil {
-			return fmt.Errorf("failed to create component type: %v", err)
+			return fmt.Errorf("failed to create component type: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -116,7 +116,7 @@ var updateComponentTypeCmd = &cobra.Command{
 
 		response, err := client.UpdateComponentType(cmd.Context(), updateComponentTypeIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update component type: %v", err)
+			return fmt.Errorf("failed to update component type: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -165,7 +165,7 @@ var deleteComponentTypeCmd = &cobra.Command{
 
 		err = client.DeleteComponentType(cmd.Context(), deleteComponentTypeIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete component type: %v", err)
+			return fmt.Errorf("failed to delete component type: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -192,7 +192,7 @@ func printComponentTypeStdout(response *lib.ComponentTypeResponse) {
 func printComponentTypeJSON(response *lib.ComponentTypeResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

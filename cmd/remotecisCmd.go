@@ -34,7 +34,7 @@ var getRemoteCIsCmd = &cobra.Command{
 
 		responses, err := client.GetRemoteCIs(cmd.Context())
 		if err != nil {
-			return fmt.Errorf("failed to get remote CIs: %v", err)
+			return fmt.Errorf("failed to get remote CIs: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -66,7 +66,7 @@ var getRemoteCICmd = &cobra.Command{
 
 		response, err := client.GetRemoteCI(cmd.Context(), getRemoteCIsCmd_IDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get remote CI: %v", err)
+			return fmt.Errorf("failed to get remote CI: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -99,7 +99,7 @@ var createRemoteCICmd = &cobra.Command{
 
 		response, err := client.CreateRemoteCI(cmd.Context(), createRemoteCINameFlag, createRemoteCITeamIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to create remote CI: %v", err)
+			return fmt.Errorf("failed to create remote CI: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -145,7 +145,7 @@ var updateRemoteCICmd = &cobra.Command{
 
 		response, err := client.UpdateRemoteCI(cmd.Context(), updateRemoteCIIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update remote CI: %v", err)
+			return fmt.Errorf("failed to update remote CI: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -194,7 +194,7 @@ var deleteRemoteCICmd = &cobra.Command{
 
 		err = client.DeleteRemoteCI(cmd.Context(), deleteRemoteCIIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete remote CI: %v", err)
+			return fmt.Errorf("failed to delete remote CI: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -238,7 +238,7 @@ func printRemoteCIsJSON(responses []lib.RemoteCIsResponse) error {
 		"total":     len(all),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -257,7 +257,7 @@ func printRemoteCIStdout(response *lib.RemoteCIResponse) {
 func printRemoteCIJSON(response *lib.RemoteCIResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil

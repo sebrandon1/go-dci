@@ -38,7 +38,7 @@ var getTeamsCmd = &cobra.Command{
 
 		response, err := client.GetTeamsFiltered(cmd.Context(), teamsNameFilter)
 		if err != nil {
-			return fmt.Errorf("failed to get teams: %v", err)
+			return fmt.Errorf("failed to get teams: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -70,7 +70,7 @@ var getTeamCmd = &cobra.Command{
 
 		response, err := client.GetTeam(cmd.Context(), getTeamIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to get team: %v", err)
+			return fmt.Errorf("failed to get team: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -103,7 +103,7 @@ var createTeamCmd = &cobra.Command{
 
 		response, err := client.CreateTeam(cmd.Context(), createTeamNameFlag)
 		if err != nil {
-			return fmt.Errorf("failed to create team: %v", err)
+			return fmt.Errorf("failed to create team: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -149,7 +149,7 @@ var updateTeamCmd = &cobra.Command{
 
 		response, err := client.UpdateTeam(cmd.Context(), updateTeamIDFlag, updates)
 		if err != nil {
-			return fmt.Errorf("failed to update team: %v", err)
+			return fmt.Errorf("failed to update team: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -198,7 +198,7 @@ var deleteTeamCmd = &cobra.Command{
 
 		err = client.DeleteTeam(cmd.Context(), deleteTeamIDFlag)
 		if err != nil {
-			return fmt.Errorf("failed to delete team: %v", err)
+			return fmt.Errorf("failed to delete team: %w", err)
 		}
 
 		if outputFormat == OutputFormatJSON {
@@ -246,7 +246,7 @@ func printTeamsJSON(responses []lib.TeamsResponse) error {
 		"total": len(allTeams),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
@@ -266,7 +266,7 @@ func printTeamStdout(response *lib.TeamResponse) {
 func printTeamJSON(response *lib.TeamResponse) error {
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 	fmt.Println(string(jsonBytes))
 	return nil
