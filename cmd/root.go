@@ -21,12 +21,18 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 }
 
+const (
+	OutputFormatJSON   = "json"
+	OutputFormatStdout = "stdout"
+)
+
 var (
-	configFile  string
-	yesFlag     bool
-	quietFlag   bool
-	verboseFlag bool
-	dryRunFlag  bool
+	configFile   string
+	outputFormat string
+	yesFlag      bool
+	quietFlag    bool
+	verboseFlag  bool
+	dryRunFlag   bool
 )
 
 // printStatus prints a status message unless --quiet or JSON output is enabled.
@@ -116,6 +122,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false, "Suppress non-essential output")
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Show verbose output (HTTP requests, timing)")
 	rootCmd.PersistentFlags().BoolVar(&dryRunFlag, "dry-run", false, "Show what would happen without executing")
+	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
 
 func initConfig() {

@@ -259,7 +259,6 @@ func init() {
 	// get topic flags
 	getTopicCmd.PersistentFlags().StringVar(&getTopicIDFlag, "id", "", "Topic ID")
 	_ = getTopicCmd.MarkPersistentFlagRequired("id")
-	getTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create topic flags
 	createTopicCmd.PersistentFlags().StringVar(&createTopicName, "name", "", "Topic name")
@@ -267,21 +266,17 @@ func init() {
 	createTopicCmd.PersistentFlags().StringVar(&createTopicProductID, "product-id", "", "Product ID")
 	_ = createTopicCmd.MarkPersistentFlagRequired("product-id")
 	createTopicCmd.PersistentFlags().StringVar(&createTopicComponentTypes, "component-types", "", "Comma-separated list of component type names")
-	createTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update topic flags
 	updateTopicCmd.PersistentFlags().StringVar(&updateTopicIDFlag, "id", "", "Topic ID to update")
 	_ = updateTopicCmd.MarkPersistentFlagRequired("id")
 	updateTopicCmd.PersistentFlags().StringVar(&updateTopicName, "name", "", "New topic name")
-	updateTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete topic flags
 	deleteTopicCmd.PersistentFlags().StringVar(&deleteTopicIDFlag, "id", "", "Topic ID to delete")
 	_ = deleteTopicCmd.MarkPersistentFlagRequired("id")
-	deleteTopicCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get topic components flags
 	getTopicComponentsCmd.PersistentFlags().StringVar(&topicComponentsIDFlag, "id", "", "Topic ID")
 	_ = getTopicComponentsCmd.MarkPersistentFlagRequired("id")
-	getTopicComponentsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

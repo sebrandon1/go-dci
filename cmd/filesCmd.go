@@ -120,10 +120,8 @@ func init() {
 	getFileCmd.PersistentFlags().StringVar(&getFileIDFlag, "id", "", "File ID")
 	_ = getFileCmd.MarkPersistentFlagRequired("id")
 	getFileCmd.PersistentFlags().StringVar(&getFileOutputPath, "output-path", "", "Path to save the file content")
-	getFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete file flags
 	deleteFileCmd.PersistentFlags().StringVar(&deleteFileIDFlag, "id", "", "File ID to delete")
 	_ = deleteFileCmd.MarkPersistentFlagRequired("id")
-	deleteFileCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

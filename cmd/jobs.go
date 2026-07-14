@@ -282,27 +282,22 @@ func init() {
 	// get job flags
 	getJobCmd.PersistentFlags().StringVar(&getJobIDFlag, "id", "", "Job ID")
 	_ = getJobCmd.MarkPersistentFlagRequired("id")
-	getJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update job flags
 	updateJobCmd.PersistentFlags().StringVar(&updateJobIDFlag, "id", "", "Job ID to update")
 	_ = updateJobCmd.MarkPersistentFlagRequired("id")
 	updateJobCmd.PersistentFlags().StringVar(&updateJobComment, "comment", "", "New comment for the job")
 	updateJobCmd.PersistentFlags().StringVar(&updateJobTags, "tags", "", "Comma-separated list of tags")
-	updateJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete job flags
 	deleteJobCmd.PersistentFlags().StringVar(&deleteJobIDFlag, "id", "", "Job ID to delete")
 	_ = deleteJobCmd.MarkPersistentFlagRequired("id")
-	deleteJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// schedule job flags
 	scheduleJobCmd.PersistentFlags().StringVar(&scheduleJobTopicID, "topic-id", "", "Topic ID for the job")
 	_ = scheduleJobCmd.MarkPersistentFlagRequired("topic-id")
-	scheduleJobCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get job files flags
 	getJobFilesCmd.PersistentFlags().StringVar(&jobFilesIDFlag, "id", "", "Job ID")
 	_ = getJobFilesCmd.MarkPersistentFlagRequired("id")
-	getJobFilesCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

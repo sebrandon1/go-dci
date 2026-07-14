@@ -133,10 +133,8 @@ func init() {
 	rootCmd.AddCommand(getProductCmd)
 
 	// get products flags
-	getProductsCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// get product flags
 	getProductCmd.PersistentFlags().StringVar(&getProductIDFlag, "id", "", "Product ID")
 	_ = getProductCmd.MarkPersistentFlagRequired("id")
-	getProductCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }

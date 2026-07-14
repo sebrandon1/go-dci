@@ -207,22 +207,18 @@ func init() {
 	// get component type flags
 	getComponentTypeCmd.PersistentFlags().StringVar(&getComponentTypeIDFlag, "id", "", "Component Type ID")
 	_ = getComponentTypeCmd.MarkPersistentFlagRequired("id")
-	getComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// create component type flags
 	createComponentTypeCmd.PersistentFlags().StringVar(&createComponentTypeName, "name", "", "Component type name")
 	_ = createComponentTypeCmd.MarkPersistentFlagRequired("name")
-	createComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update component type flags
 	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeIDFlag, "id", "", "Component Type ID to update")
 	_ = updateComponentTypeCmd.MarkPersistentFlagRequired("id")
 	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeName, "name", "", "New component type name")
 	updateComponentTypeCmd.PersistentFlags().StringVar(&updateComponentTypeState, "state", "", "New component type state")
-	updateComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// delete component type flags
 	deleteComponentTypeCmd.PersistentFlags().StringVar(&deleteComponentTypeIDFlag, "id", "", "Component Type ID to delete")
 	_ = deleteComponentTypeCmd.MarkPersistentFlagRequired("id")
-	deleteComponentTypeCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 }
