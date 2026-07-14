@@ -394,22 +394,7 @@ func TestPrintTopicsStdout(t *testing.T) {
 	topicsResponses := []lib.TopicsResponse{
 		{
 			Meta: lib.Meta{Count: 1},
-			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct{} `json:"data,omitempty"`
-				Etag                   string   `json:"etag,omitempty"`
-				ExportControl          bool     `json:"export_control,omitempty"`
-				ID                     string   `json:"id,omitempty"`
-				Name                   string   `json:"name,omitempty"`
-				NextTopic              any      `json:"next_topic,omitempty"`
-				NextTopicID            any      `json:"next_topic_id,omitempty"`
-				Product                lib.Product `json:"product,omitempty"`
-				ProductID              string   `json:"product_id,omitempty"`
-				State                  string   `json:"state,omitempty"`
-				UpdatedAt              string   `json:"updated_at,omitempty"`
-			}{
+			Topics: []lib.Topic{
 				{
 					ID:        "topic-123",
 					Name:      "OCP-4.14",
@@ -436,22 +421,7 @@ func TestPrintTopicsJSON(t *testing.T) {
 	topicsResponses := []lib.TopicsResponse{
 		{
 			Meta: lib.Meta{Count: 1},
-			Topics: []struct {
-				ComponentTypes         []string `json:"component_types,omitempty"`
-				ComponentTypesOptional []any    `json:"component_types_optional,omitempty"`
-				CreatedAt              string   `json:"created_at,omitempty"`
-				Data                   struct{} `json:"data,omitempty"`
-				Etag                   string   `json:"etag,omitempty"`
-				ExportControl          bool     `json:"export_control,omitempty"`
-				ID                     string   `json:"id,omitempty"`
-				Name                   string   `json:"name,omitempty"`
-				NextTopic              any      `json:"next_topic,omitempty"`
-				NextTopicID            any      `json:"next_topic_id,omitempty"`
-				Product                lib.Product `json:"product,omitempty"`
-				ProductID              string   `json:"product_id,omitempty"`
-				State                  string   `json:"state,omitempty"`
-				UpdatedAt              string   `json:"updated_at,omitempty"`
-			}{
+			Topics: []lib.Topic{
 				{
 					ID:            "topic-123",
 					Name:          "OCP-4.14",
