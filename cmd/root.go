@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 var Version = "dev"
@@ -87,6 +88,16 @@ func confirmDeletion(resourceType, resourceID string) (bool, error) {
 
 	response = strings.ToLower(strings.TrimSpace(response))
 	return response == "yes" || response == "y", nil
+}
+
+func readPassword(prompt string) (string, error) {
+	fmt.Fprint(os.Stderr, prompt)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return "", fmt.Errorf("reading password: %w", err)
+	}
+	return string(password), nil
 }
 
 func Execute() {

@@ -3,9 +3,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // Variables for user command flags
@@ -93,6 +95,22 @@ var createUserCmd = &cobra.Command{
 	Use:   "create-user",
 	Short: "Create a new user in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		password := createUserPasswordFlag
+		if password == "" {
+			if term.IsTerminal(int(os.Stdin.Fd())) {
+				var err error
+				password, err = readPassword("Enter password: ")
+				if err != nil {
+					return err
+				}
+				if password == "" {
+					return fmt.Errorf("password cannot be empty")
+				}
+			} else {
+				return fmt.Errorf("password is required: use --password flag or run interactively")
+			}
+		}
+
 		accessKey, secretKey, err := getCredentials()
 		if err != nil {
 			return err
@@ -113,7 +131,7 @@ var createUserCmd = &cobra.Command{
 			createUserEmailFlag,
 			createUserFullnameFlag,
 			createUserTeamIDFlag,
-			createUserPasswordFlag,
+			password,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create user: %v", err)
@@ -316,8 +334,7 @@ func init() {
 	createUserCmd.PersistentFlags().StringVar(&createUserFullnameFlag, "fullname", "", "User full name")
 	createUserCmd.PersistentFlags().StringVar(&createUserTeamIDFlag, "team-id", "", "Team ID")
 	_ = createUserCmd.MarkPersistentFlagRequired("team-id")
-	createUserCmd.PersistentFlags().StringVar(&createUserPasswordFlag, "password", "", "User password")
-	_ = createUserCmd.MarkPersistentFlagRequired("password")
+	createUserCmd.PersistentFlags().StringVar(&createUserPasswordFlag, "password", "", "User password (prompts interactively if omitted)")
 	createUserCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	// update user flags
