@@ -17,6 +17,17 @@ func newTestClient(serverURL string) *Client {
 	return &Client{BaseURL: serverURL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 1}
 }
 
+func TestResourceURL(t *testing.T) {
+	assert.Equal(t, "https://api.example.com/topics/abc-123", resourceURL("https://api.example.com", "topics", "abc-123"))
+	assert.Equal(t, "https://api.example.com/jobs/id%2Fwith%2Fslashes", resourceURL("https://api.example.com", "jobs", "id/with/slashes"))
+	assert.Equal(t, "https://api.example.com/users/id%20with%20spaces", resourceURL("https://api.example.com", "users", "id with spaces"))
+}
+
+func TestResourceSubURL(t *testing.T) {
+	assert.Equal(t, "https://api.example.com/topics/abc-123/components", resourceSubURL("https://api.example.com", "topics", "abc-123", "components"))
+	assert.Equal(t, "https://api.example.com/jobs/id%2Funsafe/files", resourceSubURL("https://api.example.com", "jobs", "id/unsafe", "files"))
+}
+
 func TestNewClient(t *testing.T) {
 	client := NewClient("testAccessKey", "testSecretKey")
 

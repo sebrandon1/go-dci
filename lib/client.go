@@ -203,6 +203,14 @@ func paginatedURL(base string, limit, offset int, filters ...string) string {
 	return u.String()
 }
 
+func resourceURL(base, resource, id string) string {
+	return fmt.Sprintf("%s/%s/%s", base, resource, url.PathEscape(id))
+}
+
+func resourceSubURL(base, resource, id, subResource string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", base, resource, url.PathEscape(id), subResource)
+}
+
 // paginate is a generic helper that handles the standard pagination loop.
 func paginate[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error)) ([]T, error) {
 	var collection []T
@@ -292,7 +300,7 @@ func (c *Client) fetchComponentTypes(ctx context.Context, name string, requestLi
 
 // GetComponentType retrieves a single component type by ID from the DCI API
 func (c *Client) GetComponentType(ctx context.Context, componentTypeID string) (*ComponentTypeResponse, error) {
-	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	reqURL := resourceURL(c.BaseURL, "componenttypes", componentTypeID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component type: %w", err)
@@ -352,7 +360,7 @@ func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	reqURL := resourceURL(c.BaseURL, "componenttypes", componentTypeID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component type: %w", err)
@@ -375,7 +383,7 @@ func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string
 
 // DeleteComponentType deletes a component type from DCI
 func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string) error {
-	reqURL := fmt.Sprintf("%s/componenttypes/%s", c.BaseURL, componentTypeID)
+	reqURL := resourceURL(c.BaseURL, "componenttypes", componentTypeID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting component type: %w", err)
@@ -425,7 +433,7 @@ func (c *Client) fetchTopics(ctx context.Context, name string, requestLimit, off
 
 // GetTopic retrieves a single topic by ID from the DCI API
 func (c *Client) GetTopic(ctx context.Context, topicID string) (*TopicResponse, error) {
-	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	reqURL := resourceURL(c.BaseURL, "topics", topicID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting topic: %w", err)
@@ -486,7 +494,7 @@ func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates Update
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	reqURL := resourceURL(c.BaseURL, "topics", topicID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating topic: %w", err)
@@ -509,7 +517,7 @@ func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates Update
 
 // DeleteTopic deletes a topic from DCI
 func (c *Client) DeleteTopic(ctx context.Context, topicID string) error {
-	reqURL := fmt.Sprintf("%s/topics/%s", c.BaseURL, topicID)
+	reqURL := resourceURL(c.BaseURL, "topics", topicID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting topic: %w", err)
@@ -535,7 +543,7 @@ func (c *Client) GetTopicComponents(ctx context.Context, topicID string) ([]Comp
 
 // fetchTopicComponents is an internal helper to fetch components for a topic with pagination
 func (c *Client) fetchTopicComponents(ctx context.Context, topicID string, requestLimit, offset int) (ComponentsResponse, error) {
-	reqURL := paginatedURL(fmt.Sprintf("%s/topics/%s/components", c.BaseURL, topicID), requestLimit, offset)
+	reqURL := paginatedURL(resourceSubURL(c.BaseURL, "topics", topicID, "components"), requestLimit, offset)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
@@ -659,7 +667,7 @@ func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time
 
 // GetJob retrieves a single job by ID from the DCI API
 func (c *Client) GetJob(ctx context.Context, jobID string) (*JobResponse, error) {
-	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	reqURL := resourceURL(c.BaseURL, "jobs", jobID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job: %w", err)
@@ -687,7 +695,7 @@ func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobR
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	reqURL := resourceURL(c.BaseURL, "jobs", jobID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating job: %w", err)
@@ -710,7 +718,7 @@ func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobR
 
 // DeleteJob deletes a job from DCI
 func (c *Client) DeleteJob(ctx context.Context, jobID string) error {
-	reqURL := fmt.Sprintf("%s/jobs/%s", c.BaseURL, jobID)
+	reqURL := resourceURL(c.BaseURL, "jobs", jobID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting job: %w", err)
@@ -760,7 +768,7 @@ func (c *Client) ScheduleJob(ctx context.Context, topicID string) (*CreateJobRes
 
 // GetJobFiles retrieves all files for a specific job
 func (c *Client) GetJobFiles(ctx context.Context, jobID string) (*FilesResponse, error) {
-	reqURL := fmt.Sprintf("%s/jobs/%s/files", c.BaseURL, jobID)
+	reqURL := resourceSubURL(c.BaseURL, "jobs", jobID, "files")
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting job files: %w", err)
@@ -820,7 +828,7 @@ func (c *Client) GetComponentsFiltered(ctx context.Context, topicID, componentTy
 
 // GetComponent retrieves a single component by ID from the DCI API
 func (c *Client) GetComponent(ctx context.Context, componentID string) (*ComponentResponse, error) {
-	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	reqURL := resourceURL(c.BaseURL, "components", componentID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting component: %w", err)
@@ -883,7 +891,7 @@ func (c *Client) UpdateComponent(ctx context.Context, componentID string, update
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	reqURL := resourceURL(c.BaseURL, "components", componentID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component: %w", err)
@@ -906,7 +914,7 @@ func (c *Client) UpdateComponent(ctx context.Context, componentID string, update
 
 // DeleteComponent deletes a component from DCI
 func (c *Client) DeleteComponent(ctx context.Context, componentID string) error {
-	reqURL := fmt.Sprintf("%s/components/%s", c.BaseURL, componentID)
+	reqURL := resourceURL(c.BaseURL, "components", componentID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting component: %w", err)
@@ -1056,7 +1064,7 @@ func (c *Client) GetJobStates(ctx context.Context, jobID string) ([]JobStatesRes
 
 // GetFile downloads a file by ID from DCI
 func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, error) {
-	reqURL := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	reqURL := resourceURL(c.BaseURL, "files", fileID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("error getting file: %w", err)
@@ -1080,7 +1088,7 @@ func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, er
 
 // DeleteFile deletes a file from DCI
 func (c *Client) DeleteFile(ctx context.Context, fileID string) error {
-	reqURL := fmt.Sprintf("%s/files/%s", c.BaseURL, fileID)
+	reqURL := resourceURL(c.BaseURL, "files", fileID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting file: %w", err)
@@ -1175,7 +1183,7 @@ func (c *Client) fetchRemoteCIs(ctx context.Context, requestLimit, offset int) (
 
 // GetRemoteCI retrieves a specific remote CI by ID
 func (c *Client) GetRemoteCI(ctx context.Context, remoteciID string) (*RemoteCIResponse, error) {
-	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	reqURL := resourceURL(c.BaseURL, "remotecis", remoteciID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting remote CI: %w", err)
@@ -1236,7 +1244,7 @@ func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates 
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	reqURL := resourceURL(c.BaseURL, "remotecis", remoteciID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating remote CI: %w", err)
@@ -1259,7 +1267,7 @@ func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates 
 
 // DeleteRemoteCI deletes a remote CI from DCI
 func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
-	reqURL := fmt.Sprintf("%s/remotecis/%s", c.BaseURL, remoteciID)
+	reqURL := resourceURL(c.BaseURL, "remotecis", remoteciID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting remote CI: %w", err)
@@ -1314,7 +1322,7 @@ func (c *Client) fetchTeams(ctx context.Context, name string, requestLimit, offs
 
 // GetTeam retrieves a specific team by ID
 func (c *Client) GetTeam(ctx context.Context, teamID string) (*TeamResponse, error) {
-	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	reqURL := resourceURL(c.BaseURL, "teams", teamID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting team: %w", err)
@@ -1374,7 +1382,7 @@ func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTe
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	reqURL := resourceURL(c.BaseURL, "teams", teamID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating team: %w", err)
@@ -1397,7 +1405,7 @@ func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTe
 
 // DeleteTeam deletes a team from DCI
 func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
-	reqURL := fmt.Sprintf("%s/teams/%s", c.BaseURL, teamID)
+	reqURL := resourceURL(c.BaseURL, "teams", teamID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting team: %w", err)
@@ -1452,7 +1460,7 @@ func (c *Client) fetchUsers(ctx context.Context, name string, requestLimit, offs
 
 // GetUser retrieves a specific user by ID
 func (c *Client) GetUser(ctx context.Context, userID string) (*UserResponse, error) {
-	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	reqURL := resourceURL(c.BaseURL, "users", userID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
@@ -1516,7 +1524,7 @@ func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUs
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	reqURL := resourceURL(c.BaseURL, "users", userID)
 	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
 	if err != nil {
 		return nil, fmt.Errorf("error updating user: %w", err)
@@ -1539,7 +1547,7 @@ func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUs
 
 // DeleteUser deletes a user from DCI
 func (c *Client) DeleteUser(ctx context.Context, userID string) error {
-	reqURL := fmt.Sprintf("%s/users/%s", c.BaseURL, userID)
+	reqURL := resourceURL(c.BaseURL, "users", userID)
 	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error deleting user: %w", err)
@@ -1587,7 +1595,7 @@ func (c *Client) fetchProducts(ctx context.Context, requestLimit, offset int) (P
 
 // GetProduct retrieves a specific product by ID
 func (c *Client) GetProduct(ctx context.Context, productID string) (*ProductResponse, error) {
-	reqURL := fmt.Sprintf("%s/products/%s", c.BaseURL, productID)
+	reqURL := resourceURL(c.BaseURL, "products", productID)
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting product: %w", err)
