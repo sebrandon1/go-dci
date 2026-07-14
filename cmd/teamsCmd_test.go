@@ -1,9 +1,14 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,4 +105,66 @@ func TestPrintTeamJSON(t *testing.T) {
 	assert.NotPanics(t, func() {
 		printTeamJSON(response)
 	})
+}
+
+func TestGetTeamCmd_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-team"}})
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	getTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	outputFormat = OutputFormatStdout
+	defer func() { getTeamIDFlag = "" }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getTeamCmd.RunE(cmd, []string{})
+	assert.NoError(t, err)
+}
+
+func TestGetTeamCmd_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	getTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	outputFormat = OutputFormatStdout
+	defer func() { getTeamIDFlag = "" }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getTeamCmd.RunE(cmd, []string{})
+	assert.Error(t, err)
+}
+
+func TestDeleteTeamCmd_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	deleteTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatStdout
+	defer func() { deleteTeamIDFlag = ""; yesFlag = false }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := deleteTeamCmd.RunE(cmd, []string{})
+	assert.NoError(t, err)
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -191,4 +192,25 @@ func TestDeleteFileCmd_JSONOutput(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "deleted", parsed["status"])
 	assert.Equal(t, "file-123", parsed["id"])
+}
+
+func TestDeleteFileCmd_Success_RunE(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	deleteFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatStdout
+	defer func() { deleteFileIDFlag = ""; yesFlag = false }()
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := deleteFileCmd.RunE(cmd, []string{})
+	assert.NoError(t, err)
 }

@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -452,4 +457,39 @@ func TestCalculateDaysSince_InvalidTimestamp(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 0.0, days)
 	assert.Contains(t, err.Error(), "failed to parse timestamp")
+}
+
+func TestGetIdentityCmd_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(lib.IdentityResponse{Identity: lib.Identity{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-remoteci", Type: "remoteci"}})
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	outputFormat = OutputFormatStdout
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getIdentityCmd.RunE(cmd, []string{})
+	assert.NoError(t, err)
+}
+
+func TestGetIdentityCmd_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	dciClient = lib.NewClient("test", "test")
+	dciClient.BaseURL = server.URL + "/api/v1"
+	defer func() { dciClient = nil }()
+
+	outputFormat = OutputFormatStdout
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getIdentityCmd.RunE(cmd, []string{})
+	assert.Error(t, err)
 }
