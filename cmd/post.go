@@ -26,12 +26,6 @@ var createJobCmd = &cobra.Command{
 	Use:   "create-job",
 	Short: "Create a new job in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		// Parse component IDs if provided
 		var componentIDs []string
@@ -49,7 +43,7 @@ var createJobCmd = &cobra.Command{
 
 		printStatus("Creating job for topic ID: %s\n", createJobTopicID)
 
-		response, err := client.CreateJob(cmd.Context(), createJobTopicID, componentIDs, createJobComment)
+		response, err := dciClient.CreateJob(cmd.Context(), createJobTopicID, componentIDs, createJobComment)
 		if err != nil {
 			return fmt.Errorf("failed to create job: %w", err)
 		}
@@ -72,11 +66,6 @@ var updateJobStateCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		// Validate status
 		validStatuses := []string{"new", "pre-run", "running", "post-run", "success", "failure", "killed", "error"}
 		isValid := false
@@ -90,8 +79,6 @@ var updateJobStateCmd = &cobra.Command{
 			return fmt.Errorf("invalid status '%s'. Valid values: %s", updateJobStateStatus, strings.Join(validStatuses, ", "))
 		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would update job state: job-id=%s, status=%s, comment=%q\n", updateJobStateJobID, updateJobStateStatus, updateJobStateComment)
 			return nil
@@ -99,7 +86,7 @@ var updateJobStateCmd = &cobra.Command{
 
 		printStatus("Updating job %s to status: %s\n", updateJobStateJobID, updateJobStateStatus)
 
-		response, err := client.UpdateJobState(cmd.Context(), updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
+		response, err := dciClient.UpdateJobState(cmd.Context(), updateJobStateJobID, lib.JobState(updateJobStateStatus), updateJobStateComment)
 		if err != nil {
 			return fmt.Errorf("failed to update job state: %w", err)
 		}
@@ -118,17 +105,10 @@ var uploadFileCmd = &cobra.Command{
 	Use:   "upload-file",
 	Short: "Upload a file (e.g., test results) to a job in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		// Default mime type for test results
 		if uploadFileMimeType == "" {
 			uploadFileMimeType = "application/junit"
 		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would upload file: job-id=%s, file=%s, mime=%s\n", uploadFileJobID, uploadFilePath, uploadFileMimeType)
@@ -137,7 +117,7 @@ var uploadFileCmd = &cobra.Command{
 
 		printStatus("Uploading file %s to job %s\n", uploadFilePath, uploadFileJobID)
 
-		response, err := client.UploadFile(cmd.Context(), uploadFileJobID, uploadFilePath, uploadFileMimeType)
+		response, err := dciClient.UploadFile(cmd.Context(), uploadFileJobID, uploadFilePath, uploadFileMimeType)
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %w", err)
 		}

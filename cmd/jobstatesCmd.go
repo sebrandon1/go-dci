@@ -23,12 +23,6 @@ var getJobStatesCmd = &cobra.Command{
 			}
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if getJobStatesJobIDFlag != "" {
 			printStatus("Getting job states for job ID: %s", getJobStatesJobIDFlag)
@@ -36,7 +30,7 @@ var getJobStatesCmd = &cobra.Command{
 			printStatus("Getting all job states...")
 		}
 
-		responses, err := client.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
+		responses, err := dciClient.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job states: %w", err)
 		}

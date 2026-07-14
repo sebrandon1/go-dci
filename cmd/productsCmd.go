@@ -17,16 +17,10 @@ var getProductsCmd = &cobra.Command{
 	Use:   "products",
 	Short: "Get all products from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting products...")
 
-		responses, err := client.GetProducts(cmd.Context())
+		responses, err := dciClient.GetProducts(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get products: %w", err)
 		}
@@ -49,16 +43,10 @@ var getProductCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting product with ID: %s\n", getProductIDFlag)
 
-		response, err := client.GetProduct(cmd.Context(), getProductIDFlag)
+		response, err := dciClient.GetProduct(cmd.Context(), getProductIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get product: %w", err)
 		}

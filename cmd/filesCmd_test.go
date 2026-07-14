@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/sebrandon1/go-dci/lib"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,24 +40,24 @@ func TestDeleteFileCmd_MissingID(t *testing.T) {
 
 func TestGetFileCmd_MissingCredentials(t *testing.T) {
 	viper.Reset()
+	defer viper.Reset()
 
-	getFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
-	defer func() { getFileIDFlag = "" }()
-
-	cmd := &cobra.Command{}
-	err := getFileCmd.RunE(cmd, []string{})
+	// Credential validation is centralized in PersistentPreRunE.
+	// Execute through cobra so PersistentPreRunE runs.
+	rootCmd.SetArgs([]string{"file", "--id", "550e8400-e29b-41d4-a716-446655440000"})
+	err := rootCmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "DCI credentials not configured")
 }
 
 func TestDeleteFileCmd_MissingCredentials(t *testing.T) {
 	viper.Reset()
+	defer viper.Reset()
 
-	deleteFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
-	defer func() { deleteFileIDFlag = "" }()
-
-	cmd := &cobra.Command{}
-	err := deleteFileCmd.RunE(cmd, []string{})
+	// Credential validation is centralized in PersistentPreRunE.
+	// Execute through cobra so PersistentPreRunE runs.
+	rootCmd.SetArgs([]string{"delete-file", "--id", "550e8400-e29b-41d4-a716-446655440000"})
+	err := rootCmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "DCI credentials not configured")
 }

@@ -32,12 +32,6 @@ var getTopicsCmd = &cobra.Command{
 	Use:   "topics",
 	Short: "Get all topics from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if nameFilter != "" {
 			printStatus("Getting topics matching name: %s\n", nameFilter)
@@ -45,7 +39,7 @@ var getTopicsCmd = &cobra.Command{
 			printStatus("Getting all topics from DCI")
 		}
 
-		topicsResponses, err := client.GetTopicsByName(cmd.Context(), nameFilter)
+		topicsResponses, err := dciClient.GetTopicsByName(cmd.Context(), nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get topics: %w", err)
 		}
@@ -70,12 +64,6 @@ var getComponentTypesCmd = &cobra.Command{
 	Use:   "componenttypes",
 	Short: "Get all component types from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if nameFilter != "" {
 			printStatus("Getting component types matching name: %s\n", nameFilter)
@@ -83,7 +71,7 @@ var getComponentTypesCmd = &cobra.Command{
 			printStatus("Getting all component types from DCI")
 		}
 
-		componentTypesResponses, err := client.GetComponentTypesByName(cmd.Context(), nameFilter)
+		componentTypesResponses, err := dciClient.GetComponentTypesByName(cmd.Context(), nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get component types: %w", err)
 		}
@@ -108,14 +96,8 @@ var getIdentityCmd = &cobra.Command{
 	Use:   "identity",
 	Short: "Verify authentication and display current identity information",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
-		identity, err := client.GetIdentity(cmd.Context())
+		identity, err := dciClient.GetIdentity(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("authentication failed: %w", err)
 		}
@@ -134,11 +116,6 @@ var getOcpCountCmd = &cobra.Command{
 	Use:   "ocpcount",
 	Short: "Get the count of jobs for each OCP version",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		printStatus("Getting all jobs from DCI that are %s days old\n", ageInDays)
 
 		daysBackLimit, err := strconv.Atoi(ageInDays)
@@ -146,9 +123,7 @@ var getOcpCountCmd = &cobra.Command{
 			return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
-		jobsResponses, err := client.GetJobs(cmd.Context(), daysBackLimit)
+		jobsResponses, err := dciClient.GetJobs(cmd.Context(), daysBackLimit)
 		if err != nil {
 			return fmt.Errorf("getting jobs: %w", err)
 		}
@@ -169,12 +144,6 @@ var getComponentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "Get all components, optionally filtered by topic, type, or name",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		var statusMsg string
 		if topicID != "" || typeFilter != "" || nameFilter != "" {
@@ -193,7 +162,7 @@ var getComponentsCmd = &cobra.Command{
 			printStatus("Getting all components from DCI")
 		}
 
-		componentsResponses, err := client.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter)
+		componentsResponses, err := dciClient.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get components: %w", err)
 		}
@@ -218,11 +187,6 @@ var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
 	Short: "Get all jobs with a specific age in days or date range",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if ageInDays != "" && (startDate != "" || endDate != "") {
 			return fmt.Errorf("--age and --start-date/--end-date are mutually exclusive")
 		}
@@ -236,8 +200,6 @@ var getJobsCmd = &cobra.Command{
 		certsuiteJobsCtr := 0
 		totalJobsCtr := 0
 		startRun := time.Now()
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		var jobsResponses []lib.JobsResponse
 
@@ -257,7 +219,7 @@ var getJobsCmd = &cobra.Command{
 
 			printStatus("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
 
-			jobsResponses, err = client.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
+			jobsResponses, err = dciClient.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %w", err)
 			}
@@ -271,7 +233,7 @@ var getJobsCmd = &cobra.Command{
 				return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 			}
 
-			jobsResponses, err = client.GetJobs(cmd.Context(), daysBackLimit)
+			jobsResponses, err = dciClient.GetJobs(cmd.Context(), daysBackLimit)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %w", err)
 			}
@@ -336,23 +298,6 @@ func findOcpVersionFromComponents(components []lib.Components) string {
 	}
 
 	return ""
-}
-
-func getCredentials() (string, string, error) {
-	accessKey := GetConfigValue("accesskey")
-	secretKey := GetConfigValue("secretkey")
-
-	if accessKey == "" || secretKey == "" {
-		return "", "", fmt.Errorf(`DCI credentials not configured
-
-To configure credentials, use one of:
-  1. Config file:  go-dci config set --accesskey <key> --secretkey <secret>
-  2. Environment:  export GO_DCI_ACCESSKEY=<key> GO_DCI_SECRETKEY=<secret>
-
-Get credentials from: https://www.distributed-ci.io/`)
-	}
-
-	return accessKey, secretKey, nil
 }
 
 // getOCPVersions reads the OCP_VERSIONS_TO_TRACK environment variable

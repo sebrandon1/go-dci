@@ -28,16 +28,10 @@ var getJobCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting job with ID: %s\n", getJobIDFlag)
 
-		response, err := client.GetJob(cmd.Context(), getJobIDFlag)
+		response, err := dciClient.GetJob(cmd.Context(), getJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job: %w", err)
 		}
@@ -60,12 +54,6 @@ var updateJobCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateJobRequest{}
 		if updateJobComment != "" {
@@ -86,7 +74,7 @@ var updateJobCmd = &cobra.Command{
 
 		printStatus("Updating job: %s\n", updateJobIDFlag)
 
-		response, err := client.UpdateJob(cmd.Context(), updateJobIDFlag, updates)
+		response, err := dciClient.UpdateJob(cmd.Context(), updateJobIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update job: %w", err)
 		}
@@ -110,11 +98,6 @@ var deleteJobCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete job: id=%s\n", deleteJobIDFlag)
 			return nil
@@ -130,11 +113,9 @@ var deleteJobCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting job: %s\n", deleteJobIDFlag)
 
-		err = client.DeleteJob(cmd.Context(), deleteJobIDFlag)
+		err = dciClient.DeleteJob(cmd.Context(), deleteJobIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete job: %w", err)
 		}
@@ -159,12 +140,6 @@ var scheduleJobCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would schedule job: topic-id=%s\n", scheduleJobTopicID)
@@ -173,7 +148,7 @@ var scheduleJobCmd = &cobra.Command{
 
 		printStatus("Scheduling job for topic: %s\n", scheduleJobTopicID)
 
-		response, err := client.ScheduleJob(cmd.Context(), scheduleJobTopicID)
+		response, err := dciClient.ScheduleJob(cmd.Context(), scheduleJobTopicID)
 		if err != nil {
 			return fmt.Errorf("failed to schedule job: %w", err)
 		}
@@ -197,16 +172,10 @@ var getJobFilesCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting files for job ID: %s\n", jobFilesIDFlag)
 
-		response, err := client.GetJobFiles(cmd.Context(), jobFilesIDFlag)
+		response, err := dciClient.GetJobFiles(cmd.Context(), jobFilesIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get job files: %w", err)
 		}

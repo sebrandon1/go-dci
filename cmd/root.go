@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
@@ -33,6 +34,7 @@ var (
 	quietFlag    bool
 	verboseFlag  bool
 	dryRunFlag   bool
+	dciClient    *lib.Client
 )
 
 // printStatus prints a status message unless --quiet or JSON output is enabled.
@@ -107,6 +109,23 @@ func readPassword(prompt string) (string, error) {
 	return string(password), nil
 }
 
+func getCredentials() (string, string, error) {
+	accessKey := GetConfigValue("accesskey")
+	secretKey := GetConfigValue("secretkey")
+
+	if accessKey == "" || secretKey == "" {
+		return "", "", fmt.Errorf(`DCI credentials not configured
+
+To configure credentials, use one of:
+  1. Config file:  go-dci config set --accesskey <key> --secretkey <secret>
+  2. Environment:  export GO_DCI_ACCESSKEY=<key> GO_DCI_SECRETKEY=<secret>
+
+Get credentials from: https://www.distributed-ci.io/`)
+	}
+
+	return accessKey, secretKey, nil
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -123,6 +142,20 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Show verbose output (HTTP requests, timing)")
 	rootCmd.PersistentFlags().BoolVar(&dryRunFlag, "dry-run", false, "Show what would happen without executing")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
+
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		for c := cmd; c != nil; c = c.Parent() {
+			if c.Name() == "config" {
+				return nil
+			}
+		}
+		accessKey, secretKey, err := getCredentials()
+		if err != nil {
+			return err
+		}
+		dciClient = lib.NewClient(accessKey, secretKey)
+		return nil
+	}
 }
 
 func initConfig() {

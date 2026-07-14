@@ -32,16 +32,10 @@ var getComponentCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting component with ID: %s\n", getComponentIDFlag)
 
-		response, err := client.GetComponent(cmd.Context(), getComponentIDFlag)
+		response, err := dciClient.GetComponent(cmd.Context(), getComponentIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get component: %w", err)
 		}
@@ -60,12 +54,6 @@ var createComponentCmd = &cobra.Command{
 	Use:   "create-component",
 	Short: "Create a new component in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would create component: name=%s, type=%s, topic-id=%s, version=%s\n", createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
@@ -74,7 +62,7 @@ var createComponentCmd = &cobra.Command{
 
 		printStatus("Creating component: %s\n", createComponentName)
 
-		response, err := client.CreateComponent(cmd.Context(), createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
+		response, err := dciClient.CreateComponent(cmd.Context(), createComponentName, createComponentType, createComponentTopicID, createComponentVersion)
 		if err != nil {
 			return fmt.Errorf("failed to create component: %w", err)
 		}
@@ -98,12 +86,6 @@ var updateComponentCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateComponentRequest{}
 		if updateComponentName != "" {
@@ -130,7 +112,7 @@ var updateComponentCmd = &cobra.Command{
 
 		printStatus("Updating component: %s\n", updateComponentIDFlag)
 
-		response, err := client.UpdateComponent(cmd.Context(), updateComponentIDFlag, updates)
+		response, err := dciClient.UpdateComponent(cmd.Context(), updateComponentIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update component: %w", err)
 		}
@@ -154,11 +136,6 @@ var deleteComponentCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete component: id=%s\n", deleteComponentIDFlag)
 			return nil
@@ -174,11 +151,9 @@ var deleteComponentCmd = &cobra.Command{
 			return nil
 		}
 
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting component: %s\n", deleteComponentIDFlag)
 
-		err = client.DeleteComponent(cmd.Context(), deleteComponentIDFlag)
+		err = dciClient.DeleteComponent(cmd.Context(), deleteComponentIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete component: %w", err)
 		}

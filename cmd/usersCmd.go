@@ -31,12 +31,6 @@ var getUsersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "Get all users from DCI, optionally filtered by name",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if usersNameFilter != "" {
 			printStatus("Getting users matching name: %s\n", usersNameFilter)
@@ -44,7 +38,7 @@ var getUsersCmd = &cobra.Command{
 			printStatus("Getting users...")
 		}
 
-		response, err := client.GetUsersFiltered(cmd.Context(), usersNameFilter)
+		response, err := dciClient.GetUsersFiltered(cmd.Context(), usersNameFilter)
 		if err != nil {
 			return fmt.Errorf("failed to get users: %w", err)
 		}
@@ -67,16 +61,10 @@ var getUserCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting user with ID: %s\n", getUserIDFlag)
 
-		response, err := client.GetUser(cmd.Context(), getUserIDFlag)
+		response, err := dciClient.GetUser(cmd.Context(), getUserIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
@@ -111,12 +99,6 @@ var createUserCmd = &cobra.Command{
 			}
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would create user: name=%s, email=%s, fullname=%s, team-id=%s\n", createUserNameFlag, createUserEmailFlag, createUserFullnameFlag, createUserTeamIDFlag)
@@ -125,7 +107,7 @@ var createUserCmd = &cobra.Command{
 
 		printStatus("Creating user: %s\n", createUserNameFlag)
 
-		response, err := client.CreateUser(
+		response, err := dciClient.CreateUser(
 			cmd.Context(),
 			createUserNameFlag,
 			createUserEmailFlag,
@@ -156,12 +138,6 @@ var updateUserCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateUserRequest{}
 		if updateUserNameFlag != "" {
@@ -184,7 +160,7 @@ var updateUserCmd = &cobra.Command{
 
 		printStatus("Updating user: %s\n", updateUserIDFlag)
 
-		response, err := client.UpdateUser(cmd.Context(), updateUserIDFlag, updates)
+		response, err := dciClient.UpdateUser(cmd.Context(), updateUserIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
 		}
@@ -208,11 +184,6 @@ var deleteUserCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete user: id=%s\n", deleteUserIDFlag)
 			return nil
@@ -228,12 +199,9 @@ var deleteUserCmd = &cobra.Command{
 			return nil
 		}
 
-
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting user: %s\n", deleteUserIDFlag)
 
-		err = client.DeleteUser(cmd.Context(), deleteUserIDFlag)
+		err = dciClient.DeleteUser(cmd.Context(), deleteUserIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete user: %w", err)
 		}

@@ -23,16 +23,10 @@ var getRemoteCIsCmd = &cobra.Command{
 	Use:   "remotecis",
 	Short: "Get all remote CIs from DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting remote CIs...")
 
-		responses, err := client.GetRemoteCIs(cmd.Context())
+		responses, err := dciClient.GetRemoteCIs(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("failed to get remote CIs: %w", err)
 		}
@@ -55,16 +49,10 @@ var getRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
 
-		response, err := client.GetRemoteCI(cmd.Context(), getRemoteCIsCmd_IDFlag)
+		response, err := dciClient.GetRemoteCI(cmd.Context(), getRemoteCIsCmd_IDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get remote CI: %w", err)
 		}
@@ -83,12 +71,6 @@ var createRemoteCICmd = &cobra.Command{
 	Use:   "create-remoteci",
 	Short: "Create a new remote CI in DCI",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would create remote CI: name=%s, team-id=%s\n", createRemoteCINameFlag, createRemoteCITeamIDFlag)
@@ -97,7 +79,7 @@ var createRemoteCICmd = &cobra.Command{
 
 		printStatus("Creating remote CI: %s\n", createRemoteCINameFlag)
 
-		response, err := client.CreateRemoteCI(cmd.Context(), createRemoteCINameFlag, createRemoteCITeamIDFlag)
+		response, err := dciClient.CreateRemoteCI(cmd.Context(), createRemoteCINameFlag, createRemoteCITeamIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to create remote CI: %w", err)
 		}
@@ -121,12 +103,6 @@ var updateRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		updates := lib.UpdateRemoteCIRequest{}
 		if updateRemoteCINameFlag != "" {
@@ -143,7 +119,7 @@ var updateRemoteCICmd = &cobra.Command{
 
 		printStatus("Updating remote CI: %s\n", updateRemoteCIIDFlag)
 
-		response, err := client.UpdateRemoteCI(cmd.Context(), updateRemoteCIIDFlag, updates)
+		response, err := dciClient.UpdateRemoteCI(cmd.Context(), updateRemoteCIIDFlag, updates)
 		if err != nil {
 			return fmt.Errorf("failed to update remote CI: %w", err)
 		}
@@ -167,11 +143,6 @@ var deleteRemoteCICmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete remote CI: id=%s\n", deleteRemoteCIIDFlag)
 			return nil
@@ -187,12 +158,9 @@ var deleteRemoteCICmd = &cobra.Command{
 			return nil
 		}
 
-
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting remote CI: %s\n", deleteRemoteCIIDFlag)
 
-		err = client.DeleteRemoteCI(cmd.Context(), deleteRemoteCIIDFlag)
+		err = dciClient.DeleteRemoteCI(cmd.Context(), deleteRemoteCIIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete remote CI: %w", err)
 		}

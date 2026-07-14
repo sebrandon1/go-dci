@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sebrandon1/go-dci/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -24,16 +23,10 @@ var getFileCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
-		client := lib.NewClient(accessKey, secretKey)
 
 		printStatus("Downloading file with ID: %s\n", getFileIDFlag)
 
-		content, contentType, err := client.GetFile(cmd.Context(), getFileIDFlag)
+		content, contentType, err := dciClient.GetFile(cmd.Context(), getFileIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to get file: %w", err)
 		}
@@ -70,11 +63,6 @@ var deleteFileCmd = &cobra.Command{
 			return err
 		}
 
-		accessKey, secretKey, err := getCredentials()
-		if err != nil {
-			return err
-		}
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would delete file: id=%s\n", deleteFileIDFlag)
 			return nil
@@ -90,12 +78,9 @@ var deleteFileCmd = &cobra.Command{
 			return nil
 		}
 
-
-		client := lib.NewClient(accessKey, secretKey)
-
 		printStatus("Deleting file: %s\n", deleteFileIDFlag)
 
-		err = client.DeleteFile(cmd.Context(), deleteFileIDFlag)
+		err = dciClient.DeleteFile(cmd.Context(), deleteFileIDFlag)
 		if err != nil {
 			return fmt.Errorf("failed to delete file: %w", err)
 		}
