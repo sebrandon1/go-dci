@@ -18,6 +18,7 @@ var startDate string
 var endDate string
 var nameFilter string
 var typeFilter string
+var certsuiteFilter bool
 
 const (
 	dateFormat    = "2006-01-02T15:04:05.999999"
@@ -238,21 +239,23 @@ combined to narrow results by topic ID, component type, or name substring.`,
 
 var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
-	Short: "Get all certsuite jobs with a specific age in days or date range",
-	Long: `Retrieve certsuite jobs from DCI filtered by a time window. Jobs are filtered
-to those containing "cnf-certification-test" or "certsuite" components and the
-certsuite version is extracted from the component name.
+	Short: "Get all jobs with a specific age in days or date range",
+	Long: `Retrieve DCI jobs filtered by a time window. By default all jobs are listed
+with basic information (ID, name, status, state, topic, created).
+
+Use --certsuite to filter to only certsuite jobs and display the certsuite
+component version alongside each job.
 
 Use --age for a rolling window from today, or --start-date/--end-date for a
 specific range. The two approaches are mutually exclusive.`,
-	Example: `  # Get certsuite jobs from the last 7 days
+	Example: `  # List all jobs from the last 7 days
   dci jobs --age 7
 
-  # Get jobs in a specific date range
-  dci jobs --start-date 2026-01-01 --end-date 2026-01-31
+  # List only certsuite jobs from the last 7 days
+  dci jobs --age 7 --certsuite
 
-  # Output as JSON
-  dci jobs --age 30 -o json`,
+  # List jobs in a date range, output as JSON
+  dci jobs --start-date 2026-01-01 --end-date 2026-01-31 -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if ageInDays != "" && (startDate != "" || endDate != "") {
 			return fmt.Errorf("--age and --start-date/--end-date are mutually exclusive")
@@ -262,12 +265,7 @@ specific range. The two approaches are mutually exclusive.`,
 			return fmt.Errorf("either --age or --start-date/--end-date is required")
 		}
 
-		var jsonOutput lib.JobsJsonOutput
-
-		certsuiteJobsCtr := 0
-		totalJobsCtr := 0
 		startRun := time.Now()
-
 		var jobsResponses []lib.JobsResponse
 
 		if startDate != "" && endDate != "" {
@@ -306,45 +304,101 @@ specific range. The two approaches are mutually exclusive.`,
 			}
 		}
 
-		for _, job := range jobsResponses {
-			for _, j := range job.Jobs {
-				totalJobsCtr++
+		if certsuiteFilter {
+			return runCertsuiteJobsOutput(jobsResponses, startRun)
+		}
+		return runGeneralJobsOutput(jobsResponses)
+	},
+}
 
-				for _, c := range j.Components {
-					if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
-						commit := extractCommitVersion(c.Name)
-						daysSince, err := calculateDaysSince(j.CreatedAt)
-						if err != nil {
-							return err
-						}
-						printStatus("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
+func runGeneralJobsOutput(jobsResponses []lib.JobsResponse) error {
+	type jobRow struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Status    string `json:"status"`
+		State     string `json:"state"`
+		TopicID   string `json:"topic_id"`
+		TopicName string `json:"topic_name"`
+		CreatedAt string `json:"created_at"`
+	}
 
-						jo := lib.JsonCertsuiteInfo{
-							ID:               j.ID,
-							CertsuiteVersion: commit,
-						}
-						jsonOutput.Jobs = append(jsonOutput.Jobs, jo)
+	var rows []jobRow
+	for _, page := range jobsResponses {
+		for _, j := range page.Jobs {
+			rows = append(rows, jobRow{
+				ID:        j.ID,
+				Name:      j.Name,
+				Status:    j.Status,
+				State:     j.State,
+				TopicID:   j.TopicID,
+				TopicName: j.Topic.Name,
+				CreatedAt: j.CreatedAt,
+			})
+		}
+	}
 
-						certsuiteJobsCtr++
+	if outputFormat == OutputFormatJSON {
+		jsonBytes, err := json.Marshal(map[string]any{"jobs": rows, "total": len(rows)})
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %w", err)
+		}
+		fmt.Println(string(jsonBytes))
+		return nil
+	}
+
+	for _, r := range rows {
+		topicLabel := r.TopicID
+		if r.TopicName != "" {
+			topicLabel = r.TopicName
+		}
+		fmt.Printf("ID: %s | Name: %s | Status: %s | State: %s | Topic: %s | Created: %s\n",
+			r.ID, r.Name, r.Status, r.State, topicLabel, r.CreatedAt)
+	}
+	printStatus("Total Jobs: %d", len(rows))
+	return nil
+}
+
+func runCertsuiteJobsOutput(jobsResponses []lib.JobsResponse, startRun time.Time) error {
+	var jsonOutput lib.JobsJsonOutput
+	certsuiteJobsCtr := 0
+	totalJobsCtr := 0
+
+	for _, job := range jobsResponses {
+		for _, j := range job.Jobs {
+			totalJobsCtr++
+
+			for _, c := range j.Components {
+				if strings.Contains(c.Name, "cnf-certification-test") || strings.Contains(c.Name, "certsuite") {
+					commit := extractCommitVersion(c.Name)
+					daysSince, err := calculateDaysSince(j.CreatedAt)
+					if err != nil {
+						return err
 					}
+					printStatus("Job ID: %s  -  Certsuite Version: %s (Days Since: %f)\n", j.ID, commit, daysSince)
+
+					jsonOutput.Jobs = append(jsonOutput.Jobs, lib.JsonCertsuiteInfo{
+						ID:               j.ID,
+						CertsuiteVersion: commit,
+					})
+					certsuiteJobsCtr++
 				}
 			}
 		}
+	}
 
-		if outputFormat != OutputFormatJSON {
-			printStatus("Total Certsuite Jobs: %d", certsuiteJobsCtr)
-			printStatus("Total DCI Jobs: %d", totalJobsCtr)
-			printStatus("Total go-dci runtime: %v", time.Since(startRun))
-		} else {
-			jsonOutputBytes, err := json.Marshal(jsonOutput)
-			if err != nil {
-				return fmt.Errorf("failed to marshal JSON output: %w", err)
-			}
-			fmt.Println(string(jsonOutputBytes))
+	if outputFormat != OutputFormatJSON {
+		printStatus("Total Certsuite Jobs: %d", certsuiteJobsCtr)
+		printStatus("Total DCI Jobs: %d", totalJobsCtr)
+		printStatus("Total go-dci runtime: %v", time.Since(startRun))
+	} else {
+		jsonOutputBytes, err := json.Marshal(jsonOutput)
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %w", err)
 		}
+		fmt.Println(string(jsonOutputBytes))
+	}
 
-		return nil
-	},
+	return nil
 }
 
 func isCertsuiteJob(components []lib.Components) bool {
@@ -603,6 +657,7 @@ func init() {
 	getJobsCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 	getJobsCmd.PersistentFlags().StringVarP(&startDate, "start-date", "s", "", "Start date for job query (YYYY-MM-DD)")
 	getJobsCmd.PersistentFlags().StringVarP(&endDate, "end-date", "e", "", "End date for job query (YYYY-MM-DD)")
+	getJobsCmd.PersistentFlags().BoolVar(&certsuiteFilter, "certsuite", false, "Filter to certsuite jobs only and show certsuite version")
 
 	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 

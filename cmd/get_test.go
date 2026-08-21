@@ -493,3 +493,136 @@ func TestGetIdentityCmd_ServerError(t *testing.T) {
 	err := getIdentityCmd.RunE(cmd, []string{})
 	assert.Error(t, err)
 }
+
+func TestRunGeneralJobsOutput_Stdout(t *testing.T) {
+	responses := []lib.JobsResponse{
+		{
+			Jobs: []lib.Job{
+				{
+					ID:        "job-1",
+					Name:      "nightly",
+					Status:    "success",
+					State:     "active",
+					TopicID:   "topic-abc",
+					CreatedAt: "2026-01-01T00:00:00.000000",
+				},
+				{
+					ID:        "job-2",
+					Name:      "regression",
+					Status:    "failure",
+					State:     "active",
+					TopicID:   "topic-abc",
+					CreatedAt: "2026-01-02T00:00:00.000000",
+				},
+			},
+		},
+	}
+
+	outputFormat = OutputFormatStdout
+	defer func() { outputFormat = OutputFormatStdout }()
+
+	assert.NotPanics(t, func() {
+		err := runGeneralJobsOutput(responses)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRunGeneralJobsOutput_JSON(t *testing.T) {
+	responses := []lib.JobsResponse{
+		{
+			Jobs: []lib.Job{
+				{
+					ID:      "job-1",
+					Name:    "nightly",
+					Status:  "success",
+					State:   "active",
+					TopicID: "topic-abc",
+				},
+			},
+		},
+	}
+
+	outputFormat = OutputFormatJSON
+	defer func() { outputFormat = OutputFormatStdout }()
+
+	assert.NotPanics(t, func() {
+		err := runGeneralJobsOutput(responses)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRunGeneralJobsOutput_TopicName(t *testing.T) {
+	responses := []lib.JobsResponse{
+		{
+			Jobs: []lib.Job{
+				{
+					ID:      "job-1",
+					TopicID: "topic-abc",
+				},
+			},
+		},
+	}
+
+	outputFormat = OutputFormatStdout
+	defer func() { outputFormat = OutputFormatStdout }()
+
+	assert.NotPanics(t, func() {
+		err := runGeneralJobsOutput(responses)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRunCertsuiteJobsOutput_Stdout(t *testing.T) {
+	responses := []lib.JobsResponse{
+		{
+			Jobs: []lib.Job{
+				{
+					ID:        "job-1",
+					CreatedAt: time.Now().Add(-24 * time.Hour).Format(dateFormat),
+					Components: []lib.Components{
+						{Name: "certsuite v1.2.3"},
+					},
+				},
+				{
+					ID:        "job-2",
+					CreatedAt: time.Now().Add(-48 * time.Hour).Format(dateFormat),
+					Components: []lib.Components{
+						{Name: "some-other-component"},
+					},
+				},
+			},
+		},
+	}
+
+	outputFormat = OutputFormatStdout
+	defer func() { outputFormat = OutputFormatStdout }()
+
+	assert.NotPanics(t, func() {
+		err := runCertsuiteJobsOutput(responses, time.Now())
+		assert.NoError(t, err)
+	})
+}
+
+func TestRunCertsuiteJobsOutput_JSON(t *testing.T) {
+	responses := []lib.JobsResponse{
+		{
+			Jobs: []lib.Job{
+				{
+					ID:        "job-1",
+					CreatedAt: time.Now().Add(-24 * time.Hour).Format(dateFormat),
+					Components: []lib.Components{
+						{Name: "cnf-certification-test v4.0.0"},
+					},
+				},
+			},
+		},
+	}
+
+	outputFormat = OutputFormatJSON
+	defer func() { outputFormat = OutputFormatStdout }()
+
+	assert.NotPanics(t, func() {
+		err := runCertsuiteJobsOutput(responses, time.Now())
+		assert.NoError(t, err)
+	})
+}
