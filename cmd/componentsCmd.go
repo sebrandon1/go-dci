@@ -27,6 +27,9 @@ var (
 var getComponentCmd = &cobra.Command{
 	Use:   "component",
 	Short: "Get a specific component by ID",
+	Long:  `Retrieve detailed information about a single DCI component by its UUID.`,
+	Example: `  dci component --id <component-uuid>
+  dci component --id <component-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getComponentIDFlag, "component"); err != nil {
 			return err
@@ -53,6 +56,10 @@ var getComponentCmd = &cobra.Command{
 var createComponentCmd = &cobra.Command{
 	Use:   "create-component",
 	Short: "Create a new component in DCI",
+	Long: `Create a new versioned component in DCI associated with a topic.
+The component type must exist in DCI before creation.`,
+	Example: `  dci create-component --name "OCP 4.17.3" --type ocp --topic-id <topic-uuid> --version 4.17.3
+  dci create-component --name "OCP 4.17.3" --type ocp --topic-id <topic-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if dryRunFlag {
@@ -81,6 +88,10 @@ var createComponentCmd = &cobra.Command{
 var updateComponentCmd = &cobra.Command{
 	Use:   "update-component",
 	Short: "Update an existing component in DCI",
+	Long:  `Update mutable fields (name, state, version, tags) of a DCI component by UUID.`,
+	Example: `  dci update-component --id <component-uuid> --state active
+  dci update-component --id <component-uuid> --version 4.17.4 --tags "ga,stable"
+  dci update-component --id <component-uuid> --name "OCP 4.17.4" --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateComponentIDFlag, "component"); err != nil {
 			return err
@@ -131,6 +142,11 @@ var updateComponentCmd = &cobra.Command{
 var deleteComponentCmd = &cobra.Command{
 	Use:   "delete-component",
 	Short: "Delete a component from DCI",
+	Long: `Permanently delete a DCI component by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-component --id <component-uuid>
+  dci delete-component --id <component-uuid> --yes
+  dci delete-component --id <component-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteComponentIDFlag, "component"); err != nil {
 			return err

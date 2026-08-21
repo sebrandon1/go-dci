@@ -22,6 +22,11 @@ var (
 var getRemoteCIsCmd = &cobra.Command{
 	Use:   "remotecis",
 	Short: "Get all remote CIs from DCI",
+	Long: `Retrieve all remote CI agents registered in DCI. Remote CIs represent the
+CI systems (e.g., Jenkins agents, test runners) that execute DCI jobs.
+API credentials are redacted from JSON output.`,
+	Example: `  dci remotecis
+  dci remotecis -o json | jq '.remotecis[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		printStatus("Getting remote CIs...")
@@ -44,6 +49,9 @@ var getRemoteCIsCmd = &cobra.Command{
 var getRemoteCICmd = &cobra.Command{
 	Use:   "remoteci",
 	Short: "Get a specific remote CI by ID",
+	Long:  `Retrieve detailed information about a single DCI remote CI by its UUID. API credentials are redacted.`,
+	Example: `  dci remoteci --id <remoteci-uuid>
+  dci remoteci --id <remoteci-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getRemoteCIsCmd_IDFlag, "remote CI"); err != nil {
 			return err
@@ -70,6 +78,9 @@ var getRemoteCICmd = &cobra.Command{
 var createRemoteCICmd = &cobra.Command{
 	Use:   "create-remoteci",
 	Short: "Create a new remote CI in DCI",
+	Long:  `Register a new remote CI agent in DCI, associated with a team.`,
+	Example: `  dci create-remoteci --name my-lab-runner --team-id <team-uuid>
+  dci create-remoteci --name my-lab-runner --team-id <team-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if dryRunFlag {
@@ -98,6 +109,9 @@ var createRemoteCICmd = &cobra.Command{
 var updateRemoteCICmd = &cobra.Command{
 	Use:   "update-remoteci",
 	Short: "Update an existing remote CI in DCI",
+	Long:  `Update the name or state of a DCI remote CI by its UUID.`,
+	Example: `  dci update-remoteci --id <remoteci-uuid> --name new-lab-name
+  dci update-remoteci --id <remoteci-uuid> --state inactive --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateRemoteCIIDFlag, "remote CI"); err != nil {
 			return err
@@ -138,6 +152,10 @@ var updateRemoteCICmd = &cobra.Command{
 var deleteRemoteCICmd = &cobra.Command{
 	Use:   "delete-remoteci",
 	Short: "Delete a remote CI from DCI",
+	Long: `Permanently delete a DCI remote CI by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-remoteci --id <remoteci-uuid>
+  dci delete-remoteci --id <remoteci-uuid> --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteRemoteCIIDFlag, "remote CI"); err != nil {
 			return err

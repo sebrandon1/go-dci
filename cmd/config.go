@@ -57,11 +57,21 @@ func maskCredential(value string) string {
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Set or get configuration values",
+	Long: `Manage go-dci configuration (DCI API credentials). Config is stored at
+$XDG_CONFIG_HOME/go-dci/config.yaml (default: ~/.config/go-dci/config.yaml).
+
+Credentials can also be provided via environment variables:
+  GO_DCI_ACCESSKEY and GO_DCI_SECRETKEY`,
+	Example: `  dci config set --accesskey <key> --secretkey <secret>
+  dci config view
+  dci config unset --key accesskey`,
 }
 
 var setCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Set a key value pair to the configuration",
+	Long:  `Store DCI API credentials in the go-dci config file.`,
+	Example: `  dci config set --accesskey myaccesskey --secretkey mysecretkey`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accesskey, _ := cmd.Flags().GetString(configKeyAccessKey)
 		secretkey, _ := cmd.Flags().GetString(configKeySecretKey)
@@ -87,6 +97,9 @@ var setCmd = &cobra.Command{
 var unsetCmd = &cobra.Command{
 	Use:   "unset",
 	Short: "Unset a key value pair from the configuration",
+	Long:  `Remove a configuration key (e.g., accesskey or secretkey) from the go-dci config file.`,
+	Example: `  dci config unset --key accesskey
+  dci config unset --key secretkey`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key, _ := cmd.Flags().GetString("key")
 
@@ -108,6 +121,8 @@ var unsetCmd = &cobra.Command{
 var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View the configuration",
+	Long:  `Display the current go-dci configuration. Credential values are masked, showing only the last 4 characters.`,
+	Example: `  dci config view`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Configuration:")
 

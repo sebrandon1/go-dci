@@ -17,8 +17,17 @@ import (
 var Version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "dci",
-	Short:   "CLI and library for the Red Hat Distributed CI API",
+	Use:   "dci",
+	Short: "CLI and library for the Red Hat Distributed CI API",
+	Long: `go-dci is a command-line tool for interacting with the Red Hat Distributed CI
+(DCI) API. It supports full CRUD operations on topics, jobs, components,
+component types, teams, users, remote CIs, products, files, and job states.
+
+Configure credentials before first use:
+  dci config set --accesskey <key> --secretkey <secret>
+
+Credentials can also be provided via environment variables:
+  GO_DCI_ACCESSKEY and GO_DCI_SECRETKEY`,
 	Version: Version,
 }
 

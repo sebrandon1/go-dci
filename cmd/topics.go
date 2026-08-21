@@ -24,6 +24,9 @@ var (
 var getTopicCmd = &cobra.Command{
 	Use:   "topic",
 	Short: "Get a specific topic by ID",
+	Long:  `Retrieve detailed information about a single DCI topic by its UUID.`,
+	Example: `  dci topic --id <topic-uuid>
+  dci topic --id <topic-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getTopicIDFlag, "topic"); err != nil {
 			return err
@@ -50,6 +53,11 @@ var getTopicCmd = &cobra.Command{
 var createTopicCmd = &cobra.Command{
 	Use:   "create-topic",
 	Short: "Create a new topic in DCI",
+	Long: `Create a new topic in DCI associated with a product. Optionally specify
+component types that are valid for components under this topic.`,
+	Example: `  dci create-topic --name OCP-4.18 --product-id <product-uuid>
+  dci create-topic --name OCP-4.18 --product-id <product-uuid> --component-types ocp,rhcos
+  dci create-topic --name OCP-4.18 --product-id <product-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// Parse component types if provided
@@ -87,6 +95,9 @@ var createTopicCmd = &cobra.Command{
 var updateTopicCmd = &cobra.Command{
 	Use:   "update-topic",
 	Short: "Update an existing topic in DCI",
+	Long:  `Update mutable fields of a DCI topic identified by its UUID.`,
+	Example: `  dci update-topic --id <topic-uuid> --name OCP-4.18-GA
+  dci update-topic --id <topic-uuid> --name OCP-4.18-GA --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateTopicIDFlag, "topic"); err != nil {
 			return err
@@ -124,6 +135,11 @@ var updateTopicCmd = &cobra.Command{
 var deleteTopicCmd = &cobra.Command{
 	Use:   "delete-topic",
 	Short: "Delete a topic from DCI",
+	Long: `Permanently delete a DCI topic by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-topic --id <topic-uuid>
+  dci delete-topic --id <topic-uuid> --yes
+  dci delete-topic --id <topic-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteTopicIDFlag, "topic"); err != nil {
 			return err
@@ -166,6 +182,9 @@ var deleteTopicCmd = &cobra.Command{
 var getTopicComponentsCmd = &cobra.Command{
 	Use:   "topic-components",
 	Short: "Get all components for a specific topic",
+	Long:  `Retrieve all components associated with a DCI topic by its UUID.`,
+	Example: `  dci topic-components --id <topic-uuid>
+  dci topic-components --id <topic-uuid> -o json | jq '.components[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(topicComponentsIDFlag, "topic"); err != nil {
 			return err

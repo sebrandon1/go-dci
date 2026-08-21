@@ -22,6 +22,11 @@ var (
 var getTeamsCmd = &cobra.Command{
 	Use:   "teams",
 	Short: "Get all teams from DCI, optionally filtered by name",
+	Long: `Retrieve all teams from DCI. Teams group users and remote CIs and control
+access to topics and products. Use --name to filter by substring match.`,
+	Example: `  dci teams
+  dci teams --name acme
+  dci teams -o json | jq '.teams[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if teamsNameFilter != "" {
@@ -48,6 +53,9 @@ var getTeamsCmd = &cobra.Command{
 var getTeamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Get a specific team by ID",
+	Long:  `Retrieve detailed information about a single DCI team by its UUID.`,
+	Example: `  dci team --id <team-uuid>
+  dci team --id <team-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getTeamIDFlag, "team"); err != nil {
 			return err
@@ -74,6 +82,9 @@ var getTeamCmd = &cobra.Command{
 var createTeamCmd = &cobra.Command{
 	Use:   "create-team",
 	Short: "Create a new team in DCI",
+	Long:  `Create a new team in DCI. Teams are used to control access to topics and products.`,
+	Example: `  dci create-team --name "acme-labs"
+  dci create-team --name "acme-labs" --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if dryRunFlag {
@@ -102,6 +113,9 @@ var createTeamCmd = &cobra.Command{
 var updateTeamCmd = &cobra.Command{
 	Use:   "update-team",
 	Short: "Update an existing team in DCI",
+	Long:  `Update the name or state of a DCI team by its UUID.`,
+	Example: `  dci update-team --id <team-uuid> --name "acme-labs-v2"
+  dci update-team --id <team-uuid> --state inactive --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateTeamIDFlag, "team"); err != nil {
 			return err
@@ -142,6 +156,10 @@ var updateTeamCmd = &cobra.Command{
 var deleteTeamCmd = &cobra.Command{
 	Use:   "delete-team",
 	Short: "Delete a team from DCI",
+	Long: `Permanently delete a DCI team by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-team --id <team-uuid>
+  dci delete-team --id <team-uuid> --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteTeamIDFlag, "team"); err != nil {
 			return err

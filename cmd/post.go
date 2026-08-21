@@ -25,6 +25,11 @@ var (
 var createJobCmd = &cobra.Command{
 	Use:   "create-job",
 	Short: "Create a new job in DCI",
+	Long: `Create a new DCI job for a topic with explicit component IDs. Use schedule-job
+to let DCI auto-select the latest components for a topic.`,
+	Example: `  dci create-job --topic-id <topic-uuid> --components <comp-uuid1>,<comp-uuid2>
+  dci create-job --topic-id <topic-uuid> --comment "nightly regression"
+  dci create-job --topic-id <topic-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		// Parse component IDs if provided
@@ -61,6 +66,14 @@ var createJobCmd = &cobra.Command{
 var updateJobStateCmd = &cobra.Command{
 	Use:   "update-job-state",
 	Short: "Update the state of a job (pre-run, running, success, failure, etc.)",
+	Long: `Transition a DCI job to a new lifecycle state. Valid states are:
+  new, pre-run, running, post-run, success, failure, killed, error
+
+An optional comment can be attached to document the reason for the transition.`,
+	Example: `  dci update-job-state --job-id <job-uuid> --status running
+  dci update-job-state --job-id <job-uuid> --status success
+  dci update-job-state --job-id <job-uuid> --status failure --comment "test timeout"
+  dci update-job-state --job-id <job-uuid> --status running --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateJobStateJobID, "job"); err != nil {
 			return err
@@ -104,6 +117,16 @@ var updateJobStateCmd = &cobra.Command{
 var uploadFileCmd = &cobra.Command{
 	Use:   "upload-file",
 	Short: "Upload a file (e.g., test results) to a job in DCI",
+	Long: `Upload a file to a DCI job. Defaults to MIME type application/junit for JUnit
+XML test results. Specify --mime to override for other file types (e.g.,
+application/xml, text/plain).`,
+	Example: `  # Upload JUnit XML results (default mime type)
+  dci upload-file --job-id <job-uuid> --file ./results.xml
+
+  # Upload with custom MIME type
+  dci upload-file --job-id <job-uuid> --file ./report.html --mime text/html
+
+  dci upload-file --job-id <job-uuid> --file ./results.xml --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Default mime type for test results
 		if uploadFileMimeType == "" {
