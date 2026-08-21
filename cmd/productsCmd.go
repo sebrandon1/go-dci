@@ -16,6 +16,10 @@ var (
 var getProductsCmd = &cobra.Command{
 	Use:   "products",
 	Short: "Get all products from DCI",
+	Long: `Retrieve all products registered in DCI. Products are top-level groupings
+(e.g., OpenShift) under which topics and components are organized.`,
+	Example: `  dci products
+  dci products -o json | jq '.products[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		printStatus("Getting products...")
@@ -38,6 +42,9 @@ var getProductsCmd = &cobra.Command{
 var getProductCmd = &cobra.Command{
 	Use:   "product",
 	Short: "Get a specific product by ID",
+	Long:  `Retrieve detailed information about a single DCI product by its UUID.`,
+	Example: `  dci product --id <product-uuid>
+  dci product --id <product-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getProductIDFlag, "product"); err != nil {
 			return err

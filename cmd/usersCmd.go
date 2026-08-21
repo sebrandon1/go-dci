@@ -30,6 +30,10 @@ var (
 var getUsersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "Get all users from DCI, optionally filtered by name",
+	Long:  `Retrieve all users registered in DCI. Use --name to filter by username substring match.`,
+	Example: `  dci users
+  dci users --name alice
+  dci users -o json | jq '.users[].email'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if usersNameFilter != "" {
@@ -56,6 +60,9 @@ var getUsersCmd = &cobra.Command{
 var getUserCmd = &cobra.Command{
 	Use:   "user",
 	Short: "Get a specific user by ID",
+	Long:  `Retrieve detailed information about a single DCI user by their UUID.`,
+	Example: `  dci user --id <user-uuid>
+  dci user --id <user-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getUserIDFlag, "user"); err != nil {
 			return err
@@ -82,6 +89,15 @@ var getUserCmd = &cobra.Command{
 var createUserCmd = &cobra.Command{
 	Use:   "create-user",
 	Short: "Create a new user in DCI",
+	Long: `Create a new user in DCI. A password is required: provide it with --password or
+omit it to be prompted interactively (recommended to avoid shell history exposure).`,
+	Example: `  # Interactive password prompt (recommended)
+  dci create-user --name alice --email alice@example.com --team-id <team-uuid>
+
+  # Explicit password (avoid in scripts — use env var or prompt instead)
+  dci create-user --name alice --email alice@example.com --team-id <team-uuid> --password s3cr3t
+
+  dci create-user --name alice --email alice@example.com --team-id <team-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		password := createUserPasswordFlag
 		if password == "" {
@@ -133,6 +149,9 @@ var createUserCmd = &cobra.Command{
 var updateUserCmd = &cobra.Command{
 	Use:   "update-user",
 	Short: "Update an existing user in DCI",
+	Long:  `Update mutable fields (name, email, fullname, state) of a DCI user by UUID.`,
+	Example: `  dci update-user --id <user-uuid> --email new@example.com
+  dci update-user --id <user-uuid> --state inactive --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateUserIDFlag, "user"); err != nil {
 			return err
@@ -179,6 +198,10 @@ var updateUserCmd = &cobra.Command{
 var deleteUserCmd = &cobra.Command{
 	Use:   "delete-user",
 	Short: "Delete a user from DCI",
+	Long: `Permanently delete a DCI user by their UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-user --id <user-uuid>
+  dci delete-user --id <user-uuid> --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteUserIDFlag, "user"); err != nil {
 			return err

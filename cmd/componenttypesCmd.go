@@ -21,6 +21,9 @@ var (
 var getComponentTypeCmd = &cobra.Command{
 	Use:   "componenttype",
 	Short: "Get a specific component type by ID",
+	Long:  `Retrieve detailed information about a single DCI component type by its UUID.`,
+	Example: `  dci componenttype --id <componenttype-uuid>
+  dci componenttype --id <componenttype-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getComponentTypeIDFlag, "component type"); err != nil {
 			return err
@@ -47,6 +50,9 @@ var getComponentTypeCmd = &cobra.Command{
 var createComponentTypeCmd = &cobra.Command{
 	Use:   "create-componenttype",
 	Short: "Create a new component type in DCI",
+	Long:  `Create a new component type classifier in DCI (e.g., "ocp", "rhcos", "certsuite").`,
+	Example: `  dci create-componenttype --name ocp
+  dci create-componenttype --name certsuite --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if dryRunFlag {
@@ -75,6 +81,9 @@ var createComponentTypeCmd = &cobra.Command{
 var updateComponentTypeCmd = &cobra.Command{
 	Use:   "update-componenttype",
 	Short: "Update an existing component type in DCI",
+	Long:  `Update the name or state of a DCI component type by its UUID.`,
+	Example: `  dci update-componenttype --id <componenttype-uuid> --name ocp-stable
+  dci update-componenttype --id <componenttype-uuid> --state inactive --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateComponentTypeIDFlag, "component type"); err != nil {
 			return err
@@ -115,6 +124,10 @@ var updateComponentTypeCmd = &cobra.Command{
 var deleteComponentTypeCmd = &cobra.Command{
 	Use:   "delete-componenttype",
 	Short: "Delete a component type from DCI",
+	Long: `Permanently delete a DCI component type by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-componenttype --id <componenttype-uuid>
+  dci delete-componenttype --id <componenttype-uuid> --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteComponentTypeIDFlag, "component type"); err != nil {
 			return err

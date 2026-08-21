@@ -31,6 +31,16 @@ var (
 var getTopicsCmd = &cobra.Command{
 	Use:   "topics",
 	Short: "Get all topics from DCI, optionally filtered by name",
+	Long: `Retrieve all topics from DCI. Topics group components and jobs under a named
+release or product version (e.g., OCP-4.17). Use --name to filter by substring match.`,
+	Example: `  # List all topics
+  dci topics
+
+  # Filter topics by name
+  dci topics --name OCP-4.17
+
+  # Output as JSON for scripting
+  dci topics -o json | jq '.topics[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if nameFilter != "" {
@@ -63,6 +73,16 @@ var getTopicsCmd = &cobra.Command{
 var getComponentTypesCmd = &cobra.Command{
 	Use:   "componenttypes",
 	Short: "Get all component types from DCI, optionally filtered by name",
+	Long: `Retrieve all component types from DCI. Component types classify components
+within a topic (e.g., "ocp", "rhcos"). Use --name to filter by substring match.`,
+	Example: `  # List all component types
+  dci componenttypes
+
+  # Filter by name
+  dci componenttypes --name ocp
+
+  # Output as JSON
+  dci componenttypes -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if nameFilter != "" {
@@ -95,6 +115,14 @@ var getComponentTypesCmd = &cobra.Command{
 var getIdentityCmd = &cobra.Command{
 	Use:   "identity",
 	Short: "Verify authentication and display current identity information",
+	Long: `Verify that the configured credentials are valid and display the authenticated
+identity's details (name, type, team, state). Useful for confirming credentials
+before running other commands.`,
+	Example: `  # Check current identity
+  dci identity
+
+  # Output identity as JSON
+  dci identity -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		identity, err := dciClient.GetIdentity(cmd.Context())
@@ -115,6 +143,17 @@ var getIdentityCmd = &cobra.Command{
 var getOcpCountCmd = &cobra.Command{
 	Use:   "ocpcount",
 	Short: "Get the count of jobs for each OCP version",
+	Long: `Summarize certsuite job counts grouped by OCP version for a given time window.
+Looks for jobs containing "cnf-certification-test" or "certsuite" components and
+extracts the OpenShift version from co-located components.
+
+The OCP versions tracked can be overridden with the OCP_VERSIONS_TO_TRACK
+environment variable (comma-separated, e.g. "4.16,4.17,4.18").`,
+	Example: `  # Count certsuite jobs from the last 30 days
+  dci ocpcount --age 30
+
+  # Output as JSON for scripting
+  dci ocpcount --age 7 -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		printStatus("Getting all jobs from DCI that are %s days old\n", ageInDays)
 
@@ -143,6 +182,20 @@ var getOcpCountCmd = &cobra.Command{
 var getComponentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "Get all components, optionally filtered by topic, type, or name",
+	Long: `Retrieve components from DCI. Components represent versioned artifacts
+(e.g., OCP 4.17.3, RHCOS 417.94) associated with a topic. Filters can be
+combined to narrow results by topic ID, component type, or name substring.`,
+	Example: `  # List all components
+  dci components
+
+  # Filter by topic ID
+  dci components --topic <topic-uuid>
+
+  # Filter by type and name
+  dci components --type ocp --name 4.17
+
+  # Output as JSON
+  dci components --topic <topic-uuid> -o json | jq '.components[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		var statusMsg string
@@ -185,7 +238,21 @@ var getComponentsCmd = &cobra.Command{
 
 var getJobsCmd = &cobra.Command{
 	Use:   "jobs",
-	Short: "Get all jobs with a specific age in days or date range",
+	Short: "Get all certsuite jobs with a specific age in days or date range",
+	Long: `Retrieve certsuite jobs from DCI filtered by a time window. Jobs are filtered
+to those containing "cnf-certification-test" or "certsuite" components and the
+certsuite version is extracted from the component name.
+
+Use --age for a rolling window from today, or --start-date/--end-date for a
+specific range. The two approaches are mutually exclusive.`,
+	Example: `  # Get certsuite jobs from the last 7 days
+  dci jobs --age 7
+
+  # Get jobs in a specific date range
+  dci jobs --start-date 2026-01-01 --end-date 2026-01-31
+
+  # Output as JSON
+  dci jobs --age 30 -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if ageInDays != "" && (startDate != "" || endDate != "") {
 			return fmt.Errorf("--age and --start-date/--end-date are mutually exclusive")

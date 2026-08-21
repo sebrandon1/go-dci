@@ -23,6 +23,9 @@ var (
 var getJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "Get a specific job by ID",
+	Long:  `Retrieve detailed information about a single DCI job by its UUID.`,
+	Example: `  dci job --id <job-uuid>
+  dci job --id <job-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getJobIDFlag, "job"); err != nil {
 			return err
@@ -49,6 +52,10 @@ var getJobCmd = &cobra.Command{
 var updateJobCmd = &cobra.Command{
 	Use:   "update-job",
 	Short: "Update an existing job in DCI",
+	Long:  `Update a DCI job's comment and/or tags by its UUID.`,
+	Example: `  dci update-job --id <job-uuid> --comment "nightly run"
+  dci update-job --id <job-uuid> --tags "ocp,certsuite,4.17"
+  dci update-job --id <job-uuid> --comment "retry" --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(updateJobIDFlag, "job"); err != nil {
 			return err
@@ -93,6 +100,11 @@ var updateJobCmd = &cobra.Command{
 var deleteJobCmd = &cobra.Command{
 	Use:   "delete-job",
 	Short: "Delete a job from DCI",
+	Long: `Permanently delete a DCI job by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-job --id <job-uuid>
+  dci delete-job --id <job-uuid> --yes
+  dci delete-job --id <job-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteJobIDFlag, "job"); err != nil {
 			return err
@@ -135,6 +147,12 @@ var deleteJobCmd = &cobra.Command{
 var scheduleJobCmd = &cobra.Command{
 	Use:   "schedule-job",
 	Short: "Schedule a job with auto-selected components",
+	Long: `Schedule a new DCI job for a topic. DCI automatically selects the latest
+available components for the topic. Use create-job to specify component IDs
+explicitly.`,
+	Example: `  dci schedule-job --topic-id <topic-uuid>
+  dci schedule-job --topic-id <topic-uuid> -o json
+  dci schedule-job --topic-id <topic-uuid> --dry-run`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(scheduleJobTopicID, "topic"); err != nil {
 			return err
@@ -167,6 +185,9 @@ var scheduleJobCmd = &cobra.Command{
 var getJobFilesCmd = &cobra.Command{
 	Use:   "job-files",
 	Short: "Get all files for a specific job",
+	Long:  `List all files (e.g., test results, logs) attached to a DCI job by its UUID.`,
+	Example: `  dci job-files --id <job-uuid>
+  dci job-files --id <job-uuid> -o json | jq '.files[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(jobFilesIDFlag, "job"); err != nil {
 			return err

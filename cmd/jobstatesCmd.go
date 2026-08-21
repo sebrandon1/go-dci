@@ -16,6 +16,17 @@ var (
 var getJobStatesCmd = &cobra.Command{
 	Use:   "jobstates",
 	Short: "Get job states, optionally filtered by job ID",
+	Long: `Retrieve job state transitions from DCI. Job states track the lifecycle of a job
+(e.g., new → pre-run → running → success/failure). Filter by --job-id to see
+only the states for a specific job.`,
+	Example: `  # List all job states
+  dci jobstates
+
+  # Filter by job
+  dci jobstates --job-id <job-uuid>
+
+  # Output as JSON
+  dci jobstates --job-id <job-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if getJobStatesJobIDFlag != "" {
 			if err := validateResourceID(getJobStatesJobIDFlag, "job"); err != nil {

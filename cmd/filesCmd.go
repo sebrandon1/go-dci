@@ -18,6 +18,17 @@ var (
 var getFileCmd = &cobra.Command{
 	Use:   "file",
 	Short: "Download a file by ID",
+	Long: `Download a file from DCI by its UUID. Without --output-path the command prints
+file metadata (ID, content type, size). Use --output-path to write the content
+to disk.`,
+	Example: `  # Print file metadata
+  dci file --id <file-uuid>
+
+  # Save file to disk
+  dci file --id <file-uuid> --output-path /tmp/results.xml
+
+  # Metadata as JSON
+  dci file --id <file-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(getFileIDFlag, "file"); err != nil {
 			return err
@@ -58,6 +69,10 @@ var getFileCmd = &cobra.Command{
 var deleteFileCmd = &cobra.Command{
 	Use:   "delete-file",
 	Short: "Delete a file from DCI",
+	Long: `Permanently delete a DCI file by its UUID. Prompts for confirmation
+unless --yes is set or output is JSON (automation mode).`,
+	Example: `  dci delete-file --id <file-uuid>
+  dci delete-file --id <file-uuid> --yes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateResourceID(deleteFileIDFlag, "file"); err != nil {
 			return err
