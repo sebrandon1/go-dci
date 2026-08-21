@@ -81,13 +81,10 @@ func printJobStatesJSON(responses []lib.JobStatesResponse) error {
 		allJobStates = append(allJobStates, response.JobStates...)
 	}
 
-	output := struct {
-		JobStates []lib.JobStateEntry `json:"jobstates"`
-	}{
-		JobStates: allJobStates,
-	}
-
-	jsonBytes, err := json.Marshal(output)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"jobstates": allJobStates,
+		"total":     len(allJobStates),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
