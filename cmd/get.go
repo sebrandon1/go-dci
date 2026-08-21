@@ -391,7 +391,10 @@ func runCertsuiteJobsOutput(jobsResponses []lib.JobsResponse, startRun time.Time
 		printStatus("Total DCI Jobs: %d", totalJobsCtr)
 		printStatus("Total go-dci runtime: %v", time.Since(startRun))
 	} else {
-		jsonOutputBytes, err := json.Marshal(jsonOutput)
+		jsonOutputBytes, err := json.Marshal(map[string]any{
+			"jobs":  jsonOutput.Jobs,
+			"total": len(jsonOutput.Jobs),
+		})
 		if err != nil {
 			return fmt.Errorf("failed to marshal JSON output: %w", err)
 		}
@@ -519,13 +522,10 @@ func printComponentsJSON(componentsResponses []lib.ComponentsResponse) error {
 		allComponents = append(allComponents, cr.Components...)
 	}
 
-	output := struct {
-		Components []lib.Components `json:"components"`
-	}{
-		Components: allComponents,
-	}
-
-	jsonBytes, err := json.Marshal(output)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"components": allComponents,
+		"total":      len(allComponents),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -580,13 +580,10 @@ func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesRespons
 		allComponentTypes = append(allComponentTypes, ctr.ComponentTypes...)
 	}
 
-	output := struct {
-		ComponentTypes []lib.ComponentType `json:"componenttypes"`
-	}{
-		ComponentTypes: allComponentTypes,
-	}
-
-	jsonBytes, err := json.Marshal(output)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"componenttypes": allComponentTypes,
+		"total":          len(allComponentTypes),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -632,13 +629,10 @@ func printTopicsJSON(topicsResponses []lib.TopicsResponse) error {
 		}
 	}
 
-	output := struct {
-		Topics []Topic `json:"topics"`
-	}{
-		Topics: allTopics,
-	}
-
-	jsonBytes, err := json.Marshal(output)
+	jsonBytes, err := json.Marshal(map[string]any{
+		"topics": allTopics,
+		"total":  len(allTopics),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
