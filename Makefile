@@ -1,8 +1,6 @@
 APP_NAME=go-dci
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: vet build lint test clean run
-
 vet:
 	go vet ./...
 
@@ -25,6 +23,9 @@ clean:
 run: build
 	./$(APP_NAME)
 
+verify-dci: build
+	./scripts/verify-dci.sh
+
 check-swagger-alignment:
 	@echo "Checking API alignment with DCI API spec..."
 	@go run ./scripts/check-swagger-alignment.go \
@@ -32,4 +33,4 @@ check-swagger-alignment:
 		--lib-path="./lib" \
 		--base-url-var="DCIURL|BaseURL"
 
-.PHONY: vet build lint test coverage clean run check-swagger-alignment
+.PHONY: vet build lint test coverage clean run verify-dci check-swagger-alignment
