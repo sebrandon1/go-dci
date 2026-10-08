@@ -1,7 +1,6 @@
 # go-dci
 
 [![Pre-Main Checks](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml/badge.svg)](https://github.com/sebrandon1/go-dci/actions/workflows/pre-main.yml)
-[![DCI Verified Nightly](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml/badge.svg)](https://github.com/sebrandon1/go-dci/actions/workflows/nightly.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/sebrandon1/go-dci)](https://golang.org/)
 [![License](https://img.shields.io/github/license/sebrandon1/go-dci)](https://github.com/sebrandon1/go-dci/blob/main/LICENSE)
 
@@ -20,6 +19,14 @@ go-dci config set --accesskey <key> --secretkey <secret>
 go-dci identity
 go-dci topics
 ```
+
+Run the DCI API smoke checks locally with configured credentials:
+
+```bash
+make verify-dci
+```
+
+This builds `go-dci` and checks authentication plus supported read-only list commands.
 
 ### Library Usage
 
