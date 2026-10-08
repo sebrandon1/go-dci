@@ -44,6 +44,7 @@ var (
 	verboseFlag  bool
 	dryRunFlag   bool
 	dciClient    *lib.Client
+	uuidRegex    = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
 )
 
 // printStatus prints a status message unless --quiet or JSON output is enabled.
@@ -75,7 +76,6 @@ func validateResourceID(id, resourceType string) error {
 		return fmt.Errorf("%s ID is required", resourceType)
 	}
 	// DCI uses UUIDs
-	uuidRegex := regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$`)
 	if !uuidRegex.MatchString(id) {
 		return fmt.Errorf("invalid %s ID format (expected UUID): %s", resourceType, id)
 	}

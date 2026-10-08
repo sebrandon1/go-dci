@@ -16,6 +16,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func isolateUserConfig(t *testing.T) {
+	t.Helper()
+	configDir := t.TempDir()
+	t.Setenv("HOME", configDir)
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+	t.Setenv("APPDATA", configDir)
+	t.Chdir(t.TempDir())
+}
+
 func TestGetFileCmd_MissingID(t *testing.T) {
 	// Test that Cobra enforces required flag validation
 	// Note: When calling RunE directly (bypassing Cobra), we need to set the flag
@@ -40,6 +49,7 @@ func TestDeleteFileCmd_MissingID(t *testing.T) {
 }
 
 func TestGetFileCmd_MissingCredentials(t *testing.T) {
+	isolateUserConfig(t)
 	viper.Reset()
 	defer viper.Reset()
 
@@ -52,6 +62,7 @@ func TestGetFileCmd_MissingCredentials(t *testing.T) {
 }
 
 func TestDeleteFileCmd_MissingCredentials(t *testing.T) {
+	isolateUserConfig(t)
 	viper.Reset()
 	defer viper.Reset()
 
