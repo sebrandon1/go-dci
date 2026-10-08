@@ -37,20 +37,27 @@ jobs:
           exit 1
         fi
 
-    - name: Verify Jobs functionality
+    - name: Verify read-only commands functionality
       run: |
-        ./go-dci jobs -d 1 > /dev/null
+        set -euo pipefail
 
-        if [ $? -ne 0 ]; then
-          echo "Failed to get jobs"
-          exit 1
-        fi
+        run_smoke() {
+          local command="$*"
 
-    - name: Verify OCPCount functionality
-      run: |
-        ./go-dci ocpcount -d 1 > /dev/null
+          echo "Verifying go-dci ${command}..."
+          if ! ./go-dci "$@" > /dev/null; then
+            echo "Failed to verify go-dci ${command}"
+            exit 1
+          fi
+        }
 
-        if [ $? -ne 0 ]; then
-          echo "Failed to get ocpcount"
-          exit 1
-        fi
+        run_smoke identity
+        run_smoke topics --name go-dci-nightly-smoke-probe
+        run_smoke components --name go-dci-nightly-smoke-probe
+        run_smoke products
+        run_smoke teams --name go-dci-nightly-smoke-probe
+        run_smoke users --name go-dci-nightly-smoke-probe
+        run_smoke remotecis
+        run_smoke jobstates --job-id 00000000-0000-0000-0000-000000000000
+        run_smoke jobs --age 1
+        run_smoke ocpcount --age 1
