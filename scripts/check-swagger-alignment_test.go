@@ -6,6 +6,29 @@ import (
 	"testing"
 )
 
+func TestScanSourceEndpointsReadsFilesWithinRoot(t *testing.T) {
+	libDir := t.TempDir()
+	source := `package lib
+func (c *Client) GetJob(ctx context.Context) {
+	reqURL := BaseURL + "/jobs"
+	c.doJSON(ctx, http.MethodGet, reqURL, nil)
+}`
+	if err := os.WriteFile(filepath.Join(libDir, "client.go"), []byte(source), 0600); err != nil {
+		t.Fatalf("write source file: %v", err)
+	}
+
+	endpoints, err := scanSourceEndpoints(libDir, "BaseURL")
+	if err != nil {
+		t.Fatalf("scan source endpoints: %v", err)
+	}
+	if len(endpoints) != 1 {
+		t.Fatalf("expected one endpoint, got %d", len(endpoints))
+	}
+	if endpoints[0].Method != "GET" || endpoints[0].Path != "/jobs" {
+		t.Fatalf("unexpected endpoint: %+v", endpoints[0])
+	}
+}
+
 func TestScanSourceEndpointsRejectsSymlinksOutsideRoot(t *testing.T) {
 	libDir := t.TempDir()
 	outsideDir := t.TempDir()
