@@ -371,17 +371,17 @@ Download files attached to a job:
 ```go
 // Get file by ID
 ctx := context.Background()
-fileContent, filename, err := client.GetFile(ctx, fileID)
+fileContent, contentType, err := client.GetFile(ctx, fileID)
 if err != nil {
     log.Fatalf("Failed to download file: %v", err)
 }
 
 // Save to disk
-err = os.WriteFile(filename, fileContent, 0644)
+err = os.WriteFile("downloaded-file", fileContent, 0644)
 if err != nil {
     log.Fatalf("Failed to save file: %v", err)
 }
-fmt.Printf("Downloaded: %s (%d bytes)\n", filename, len(fileContent))
+fmt.Printf("Downloaded %d bytes (%s)\n", len(fileContent), contentType)
 ```
 
 ### Delete Files
@@ -413,16 +413,19 @@ for _, file := range filesResp.Files {
         file.Name, file.ID, file.Size)
     
     // Download each file
-    content, filename, err := client.GetFile(ctx, file.ID)
+    content, _, err := client.GetFile(ctx, file.ID)
     if err != nil {
         log.Printf("Failed to download %s: %v", file.Name, err)
         continue
     }
     
     // Save to local directory
-    err = os.WriteFile(fmt.Sprintf("./downloads/%s", filename), content, 0644)
+    // File names can contain slashes (e.g. "failed/PLAY RECAP"), so
+    // flatten them before using them as a local path.
+    localName := strings.ReplaceAll(file.Name, "/", "_")
+    err = os.WriteFile(filepath.Join("./downloads", localName), content, 0644)
     if err != nil {
-        log.Printf("Failed to save %s: %v", filename, err)
+        log.Printf("Failed to save %s: %v", file.Name, err)
     }
 }
 ```

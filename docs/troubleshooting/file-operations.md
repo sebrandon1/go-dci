@@ -55,14 +55,14 @@ Error: file content empty
 1. Verify the file ID is correct:
    ```bash
    # List files for a job
-   go-dci job-files --job-id <job-id>
+   go-dci job-files --id <job-id>
    ```
 
 2. Check if you have permission to access the file (must be in the same team)
 
 3. For library users, handle the response properly:
    ```go
-   data, contentType, err := client.GetFile(fileID)
+   data, contentType, err := client.GetFile(context.Background(), fileID)
    if err != nil {
        log.Fatalf("Download failed: %v", err)
    }

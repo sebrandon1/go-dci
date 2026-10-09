@@ -1266,31 +1266,35 @@ func TestGetJobFiles_Success(t *testing.T) {
 	assert.Equal(t, "results.xml", result.Files[0].Name)
 }
 
-// jobFilesServer serves totalFiles files for job-123, one page per request,
-// and records the requested offsets. Requests at failAtOffset get a 500.
-func jobFilesServer(t *testing.T, totalFiles, failAtOffset int, offsets *[]string) *httptest.Server {
-	t.Helper()
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/jobs/job-123/files", r.URL.Path)
-		*offsets = append(*offsets, r.URL.Query().Get("offset"))
+// fakeJobFiles serves totalFiles files for job-123, one page per request, and
+// records the offsets requested. A request at failAtOffset gets a 500.
+type fakeJobFiles struct {
+	t            *testing.T
+	totalFiles   int
+	failAtOffset *int
+	offsets      []string
+}
 
-		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
-		assert.NoError(t, err)
-		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
-		assert.NoError(t, err)
+func (f *fakeJobFiles) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	assert.Equal(f.t, "/jobs/job-123/files", r.URL.Path)
+	f.offsets = append(f.offsets, r.URL.Query().Get("offset"))
 
-		if offset == failAtOffset {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	assert.NoError(f.t, err)
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	assert.NoError(f.t, err)
 
-		response := FilesResponse{Meta: Meta{Count: totalFiles}}
-		for i := offset; i < min(offset+limit, totalFiles); i++ {
-			response.Files = append(response.Files, File{ID: fmt.Sprintf("file-%d", i), JobID: "job-123"})
-		}
-		w.Header().Set("Content-Type", "application/json")
-		assert.NoError(t, json.NewEncoder(w).Encode(response))
-	}))
+	if f.failAtOffset != nil && offset == *f.failAtOffset {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response := FilesResponse{Meta: Meta{Count: f.totalFiles}}
+	for i := offset; i < min(offset+limit, f.totalFiles); i++ {
+		response.Files = append(response.Files, File{ID: fmt.Sprintf("file-%d", i), JobID: "job-123"})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	assert.NoError(f.t, json.NewEncoder(w).Encode(response))
 }
 
 func TestGetJobFiles_Pagination(t *testing.T) {
@@ -1306,14 +1310,14 @@ func TestGetJobFiles_Pagination(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var offsets []string
-			server := jobFilesServer(t, tt.totalFiles, -1, &offsets)
+			fake := &fakeJobFiles{t: t, totalFiles: tt.totalFiles}
+			server := httptest.NewServer(fake)
 			defer server.Close()
 
 			client := newTestClient(server.URL)
 			result, err := client.GetJobFiles(context.Background(), "job-123")
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedOffsets, offsets)
+			assert.Equal(t, tt.expectedOffsets, fake.offsets)
 			assert.Len(t, result.Files, tt.totalFiles)
 			assert.Equal(t, tt.totalFiles, result.Meta.Count)
 			if tt.totalFiles > 0 {
@@ -1324,15 +1328,16 @@ func TestGetJobFiles_Pagination(t *testing.T) {
 }
 
 func TestGetJobFiles_LaterPageError(t *testing.T) {
-	var offsets []string
-	server := jobFilesServer(t, defaultPageSize+5, defaultPageSize, &offsets)
+	failAt := defaultPageSize
+	fake := &fakeJobFiles{t: t, totalFiles: defaultPageSize + 5, failAtOffset: &failAt}
+	server := httptest.NewServer(fake)
 	defer server.Close()
 
 	client := newTestClient(server.URL)
 	result, err := client.GetJobFiles(context.Background(), "job-123")
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, []string{"0", strconv.Itoa(defaultPageSize)}, offsets)
+	assert.Equal(t, []string{"0", strconv.Itoa(defaultPageSize)}, fake.offsets)
 }
 
 func TestFetchJobFiles_InvalidJSON(t *testing.T) {
