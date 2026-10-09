@@ -23,10 +23,10 @@ import (
 
 const (
 	// https://doc.distributed-ci.io/python-dciauth/#using-postman
-	DCIURL      = "https://api.distributed-ci.io/api/v1"
-	awsRegion   = "BHS3"
-	serviceName = "api"
-	dateFormat  = "2006-01-02T15:04:05.999999"
+	DCIURL          = "https://api.distributed-ci.io/api/v1"
+	awsRegion       = "BHS3"
+	serviceName     = "api"
+	dateFormat      = "2006-01-02T15:04:05.999999"
 	maxRecords      = 50000
 	defaultPageSize = 100
 	// SHA-256 of empty string for unsigned GET requests
@@ -39,14 +39,14 @@ const (
 )
 
 type Client struct {
-	BaseURL         string
-	AccessKey       string
-	SecretKey       string
-	httpClient      *http.Client
-	MaxRetries      int
-	RequestTimeout  time.Duration
-	TLSTimeout      time.Duration
-	DialTimeout     time.Duration
+	BaseURL        string
+	AccessKey      string
+	SecretKey      string
+	httpClient     *http.Client
+	MaxRetries     int
+	RequestTimeout time.Duration
+	TLSTimeout     time.Duration
+	DialTimeout    time.Duration
 }
 
 func NewClient(accessKey, secretKey string) *Client {
@@ -208,58 +208,68 @@ func resourceSubURL(base, resource, id, subResource string) string {
 	return fmt.Sprintf("%s/%s/%s/%s", base, resource, url.PathEscape(id), subResource)
 }
 
-// paginate is a generic helper that handles the standard pagination loop.
-func paginate[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error)) ([]T, error) {
-	var collection []T
-	offset := 0
-
-	for {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		page, count, err := fetch(defaultPageSize, offset)
-		if err != nil {
-			return nil, err
-		}
-
-		collection = append(collection, page)
-
-		if count < defaultPageSize {
-			break
-		}
-
-		if offset >= maxRecords {
-			break
-		}
-
-		offset += defaultPageSize
+// limitPage truncates an API page if it contains more records than requested.
+func limitPage[T any](records []T, pageLimit int) []T {
+	if len(records) > pageLimit {
+		return records[:pageLimit]
 	}
-
-	return collection, nil
+	return records
 }
 
-func paginateUntil[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error), shouldContinue func(page T) bool) ([]T, error) {
+func requestedRecordLimit(limits []int) (int, error) {
+	if len(limits) > 1 {
+		return 0, fmt.Errorf("only one record limit may be specified")
+	}
+	if len(limits) == 0 {
+		return 0, nil
+	}
+	if limits[0] <= 0 {
+		return 0, fmt.Errorf("limit must be a positive integer")
+	}
+	return limits[0], nil
+}
+
+// paginate is a generic helper that handles the standard pagination loop.
+func paginate[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error), limits ...int) ([]T, error) {
+	return paginateWithStop(ctx, fetch, nil, limits...)
+}
+
+func paginateUntil[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error), shouldContinue func(page T) bool, limits ...int) ([]T, error) {
+	return paginateWithStop(ctx, fetch, shouldContinue, limits...)
+}
+
+func paginateWithStop[T any](ctx context.Context, fetch func(limit, offset int) (T, int, error), shouldContinue func(page T) bool, limits ...int) ([]T, error) {
+	maxItems, err := requestedRecordLimit(limits)
+	if err != nil {
+		return nil, err
+	}
+
 	var collection []T
 	offset := 0
+	itemsFetched := 0
 
 	for {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 
-		page, count, err := fetch(defaultPageSize, offset)
+		pageLimit := defaultPageSize
+		if maxItems > 0 && maxItems-itemsFetched < pageLimit {
+			pageLimit = maxItems - itemsFetched
+		}
+
+		page, count, err := fetch(pageLimit, offset)
 		if err != nil {
 			return nil, err
 		}
 
 		collection = append(collection, page)
+		itemsFetched += count
 
-		if count < defaultPageSize {
+		if count < pageLimit || (maxItems > 0 && itemsFetched >= maxItems) {
 			break
 		}
-
-		if !shouldContinue(page) {
+		if shouldContinue != nil && !shouldContinue(page) {
 			break
 		}
 
@@ -267,7 +277,7 @@ func paginateUntil[T any](ctx context.Context, fetch func(limit, offset int) (T,
 			break
 		}
 
-		offset += defaultPageSize
+		offset += pageLimit
 	}
 
 	return collection, nil
@@ -297,16 +307,17 @@ func (c *Client) GetIdentity(ctx context.Context) (*IdentityResponse, error) {
 }
 
 // GetComponentTypes retrieves all component types from the DCI API with pagination
-func (c *Client) GetComponentTypes(ctx context.Context) ([]ComponentTypesResponse, error) {
-	return c.GetComponentTypesByName(ctx, "")
+func (c *Client) GetComponentTypes(ctx context.Context, limits ...int) ([]ComponentTypesResponse, error) {
+	return c.GetComponentTypesByName(ctx, "", limits...)
 }
 
 // GetComponentTypesByName retrieves component types filtered by name (empty string for all)
-func (c *Client) GetComponentTypesByName(ctx context.Context, name string) ([]ComponentTypesResponse, error) {
-	return paginate(ctx, func(limit, offset int) (ComponentTypesResponse, int, error) {
-		resp, err := c.fetchComponentTypes(ctx, name, limit, offset)
+func (c *Client) GetComponentTypesByName(ctx context.Context, name string, limits ...int) ([]ComponentTypesResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (ComponentTypesResponse, int, error) {
+		resp, err := c.fetchComponentTypes(ctx, name, pageLimit, offset)
+		resp.ComponentTypes = limitPage(resp.ComponentTypes, pageLimit)
 		return resp, len(resp.ComponentTypes), err
-	})
+	}, limits...)
 }
 
 // fetchComponentTypes is an internal helper to fetch component types with optional name filtering
@@ -430,16 +441,17 @@ func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string
 	return nil
 }
 
-func (c *Client) GetTopics(ctx context.Context) ([]TopicsResponse, error) {
-	return c.GetTopicsByName(ctx, "")
+func (c *Client) GetTopics(ctx context.Context, limits ...int) ([]TopicsResponse, error) {
+	return c.GetTopicsByName(ctx, "", limits...)
 }
 
 // GetTopicsByName retrieves topics filtered by name (empty string for all)
-func (c *Client) GetTopicsByName(ctx context.Context, name string) ([]TopicsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (TopicsResponse, int, error) {
-		resp, err := c.fetchTopics(ctx, name, limit, offset)
+func (c *Client) GetTopicsByName(ctx context.Context, name string, limits ...int) ([]TopicsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (TopicsResponse, int, error) {
+		resp, err := c.fetchTopics(ctx, name, pageLimit, offset)
+		resp.Topics = limitPage(resp.Topics, pageLimit)
 		return resp, len(resp.Topics), err
-	})
+	}, limits...)
 }
 
 // fetchTopics is an internal helper to fetch topics with optional name filtering
@@ -565,11 +577,12 @@ func (c *Client) DeleteTopic(ctx context.Context, topicID string) error {
 }
 
 // GetTopicComponents retrieves all components for a specific topic using the topic components endpoint
-func (c *Client) GetTopicComponents(ctx context.Context, topicID string) ([]ComponentsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (ComponentsResponse, int, error) {
-		resp, err := c.fetchTopicComponents(ctx, topicID, limit, offset)
+func (c *Client) GetTopicComponents(ctx context.Context, topicID string, limits ...int) ([]ComponentsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (ComponentsResponse, int, error) {
+		resp, err := c.fetchTopicComponents(ctx, topicID, pageLimit, offset)
+		resp.Components = limitPage(resp.Components, pageLimit)
 		return resp, len(resp.Components), err
-	})
+	}, limits...)
 }
 
 // fetchTopicComponents is an internal helper to fetch components for a topic with pagination
@@ -590,9 +603,10 @@ func (c *Client) fetchTopicComponents(ctx context.Context, topicID string, reque
 	return components, nil
 }
 
-func (c *Client) GetJobs(ctx context.Context, daysBackLimit int) ([]JobsResponse, error) {
-	return paginateUntil(ctx, func(limit, offset int) (JobsResponse, int, error) {
-		resp, err := c.fetchJobs(ctx, limit, offset)
+func (c *Client) GetJobs(ctx context.Context, daysBackLimit int, limits ...int) ([]JobsResponse, error) {
+	return paginateUntil(ctx, func(pageLimit, offset int) (JobsResponse, int, error) {
+		resp, err := c.fetchJobs(ctx, pageLimit, offset)
+		resp.Jobs = limitPage(resp.Jobs, pageLimit)
 		return resp, len(resp.Jobs), err
 	}, func(page JobsResponse) bool {
 		for _, job := range page.Jobs {
@@ -605,12 +619,13 @@ func (c *Client) GetJobs(ctx context.Context, daysBackLimit int) ([]JobsResponse
 			}
 		}
 		return true
-	})
+	}, limits...)
 }
 
-func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time) ([]JobsResponse, error) {
-	return paginateUntil(ctx, func(limit, offset int) (JobsResponse, int, error) {
-		resp, err := c.fetchJobs(ctx, limit, offset)
+func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time, limits ...int) ([]JobsResponse, error) {
+	return paginateUntil(ctx, func(pageLimit, offset int) (JobsResponse, int, error) {
+		resp, err := c.fetchJobs(ctx, pageLimit, offset)
+		resp.Jobs = limitPage(resp.Jobs, pageLimit)
 		return resp, len(resp.Jobs), err
 	}, func(page JobsResponse) bool {
 		for _, job := range page.Jobs {
@@ -623,7 +638,7 @@ func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time
 			}
 		}
 		return true
-	})
+	}, limits...)
 }
 
 // GetJob retrieves a single job by ID from the DCI API
@@ -770,21 +785,22 @@ func (c *Client) fetchJobs(ctx context.Context, requestLimit, offset int) (JobsR
 }
 
 // GetComponents retrieves all components from the DCI API with pagination
-func (c *Client) GetComponents(ctx context.Context) ([]ComponentsResponse, error) {
-	return c.GetComponentsFiltered(ctx, "", "", "")
+func (c *Client) GetComponents(ctx context.Context, limits ...int) ([]ComponentsResponse, error) {
+	return c.GetComponentsFiltered(ctx, "", "", "", limits...)
 }
 
 // GetComponentsByTopicID retrieves components filtered by topic ID (empty string for all)
-func (c *Client) GetComponentsByTopicID(ctx context.Context, topicID string) ([]ComponentsResponse, error) {
-	return c.GetComponentsFiltered(ctx, topicID, "", "")
+func (c *Client) GetComponentsByTopicID(ctx context.Context, topicID string, limits ...int) ([]ComponentsResponse, error) {
+	return c.GetComponentsFiltered(ctx, topicID, "", "", limits...)
 }
 
 // GetComponentsFiltered retrieves components with optional filters for topic, type, and name
-func (c *Client) GetComponentsFiltered(ctx context.Context, topicID, componentType, name string) ([]ComponentsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (ComponentsResponse, int, error) {
-		resp, err := c.fetchComponents(ctx, topicID, componentType, name, limit, offset)
+func (c *Client) GetComponentsFiltered(ctx context.Context, topicID, componentType, name string, limits ...int) ([]ComponentsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (ComponentsResponse, int, error) {
+		resp, err := c.fetchComponents(ctx, topicID, componentType, name, pageLimit, offset)
+		resp.Components = limitPage(resp.Components, pageLimit)
 		return resp, len(resp.Components), err
-	})
+	}, limits...)
 }
 
 // GetComponent retrieves a single component by ID from the DCI API
@@ -1013,14 +1029,15 @@ func (c *Client) fetchJobStates(ctx context.Context, jobID string, requestLimit,
 }
 
 // GetJobStates retrieves job states with pagination support
-func (c *Client) GetJobStates(ctx context.Context, jobID string) ([]JobStatesResponse, error) {
-	return paginate(ctx, func(limit, offset int) (JobStatesResponse, int, error) {
-		resp, err := c.fetchJobStates(ctx, jobID, limit, offset)
+func (c *Client) GetJobStates(ctx context.Context, jobID string, limits ...int) ([]JobStatesResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (JobStatesResponse, int, error) {
+		resp, err := c.fetchJobStates(ctx, jobID, pageLimit, offset)
 		if err != nil {
 			return JobStatesResponse{}, 0, err
 		}
+		resp.JobStates = limitPage(resp.JobStates, pageLimit)
 		return resp, len(resp.JobStates), nil
-	})
+	}, limits...)
 }
 
 // GetFile downloads a file by ID from DCI
@@ -1086,10 +1103,10 @@ func (c *Client) UploadFileContent(ctx context.Context, jobID, fileName, mimeTyp
 // uploadFileContent is the shared implementation for file uploads
 func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content []byte, jobID, fileName, mimeType string) (*UploadFileResponse, error) {
 	headers := map[string]string{
-		"DCI-JOB-ID":    jobID,
-		"DCI-NAME":      fileName,
-		"DCI-MIME":      mimeType,
-		"Content-Type":  "application/octet-stream",
+		"DCI-JOB-ID":   jobID,
+		"DCI-NAME":     fileName,
+		"DCI-MIME":     mimeType,
+		"Content-Type": "application/octet-stream",
 	}
 
 	httpResponse, err := c.doRequest(ctx, http.MethodPost, reqURL, content, headers)
@@ -1113,11 +1130,12 @@ func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content [
 }
 
 // GetRemoteCIs retrieves all remote CIs from DCI
-func (c *Client) GetRemoteCIs(ctx context.Context) ([]RemoteCIsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (RemoteCIsResponse, int, error) {
-		resp, err := c.fetchRemoteCIs(ctx, limit, offset)
+func (c *Client) GetRemoteCIs(ctx context.Context, limits ...int) ([]RemoteCIsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (RemoteCIsResponse, int, error) {
+		resp, err := c.fetchRemoteCIs(ctx, pageLimit, offset)
+		resp.RemoteCIs = limitPage(resp.RemoteCIs, pageLimit)
 		return resp, len(resp.RemoteCIs), err
-	})
+	}, limits...)
 }
 
 func (c *Client) fetchRemoteCIs(ctx context.Context, requestLimit, offset int) (RemoteCIsResponse, error) {
@@ -1245,16 +1263,17 @@ func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
 }
 
 // GetTeams retrieves all teams from DCI
-func (c *Client) GetTeams(ctx context.Context) ([]TeamsResponse, error) {
-	return c.GetTeamsFiltered(ctx, "")
+func (c *Client) GetTeams(ctx context.Context, limits ...int) ([]TeamsResponse, error) {
+	return c.GetTeamsFiltered(ctx, "", limits...)
 }
 
 // GetTeamsFiltered retrieves teams with optional name filter
-func (c *Client) GetTeamsFiltered(ctx context.Context, name string) ([]TeamsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (TeamsResponse, int, error) {
-		resp, err := c.fetchTeams(ctx, name, limit, offset)
+func (c *Client) GetTeamsFiltered(ctx context.Context, name string, limits ...int) ([]TeamsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (TeamsResponse, int, error) {
+		resp, err := c.fetchTeams(ctx, name, pageLimit, offset)
+		resp.Teams = limitPage(resp.Teams, pageLimit)
 		return resp, len(resp.Teams), err
-	})
+	}, limits...)
 }
 
 // fetchTeams is an internal helper to fetch teams with optional name filtering
@@ -1383,16 +1402,17 @@ func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
 }
 
 // GetUsers retrieves all users from DCI
-func (c *Client) GetUsers(ctx context.Context) ([]UsersResponse, error) {
-	return c.GetUsersFiltered(ctx, "")
+func (c *Client) GetUsers(ctx context.Context, limits ...int) ([]UsersResponse, error) {
+	return c.GetUsersFiltered(ctx, "", limits...)
 }
 
 // GetUsersFiltered retrieves users with optional name filter
-func (c *Client) GetUsersFiltered(ctx context.Context, name string) ([]UsersResponse, error) {
-	return paginate(ctx, func(limit, offset int) (UsersResponse, int, error) {
-		resp, err := c.fetchUsers(ctx, name, limit, offset)
+func (c *Client) GetUsersFiltered(ctx context.Context, name string, limits ...int) ([]UsersResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (UsersResponse, int, error) {
+		resp, err := c.fetchUsers(ctx, name, pageLimit, offset)
+		resp.Users = limitPage(resp.Users, pageLimit)
 		return resp, len(resp.Users), err
-	})
+	}, limits...)
 }
 
 // fetchUsers is an internal helper to fetch users with optional name filtering
@@ -1525,11 +1545,12 @@ func (c *Client) DeleteUser(ctx context.Context, userID string) error {
 }
 
 // GetProducts retrieves all products from DCI
-func (c *Client) GetProducts(ctx context.Context) ([]ProductsResponse, error) {
-	return paginate(ctx, func(limit, offset int) (ProductsResponse, int, error) {
-		resp, err := c.fetchProducts(ctx, limit, offset)
+func (c *Client) GetProducts(ctx context.Context, limits ...int) ([]ProductsResponse, error) {
+	return paginate(ctx, func(pageLimit, offset int) (ProductsResponse, int, error) {
+		resp, err := c.fetchProducts(ctx, pageLimit, offset)
+		resp.Products = limitPage(resp.Products, pageLimit)
 		return resp, len(resp.Products), err
-	})
+	}, limits...)
 }
 
 func (c *Client) fetchProducts(ctx context.Context, requestLimit, offset int) (ProductsResponse, error) {

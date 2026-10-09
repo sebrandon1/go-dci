@@ -28,6 +28,10 @@ access to topics and products. Use --name to filter by substring match.`,
   dci teams --name acme
   dci teams -o json | jq '.teams[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		if teamsNameFilter != "" {
 			printStatus("Getting teams matching name: %s\n", teamsNameFilter)
@@ -35,7 +39,7 @@ access to topics and products. Use --name to filter by substring match.`,
 			printStatus("Getting teams...")
 		}
 
-		response, err := dciClient.GetTeamsFiltered(cmd.Context(), teamsNameFilter)
+		response, err := dciClient.GetTeamsFiltered(cmd.Context(), teamsNameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get teams: %w", err)
 		}
@@ -60,7 +64,6 @@ var getTeamCmd = &cobra.Command{
 		if err := validateResourceID(getTeamIDFlag, "team"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting team with ID: %s\n", getTeamIDFlag)
 
@@ -120,7 +123,6 @@ var updateTeamCmd = &cobra.Command{
 		if err := validateResourceID(updateTeamIDFlag, "team"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateTeamRequest{}
 		if updateTeamNameFlag != "" {
@@ -267,6 +269,7 @@ func init() {
 
 	// get teams flags
 	getTeamsCmd.PersistentFlags().StringVarP(&teamsNameFilter, "name", "n", "", "Filter teams by name")
+	addListLimitFlag(getTeamsCmd)
 
 	// get team flags
 	getTeamCmd.PersistentFlags().StringVar(&getTeamIDFlag, "id", "", "Team ID")
