@@ -60,15 +60,17 @@ func TestPrintTopicJSON(t *testing.T) {
 			UpdatedAt:      "2024-06-01T00:00:00.000000",
 		},
 	}
-	assert.NotPanics(t, func() {
-		printTopicJSON(response)
-	})
+	if err := printTopicJSON(response); err != nil {
+		t.Fatalf("printTopicJSON returned an error: %v", err)
+	}
 }
 
 func TestGetTopicCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.TopicResponse{Topic: lib.Topic{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "OCP-4.14"}})
+		if err := json.NewEncoder(w).Encode(lib.TopicResponse{Topic: lib.Topic{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "OCP-4.14"}}); err != nil {
+			t.Errorf("encode topic response: %v", err)
+		}
 	}))
 	defer server.Close()
 

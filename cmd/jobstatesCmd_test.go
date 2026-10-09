@@ -60,7 +60,7 @@ func TestPrintJobStatesJSON(t *testing.T) {
 			},
 		},
 	}
-	assert.NotPanics(t, func() {
-		printJobStatesJSON(responses)
-	})
+	if err := printJobStatesJSON(responses); err != nil {
+		t.Fatalf("printJobStatesJSON returned an error: %v", err)
+	}
 }

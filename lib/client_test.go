@@ -2366,7 +2366,7 @@ func TestUploadFile_Success(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test.xml")
-	err := os.WriteFile(filePath, []byte("<test>content</test>"), 0644)
+	err := os.WriteFile(filePath, []byte("<test>content</test>"), 0600)
 	assert.NoError(t, err)
 
 	client := newTestClient(server.URL)
@@ -2396,7 +2396,7 @@ func TestUploadFile_Error(t *testing.T) {
 
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "test.xml")
-	err := os.WriteFile(filePath, []byte("content"), 0644)
+	err := os.WriteFile(filePath, []byte("content"), 0600)
 	assert.NoError(t, err)
 
 	client := newTestClient(server.URL)

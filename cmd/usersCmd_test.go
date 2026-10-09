@@ -70,9 +70,9 @@ func TestPrintUsersJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printUsersJSON([]lib.UsersResponse{*response})
-	})
+	if err := printUsersJSON([]lib.UsersResponse{*response}); err != nil {
+		t.Fatalf("printUsersJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintUserStdout(t *testing.T) {
@@ -108,15 +108,17 @@ func TestPrintUserJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printUserJSON(response)
-	})
+	if err := printUserJSON(response); err != nil {
+		t.Fatalf("printUserJSON returned an error: %v", err)
+	}
 }
 
 func TestGetUserCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "testuser"}})
+		if err := json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "testuser"}}); err != nil {
+			t.Errorf("encode user response: %v", err)
+		}
 	}))
 	defer server.Close()
 

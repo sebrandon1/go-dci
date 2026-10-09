@@ -108,18 +108,32 @@ func TestGetFileCmd_SaveToFile(t *testing.T) {
 
 	client := lib.NewClient("testkey", "testsecret")
 	client.BaseURL = server.URL + "/api/v1"
+	dciClient = client
+	t.Cleanup(func() { dciClient = nil })
 
-	content, _, err := client.GetFile(context.Background(), "file-456")
-	require.NoError(t, err)
-
+	previousID, previousOutputPath, previousOutputFormat := getFileIDFlag, getFileOutputPath, outputFormat
+	getFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
 	tmpDir := t.TempDir()
 	outPath := filepath.Join(tmpDir, "downloaded-file")
-	err = os.WriteFile(outPath, content, 0644)
+	getFileOutputPath = outPath
+	outputFormat = OutputFormatStdout
+	t.Cleanup(func() {
+		getFileIDFlag, getFileOutputPath, outputFormat = previousID, previousOutputPath, previousOutputFormat
+	})
+
+	cmd := &cobra.Command{}
+	cmd.SetContext(context.Background())
+	err := getFileCmd.RunE(cmd, nil)
 	require.NoError(t, err)
 
+	// #nosec G304 -- outPath is created under t.TempDir and is controlled by this test.
 	saved, err := os.ReadFile(outPath)
 	require.NoError(t, err)
 	assert.Equal(t, "binary data", string(saved))
+
+	info, err := os.Stat(outPath)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
 }
 
 func TestGetFileCmd_JSONOutput(t *testing.T) {

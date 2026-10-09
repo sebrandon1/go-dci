@@ -34,9 +34,9 @@ func TestPrintCreateJobJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printCreateJobJSON(response)
-	})
+	if err := printCreateJobJSON(response); err != nil {
+		t.Fatalf("printCreateJobJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintJobStateStdout(t *testing.T) {
@@ -71,9 +71,9 @@ func TestPrintJobStateJSON(t *testing.T) {
 	response.JobState.Status = "running"
 	response.JobState.CreatedAt = "2024-01-01T00:00:00.000000"
 
-	assert.NotPanics(t, func() {
-		printJobStateJSON(response)
-	})
+	if err := printJobStateJSON(response); err != nil {
+		t.Fatalf("printJobStateJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintUploadFileStdout(t *testing.T) {
@@ -99,8 +99,7 @@ func TestPrintUploadFileJSON(t *testing.T) {
 	response.File.Size = "1024"
 	response.File.CreatedAt = "2024-01-01T00:00:00.000000"
 
-	assert.NotPanics(t, func() {
-		printUploadFileJSON(response)
-	})
+	if err := printUploadFileJSON(response); err != nil {
+		t.Fatalf("printUploadFileJSON returned an error: %v", err)
+	}
 }
-

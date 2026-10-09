@@ -71,9 +71,9 @@ func TestPrintJobJSON(t *testing.T) {
 			UpdatedAt:  "2024-01-02T00:00:00.000000",
 		},
 	}
-	assert.NotPanics(t, func() {
-		printJobJSON(response)
-	})
+	if err := printJobJSON(response); err != nil {
+		t.Fatalf("printJobJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintFilesStdout(t *testing.T) {
@@ -124,15 +124,17 @@ func TestPrintFilesJSON(t *testing.T) {
 			},
 		},
 	}
-	assert.NotPanics(t, func() {
-		printFilesJSON(response)
-	})
+	if err := printFilesJSON(response); err != nil {
+		t.Fatalf("printFilesJSON returned an error: %v", err)
+	}
 }
 
 func TestGetJobCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.JobResponse{Job: lib.Job{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-job"}})
+		if err := json.NewEncoder(w).Encode(lib.JobResponse{Job: lib.Job{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-job"}}); err != nil {
+			t.Errorf("encode job response: %v", err)
+		}
 	}))
 	defer server.Close()
 

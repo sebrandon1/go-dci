@@ -37,15 +37,17 @@ func TestPrintComponentTypeJSON(t *testing.T) {
 			UpdatedAt: "2024-06-01T00:00:00.000000",
 		},
 	}
-	assert.NotPanics(t, func() {
-		printComponentTypeJSON(response)
-	})
+	if err := printComponentTypeJSON(response); err != nil {
+		t.Fatalf("printComponentTypeJSON returned an error: %v", err)
+	}
 }
 
 func TestGetComponentTypeCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.ComponentTypeResponse{ComponentType: lib.ComponentType{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "ocp"}})
+		if err := json.NewEncoder(w).Encode(lib.ComponentTypeResponse{ComponentType: lib.ComponentType{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "ocp"}}); err != nil {
+			t.Errorf("encode component type response: %v", err)
+		}
 	}))
 	defer server.Close()
 
