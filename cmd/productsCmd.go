@@ -21,10 +21,14 @@ var getProductsCmd = &cobra.Command{
 	Example: `  dci products
   dci products -o json | jq '.products[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		printStatus("Getting products...")
 
-		responses, err := dciClient.GetProducts(cmd.Context())
+		responses, err := dciClient.GetProducts(cmd.Context(), limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get products: %w", err)
 		}
@@ -49,7 +53,6 @@ var getProductCmd = &cobra.Command{
 		if err := validateResourceID(getProductIDFlag, "product"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting product with ID: %s\n", getProductIDFlag)
 
@@ -126,6 +129,7 @@ func printProductJSON(response *lib.ProductResponse) error {
 func init() {
 	rootCmd.AddCommand(getProductsCmd)
 	rootCmd.AddCommand(getProductCmd)
+	addListLimitFlag(getProductsCmd)
 
 	// get products flags
 

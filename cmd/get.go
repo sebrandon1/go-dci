@@ -43,6 +43,10 @@ release or product version (e.g., OCP-4.17). Use --name to filter by substring m
   # Output as JSON for scripting
   dci topics -o json | jq '.topics[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		if nameFilter != "" {
 			printStatus("Getting topics matching name: %s\n", nameFilter)
@@ -50,7 +54,7 @@ release or product version (e.g., OCP-4.17). Use --name to filter by substring m
 			printStatus("Getting all topics from DCI")
 		}
 
-		topicsResponses, err := dciClient.GetTopicsByName(cmd.Context(), nameFilter)
+		topicsResponses, err := dciClient.GetTopicsByName(cmd.Context(), nameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get topics: %w", err)
 		}
@@ -85,6 +89,10 @@ within a topic (e.g., "ocp", "rhcos"). Use --name to filter by substring match.`
   # Output as JSON
   dci componenttypes -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		if nameFilter != "" {
 			printStatus("Getting component types matching name: %s\n", nameFilter)
@@ -92,7 +100,7 @@ within a topic (e.g., "ocp", "rhcos"). Use --name to filter by substring match.`
 			printStatus("Getting all component types from DCI")
 		}
 
-		componentTypesResponses, err := dciClient.GetComponentTypesByName(cmd.Context(), nameFilter)
+		componentTypesResponses, err := dciClient.GetComponentTypesByName(cmd.Context(), nameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get component types: %w", err)
 		}
@@ -198,6 +206,10 @@ combined to narrow results by topic ID, component type, or name substring.`,
   # Output as JSON
   dci components --topic <topic-uuid> -o json | jq '.components[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		var statusMsg string
 		if topicID != "" || typeFilter != "" || nameFilter != "" {
@@ -216,7 +228,7 @@ combined to narrow results by topic ID, component type, or name substring.`,
 			printStatus("Getting all components from DCI")
 		}
 
-		componentsResponses, err := dciClient.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter)
+		componentsResponses, err := dciClient.GetComponentsFiltered(cmd.Context(), topicID, typeFilter, nameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get components: %w", err)
 		}
@@ -257,6 +269,11 @@ specific range. The two approaches are mutually exclusive.`,
   # List jobs in a date range, output as JSON
   dci jobs --start-date 2026-01-01 --end-date 2026-01-31 -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
+
 		if ageInDays != "" && (startDate != "" || endDate != "") {
 			return fmt.Errorf("--age and --start-date/--end-date are mutually exclusive")
 		}
@@ -284,7 +301,7 @@ specific range. The two approaches are mutually exclusive.`,
 
 			printStatus("Getting all jobs from DCI between %s and %s\n", startDate, endDate)
 
-			jobsResponses, err = dciClient.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd)
+			jobsResponses, err = dciClient.GetJobsByDate(cmd.Context(), parsedStart, parsedEnd, limits...)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %w", err)
 			}
@@ -298,7 +315,7 @@ specific range. The two approaches are mutually exclusive.`,
 				return fmt.Errorf("invalid age value '%s': %v", ageInDays, err)
 			}
 
-			jobsResponses, err = dciClient.GetJobs(cmd.Context(), daysBackLimit)
+			jobsResponses, err = dciClient.GetJobs(cmd.Context(), daysBackLimit, limits...)
 			if err != nil {
 				return fmt.Errorf("failed to get jobs: %w", err)
 			}
@@ -652,15 +669,18 @@ func init() {
 	getJobsCmd.PersistentFlags().StringVarP(&startDate, "start-date", "s", "", "Start date for job query (YYYY-MM-DD)")
 	getJobsCmd.PersistentFlags().StringVarP(&endDate, "end-date", "e", "", "End date for job query (YYYY-MM-DD)")
 	getJobsCmd.PersistentFlags().BoolVar(&certsuiteFilter, "certsuite", false, "Filter to certsuite jobs only and show certsuite version")
+	addListLimitFlag(getJobsCmd)
 
 	getOcpCountCmd.PersistentFlags().StringVarP(&ageInDays, "age", "d", "", "Age in days")
 
 	getComponentsCmd.PersistentFlags().StringVarP(&topicID, "topic", "t", "", "Filter components by topic ID")
 	getComponentsCmd.PersistentFlags().StringVar(&typeFilter, "type", "", "Filter components by type")
 	getComponentsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter components by name")
-
+	addListLimitFlag(getComponentsCmd)
 
 	getComponentTypesCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter component types by name")
+	addListLimitFlag(getComponentTypesCmd)
 
 	getTopicsCmd.PersistentFlags().StringVarP(&nameFilter, "name", "n", "", "Filter topics by name")
+	addListLimitFlag(getTopicsCmd)
 }

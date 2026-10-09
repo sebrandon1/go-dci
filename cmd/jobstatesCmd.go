@@ -28,12 +28,15 @@ only the states for a specific job.`,
   # Output as JSON
   dci jobstates --job-id <job-uuid> -o json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 		if getJobStatesJobIDFlag != "" {
 			if err := validateResourceID(getJobStatesJobIDFlag, "job"); err != nil {
 				return err
 			}
 		}
-
 
 		if getJobStatesJobIDFlag != "" {
 			printStatus("Getting job states for job ID: %s", getJobStatesJobIDFlag)
@@ -41,7 +44,7 @@ only the states for a specific job.`,
 			printStatus("Getting all job states...")
 		}
 
-		responses, err := dciClient.GetJobStates(cmd.Context(), getJobStatesJobIDFlag)
+		responses, err := dciClient.GetJobStates(cmd.Context(), getJobStatesJobIDFlag, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get job states: %w", err)
 		}
@@ -97,4 +100,5 @@ func init() {
 
 	// get job states flags
 	getJobStatesCmd.PersistentFlags().StringVar(&getJobStatesJobIDFlag, "job-id", "", "Filter by Job ID (optional)")
+	addListLimitFlag(getJobStatesCmd)
 }

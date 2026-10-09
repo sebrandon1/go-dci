@@ -32,7 +32,6 @@ var getTopicCmd = &cobra.Command{
 			return err
 		}
 
-
 		printStatus("Getting topic with ID: %s\n", getTopicIDFlag)
 
 		response, err := dciClient.GetTopic(cmd.Context(), getTopicIDFlag)
@@ -102,7 +101,6 @@ var updateTopicCmd = &cobra.Command{
 		if err := validateResourceID(updateTopicIDFlag, "topic"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateTopicRequest{}
 		if updateTopicName != "" {
@@ -189,11 +187,14 @@ var getTopicComponentsCmd = &cobra.Command{
 		if err := validateResourceID(topicComponentsIDFlag, "topic"); err != nil {
 			return err
 		}
-
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		printStatus("Getting components for topic ID: %s\n", topicComponentsIDFlag)
 
-		componentsResponses, err := dciClient.GetTopicComponents(cmd.Context(), topicComponentsIDFlag)
+		componentsResponses, err := dciClient.GetTopicComponents(cmd.Context(), topicComponentsIDFlag, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get topic components: %w", err)
 		}
@@ -267,4 +268,5 @@ func init() {
 	// get topic components flags
 	getTopicComponentsCmd.PersistentFlags().StringVar(&topicComponentsIDFlag, "id", "", "Topic ID")
 	_ = getTopicComponentsCmd.MarkPersistentFlagRequired("id")
+	addListLimitFlag(getTopicComponentsCmd)
 }

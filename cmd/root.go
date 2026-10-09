@@ -82,6 +82,26 @@ func validateResourceID(id, resourceType string) error {
 	return nil
 }
 
+func addListLimitFlag(cmd *cobra.Command) {
+	cmd.Flags().Int("limit", 0, "Maximum records to return (must be positive; omitted means unlimited)")
+}
+
+func listLimit(cmd *cobra.Command) ([]int, error) {
+	flag := cmd.Flags().Lookup("limit")
+	if flag == nil || !cmd.Flags().Changed("limit") {
+		return nil, nil
+	}
+
+	limit, err := cmd.Flags().GetInt("limit")
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		return nil, fmt.Errorf("--limit must be a positive integer")
+	}
+	return []int{limit}, nil
+}
+
 // confirmDeletion prompts the user to confirm a deletion operation.
 // Returns true if the user confirms (or --yes flag is set), false otherwise.
 // Skips prompt if output format is JSON (assumes automation).
@@ -153,6 +173,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		if _, err := listLimit(cmd); err != nil {
+			return err
+		}
+
 		for c := cmd; c != nil; c = c.Parent() {
 			if c.Name() == "config" {
 				return nil

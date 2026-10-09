@@ -12,19 +12,19 @@ import (
 
 // Variables for user command flags
 var (
-	getUserIDFlag         string
-	createUserNameFlag    string
-	createUserEmailFlag   string
+	getUserIDFlag          string
+	createUserNameFlag     string
+	createUserEmailFlag    string
 	createUserFullnameFlag string
-	createUserTeamIDFlag  string
+	createUserTeamIDFlag   string
 	createUserPasswordFlag string
-	updateUserIDFlag      string
-	updateUserNameFlag    string
-	updateUserEmailFlag   string
+	updateUserIDFlag       string
+	updateUserNameFlag     string
+	updateUserEmailFlag    string
 	updateUserFullnameFlag string
-	updateUserStateFlag   string
-	deleteUserIDFlag      string
-	usersNameFilter       string
+	updateUserStateFlag    string
+	deleteUserIDFlag       string
+	usersNameFilter        string
 )
 
 var getUsersCmd = &cobra.Command{
@@ -35,6 +35,10 @@ var getUsersCmd = &cobra.Command{
   dci users --name alice
   dci users -o json | jq '.users[].email'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		if usersNameFilter != "" {
 			printStatus("Getting users matching name: %s\n", usersNameFilter)
@@ -42,7 +46,7 @@ var getUsersCmd = &cobra.Command{
 			printStatus("Getting users...")
 		}
 
-		response, err := dciClient.GetUsersFiltered(cmd.Context(), usersNameFilter)
+		response, err := dciClient.GetUsersFiltered(cmd.Context(), usersNameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get users: %w", err)
 		}
@@ -67,7 +71,6 @@ var getUserCmd = &cobra.Command{
 		if err := validateResourceID(getUserIDFlag, "user"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting user with ID: %s\n", getUserIDFlag)
 
@@ -115,7 +118,6 @@ omit it to be prompted interactively (recommended to avoid shell history exposur
 			}
 		}
 
-
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would create user: name=%s, email=%s, fullname=%s, team-id=%s\n", createUserNameFlag, createUserEmailFlag, createUserFullnameFlag, createUserTeamIDFlag)
 			return nil
@@ -156,7 +158,6 @@ var updateUserCmd = &cobra.Command{
 		if err := validateResourceID(updateUserIDFlag, "user"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateUserRequest{}
 		if updateUserNameFlag != "" {
@@ -310,6 +311,7 @@ func init() {
 
 	// get users flags
 	getUsersCmd.PersistentFlags().StringVarP(&usersNameFilter, "name", "n", "", "Filter users by name")
+	addListLimitFlag(getUsersCmd)
 
 	// get user flags
 	getUserCmd.PersistentFlags().StringVar(&getUserIDFlag, "id", "", "User ID")

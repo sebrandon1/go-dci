@@ -28,10 +28,14 @@ API credentials are redacted from JSON output.`,
 	Example: `  dci remotecis
   dci remotecis -o json | jq '.remotecis[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		limits, err := listLimit(cmd)
+		if err != nil {
+			return err
+		}
 
 		printStatus("Getting remote CIs...")
 
-		responses, err := dciClient.GetRemoteCIs(cmd.Context())
+		responses, err := dciClient.GetRemoteCIs(cmd.Context(), limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get remote CIs: %w", err)
 		}
@@ -56,7 +60,6 @@ var getRemoteCICmd = &cobra.Command{
 		if err := validateResourceID(getRemoteCIsCmd_IDFlag, "remote CI"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting remote CI with ID: %s\n", getRemoteCIsCmd_IDFlag)
 
@@ -116,7 +119,6 @@ var updateRemoteCICmd = &cobra.Command{
 		if err := validateResourceID(updateRemoteCIIDFlag, "remote CI"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateRemoteCIRequest{}
 		if updateRemoteCINameFlag != "" {
@@ -261,6 +263,7 @@ func init() {
 	rootCmd.AddCommand(deleteRemoteCICmd)
 
 	// get remote CIs flags
+	addListLimitFlag(getRemoteCIsCmd)
 
 	// get remote CI flags
 	getRemoteCICmd.PersistentFlags().StringVar(&getRemoteCIsCmd_IDFlag, "id", "", "Remote CI ID")
