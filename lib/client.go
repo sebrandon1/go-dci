@@ -743,6 +743,8 @@ func (c *Client) ScheduleJob(ctx context.Context, topicID string) (*CreateJobRes
 }
 
 // GetJobFiles retrieves all files for a specific job, following pagination.
+// Unlike the other paginated getters it merges the pages into a single
+// response, which keeps its original single-response signature.
 func (c *Client) GetJobFiles(ctx context.Context, jobID string) (*FilesResponse, error) {
 	pages, err := paginate(ctx, func(pageLimit, offset int) (FilesResponse, int, error) {
 		resp, err := c.fetchJobFiles(ctx, jobID, pageLimit, offset)

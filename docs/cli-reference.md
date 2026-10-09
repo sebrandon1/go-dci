@@ -727,14 +727,14 @@ Flags:
 
 ### `job-files` — List Job Files
 
-Get all files attached to a job.
+Get all files attached to a job. Results are paginated automatically and returned newest first.
 
 ```bash
 # List files for a job
-go-dci job-files --job-id <job-id>
+go-dci job-files --id <job-id>
 
 # Output as JSON
-go-dci job-files --job-id <job-id> --output json
+go-dci job-files --id <job-id> --output json
 ```
 
 ```
@@ -743,7 +743,7 @@ Usage:
 
 Flags:
   -h, --help            help for job-files
-      --job-id string   Job ID (required)
+      --id string       Job ID
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -781,7 +781,7 @@ Download a file from DCI by its ID.
 # Download a file
 go-dci file --id <file-id>
 
-# Output as JSON (returns metadata only)
+# Output as JSON (file ID, content type and size; content is not included)
 go-dci file --id <file-id> --output json
 ```
 
