@@ -82,6 +82,7 @@ func isRetryable(method string, statusCode int) bool {
 func (c *Client) retryBackoff(ctx context.Context, attempt int) error {
 	backoff := time.Duration(1<<uint(attempt)) * time.Second
 	jitter := backoff / 4
+	// #nosec G404 -- randomness only spreads retries over time; it is not security-sensitive.
 	sleep := backoff + time.Duration(rand.Int64N(int64(2*jitter))) - jitter
 
 	select {
@@ -1108,7 +1109,7 @@ func (c *Client) DeleteFile(ctx context.Context, fileID string) error {
 
 // UploadFile uploads a file (e.g., test results) to a job in DCI
 func (c *Client) UploadFile(ctx context.Context, jobID, filePath, mimeType string) (*UploadFileResponse, error) {
-	// Read the file
+	// #nosec G304 -- filePath is explicitly supplied by the local caller as the file to upload.
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %w", err)
@@ -1496,7 +1497,7 @@ func (c *Client) CreateUser(ctx context.Context, name, email, fullname, teamID, 
 		Password: password,
 	}
 
-	jsonBody, err := json.Marshal(reqBody)
+	jsonBody, err := json.Marshal(reqBody) // #nosec G117 -- password is required in the create-user API request body.
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}

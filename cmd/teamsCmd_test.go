@@ -66,9 +66,9 @@ func TestPrintTeamsJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printTeamsJSON([]lib.TeamsResponse{*response})
-	})
+	if err := printTeamsJSON([]lib.TeamsResponse{*response}); err != nil {
+		t.Fatalf("printTeamsJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintTeamStdout(t *testing.T) {
@@ -102,15 +102,17 @@ func TestPrintTeamJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printTeamJSON(response)
-	})
+	if err := printTeamJSON(response); err != nil {
+		t.Fatalf("printTeamJSON returned an error: %v", err)
+	}
 }
 
 func TestGetTeamCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-team"}})
+		if err := json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-team"}}); err != nil {
+			t.Errorf("encode team response: %v", err)
+		}
 	}))
 	defer server.Close()
 

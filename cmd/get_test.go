@@ -226,10 +226,9 @@ func TestPrintComponentsJSON(t *testing.T) {
 		},
 	}
 
-	// Verify the function doesn't panic with valid input
-	assert.NotPanics(t, func() {
-		printComponentsJSON(componentsResponses)
-	})
+	if err := printComponentsJSON(componentsResponses); err != nil {
+		t.Fatalf("printComponentsJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintComponentsJSON_EmptyComponents(t *testing.T) {
@@ -240,9 +239,9 @@ func TestPrintComponentsJSON_EmptyComponents(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printComponentsJSON(componentsResponses)
-	})
+	if err := printComponentsJSON(componentsResponses); err != nil {
+		t.Fatalf("printComponentsJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintComponentsJSON_MultipleResponses(t *testing.T) {
@@ -261,9 +260,9 @@ func TestPrintComponentsJSON_MultipleResponses(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printComponentsJSON(componentsResponses)
-	})
+	if err := printComponentsJSON(componentsResponses); err != nil {
+		t.Fatalf("printComponentsJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintIdentityStdout(t *testing.T) {
@@ -314,9 +313,9 @@ func TestPrintIdentityJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printIdentityJSON(identity)
-	})
+	if err := printIdentityJSON(identity); err != nil {
+		t.Fatalf("printIdentityJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintComponentTypesStdout(t *testing.T) {
@@ -370,9 +369,9 @@ func TestPrintComponentTypesJSON(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printComponentTypesJSON(componentTypesResponses)
-	})
+	if err := printComponentTypesJSON(componentTypesResponses); err != nil {
+		t.Fatalf("printComponentTypesJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintComponentTypesJSON_MultipleResponses(t *testing.T) {
@@ -390,9 +389,9 @@ func TestPrintComponentTypesJSON_MultipleResponses(t *testing.T) {
 		},
 	}
 
-	assert.NotPanics(t, func() {
-		printComponentTypesJSON(componentTypesResponses)
-	})
+	if err := printComponentTypesJSON(componentTypesResponses); err != nil {
+		t.Fatalf("printComponentTypesJSON returned an error: %v", err)
+	}
 }
 
 func TestPrintTopicsStdout(t *testing.T) {
@@ -440,9 +439,9 @@ func TestPrintTopicsJSON(t *testing.T) {
 			},
 		},
 	}
-	assert.NotPanics(t, func() {
-		printTopicsJSON(topicsResponses)
-	})
+	if err := printTopicsJSON(topicsResponses); err != nil {
+		t.Fatalf("printTopicsJSON returned an error: %v", err)
+	}
 }
 
 func TestCalculateDaysSince(t *testing.T) {
@@ -462,7 +461,9 @@ func TestCalculateDaysSince_InvalidTimestamp(t *testing.T) {
 func TestGetIdentityCmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.IdentityResponse{Identity: lib.Identity{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-remoteci", Type: "remoteci"}})
+		if err := json.NewEncoder(w).Encode(lib.IdentityResponse{Identity: lib.Identity{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-remoteci", Type: "remoteci"}}); err != nil {
+			t.Errorf("encode identity response: %v", err)
+		}
 	}))
 	defer server.Close()
 

@@ -114,7 +114,9 @@ func TestPrintRemoteCIJSON(t *testing.T) {
 func TestGetRemoteCICmd_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-remoteci"}})
+		if err := json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "550e8400-e29b-41d4-a716-446655440000", Name: "test-remoteci"}}); err != nil {
+			t.Errorf("encode remote CI response: %v", err)
+		}
 	}))
 	defer server.Close()
 

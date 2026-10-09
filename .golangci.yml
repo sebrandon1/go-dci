@@ -13,6 +13,8 @@ linters:
     - unused
     - misspell
     - bodyclose
+    - gosec
+    - gocritic
 
   exclusions:
     rules:

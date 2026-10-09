@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -81,6 +82,7 @@ func main() {
 }
 
 func loadEndpointsFromYAML(filePath string) ([]Endpoint, error) {
+	// #nosec G304 -- this developer tool reads the explicitly selected local YAML input.
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -97,6 +99,12 @@ func loadEndpointsFromYAML(filePath string) ([]Endpoint, error) {
 func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, error) {
 	var endpoints []ImplementedEndpoint
 
+	root, err := os.OpenRoot(libPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open library directory: %w", err)
+	}
+	defer func() { _ = root.Close() }()
+
 	// Patterns to match endpoint definitions
 	urlConcatPattern := regexp.MustCompile(`(?:` + baseURLVar + `)\s*\+\s*"(/[^"]+)"`)
 	sprintfPattern := regexp.MustCompile(`fmt\.Sprintf\s*\(\s*"%s(/[^"]+)"`)
@@ -104,17 +112,22 @@ func scanSourceEndpoints(libPath, baseURLVar string) ([]ImplementedEndpoint, err
 	// Match HTTP method from http.NewRequest, doRequest, or doJSON calls
 	methodPattern := regexp.MustCompile(`(?:http\.NewRequest|c\.doRequest|c\.doJSON)\s*\(\s*(?:ctx,\s*)?(?:http\.Method(Get|Post|Put|Delete|Patch)|"(GET|POST|PUT|DELETE|PATCH)")`)
 
-	err := filepath.Walk(libPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(libPath, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+		if entry.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 
-		file, err := os.Open(path)
+		relativePath, err := filepath.Rel(libPath, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to resolve source path: %w", err)
+		}
+
+		file, err := root.Open(relativePath)
+		if err != nil {
+			return fmt.Errorf("failed to open source file %s: %w", path, err)
 		}
 		defer func() { _ = file.Close() }()
 
