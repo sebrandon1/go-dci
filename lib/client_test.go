@@ -3,10 +3,12 @@ package lib
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -1264,6 +1266,90 @@ func TestGetJobFiles_Success(t *testing.T) {
 	assert.Equal(t, "results.xml", result.Files[0].Name)
 }
 
+// jobFilesServer serves totalFiles files for job-123, one page per request,
+// and records the requested offsets. Requests at failAtOffset get a 500.
+func jobFilesServer(t *testing.T, totalFiles, failAtOffset int, offsets *[]string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/jobs/job-123/files", r.URL.Path)
+		*offsets = append(*offsets, r.URL.Query().Get("offset"))
+
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		assert.NoError(t, err)
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		assert.NoError(t, err)
+
+		if offset == failAtOffset {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		response := FilesResponse{Meta: Meta{Count: totalFiles}}
+		for i := offset; i < min(offset+limit, totalFiles); i++ {
+			response.Files = append(response.Files, File{ID: fmt.Sprintf("file-%d", i), JobID: "job-123"})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		assert.NoError(t, json.NewEncoder(w).Encode(response))
+	}))
+}
+
+func TestGetJobFiles_Pagination(t *testing.T) {
+	tests := []struct {
+		name            string
+		totalFiles      int
+		expectedOffsets []string
+	}{
+		{name: "no files", totalFiles: 0, expectedOffsets: []string{"0"}},
+		{name: "exactly one page", totalFiles: defaultPageSize, expectedOffsets: []string{"0", strconv.Itoa(defaultPageSize)}},
+		{name: "partial second page", totalFiles: defaultPageSize + 5, expectedOffsets: []string{"0", strconv.Itoa(defaultPageSize)}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var offsets []string
+			server := jobFilesServer(t, tt.totalFiles, -1, &offsets)
+			defer server.Close()
+
+			client := newTestClient(server.URL)
+			result, err := client.GetJobFiles(context.Background(), "job-123")
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedOffsets, offsets)
+			assert.Len(t, result.Files, tt.totalFiles)
+			assert.Equal(t, tt.totalFiles, result.Meta.Count)
+			if tt.totalFiles > 0 {
+				assert.Equal(t, fmt.Sprintf("file-%d", tt.totalFiles-1), result.Files[tt.totalFiles-1].ID)
+			}
+		})
+	}
+}
+
+func TestGetJobFiles_LaterPageError(t *testing.T) {
+	var offsets []string
+	server := jobFilesServer(t, defaultPageSize+5, defaultPageSize, &offsets)
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	result, err := client.GetJobFiles(context.Background(), "job-123")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, []string{"0", strconv.Itoa(defaultPageSize)}, offsets)
+}
+
+func TestFetchJobFiles_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write([]byte("invalid json"))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+
+	files, err := client.fetchJobFiles(context.Background(), "job-123", 100, 0)
+	assert.Error(t, err)
+	assert.Empty(t, files.Files)
+}
+
 func TestGetJobFiles_Error(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -2284,7 +2370,7 @@ func TestGetFile_Success(t *testing.T) {
 	expectedContentType := "application/xml"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Contains(t, r.URL.Path, "/files/file-123")
+		assert.Equal(t, "/files/file-123/content", r.URL.Path)
 		assert.Equal(t, "GET", r.Method)
 
 		w.Header().Set("Content-Type", expectedContentType)

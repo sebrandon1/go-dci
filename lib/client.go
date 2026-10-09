@@ -742,27 +742,48 @@ func (c *Client) ScheduleJob(ctx context.Context, topicID string) (*CreateJobRes
 	return &response, nil
 }
 
-// GetJobFiles retrieves all files for a specific job
+// GetJobFiles retrieves all files for a specific job, following pagination.
 func (c *Client) GetJobFiles(ctx context.Context, jobID string) (*FilesResponse, error) {
-	reqURL := resourceSubURL(c.BaseURL, "jobs", jobID, "files")
-	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
+	pages, err := paginate(ctx, func(pageLimit, offset int) (FilesResponse, int, error) {
+		resp, err := c.fetchJobFiles(ctx, jobID, pageLimit, offset)
+		if err != nil {
+			return FilesResponse{}, 0, err
+		}
+		resp.Files = limitPage(resp.Files, pageLimit)
+		return resp, len(resp.Files), nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error getting job files: %w", err)
+	}
+
+	response := FilesResponse{Meta: pages[0].Meta}
+	for _, page := range pages {
+		response.Files = append(response.Files, page.Files...)
+	}
+
+	return &response, nil
+}
+
+func (c *Client) fetchJobFiles(ctx context.Context, jobID string, requestLimit, offset int) (FilesResponse, error) {
+	reqURL := paginatedURL(resourceSubURL(c.BaseURL, "jobs", jobID, "files"), requestLimit, offset)
+	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
+	if err != nil {
+		return FilesResponse{}, err
 	}
 
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
+		return FilesResponse{}, formatHTTPError(httpResponse.StatusCode, body)
 	}
 
 	var response FilesResponse
 	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return FilesResponse{}, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return &response, nil
+	return response, nil
 }
 
 func (c *Client) fetchJobs(ctx context.Context, requestLimit, offset int) (JobsResponse, error) {
@@ -1040,9 +1061,10 @@ func (c *Client) GetJobStates(ctx context.Context, jobID string, limits ...int) 
 	}, limits...)
 }
 
-// GetFile downloads a file by ID from DCI
+// GetFile downloads a file's content by ID from DCI. The /files/{id}
+// endpoint only returns metadata; the bytes come from /files/{id}/content.
 func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, error) {
-	reqURL := resourceURL(c.BaseURL, "files", fileID)
+	reqURL := resourceSubURL(c.BaseURL, "files", fileID, "content")
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("error getting file: %w", err)
