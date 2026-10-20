@@ -90,7 +90,7 @@ export GO_DCI_SECRETKEY="your-secret-key"
 
 ## Requirements
 
-- Go 1.26+
+- Go 1.27+
 - Valid DCI API credentials
 
 ## Code Style
