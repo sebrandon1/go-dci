@@ -14,6 +14,7 @@ func TestFormatHTTPError(t *testing.T) {
 		status         int
 		statusText     string
 		guidancePhrase string
+		body           string
 	}{
 		{
 			name:           "unauthorized",
@@ -57,14 +58,35 @@ func TestFormatHTTPError(t *testing.T) {
 			statusText:     "I'm a teapot",
 			guidancePhrase: "An unexpected error occurred",
 		},
+		{
+			name:           "unauthorized with response body",
+			status:         401,
+			statusText:     "Unauthorized",
+			guidancePhrase: "Authentication failed.",
+			body:           "invalid access key",
+		},
+		{
+			name:           "not found with response body",
+			status:         404,
+			statusText:     "Not Found",
+			guidancePhrase: "Resource not found.",
+			body:           "job does not exist",
+		},
 	}
 
 	for _, tt := range statusTests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := formatHTTPError(tt.status, nil)
+			got := formatHTTPError(tt.status, []byte(tt.body)).Error()
 
-			assert.Contains(t, err.Error(), "HTTP "+strconv.Itoa(tt.status)+": "+tt.statusText)
-			assert.Contains(t, err.Error(), tt.guidancePhrase)
+			assert.Contains(t, got, "HTTP "+strconv.Itoa(tt.status)+": "+tt.statusText)
+			assert.Contains(t, got, tt.guidancePhrase)
+
+			if tt.body != "" {
+				assert.Contains(t, got, "Server response: "+tt.body)
+
+				// Guidance must appear before the response body section.
+				assert.Less(t, strings.Index(got, tt.guidancePhrase), strings.Index(got, "Server response:"))
+			}
 		})
 	}
 
@@ -77,6 +99,10 @@ func TestFormatHTTPError(t *testing.T) {
 		{name: "short", body: []byte("upstream detail"), wantResponseBody: true},
 		{name: "499 bytes", body: []byte(strings.Repeat("x", 499)), wantResponseBody: true},
 		{name: "500 bytes", body: []byte(strings.Repeat("x", 500))},
+		// The cutoff is measured in bytes, not runes: 250 two-byte runes
+		// reach the 500-byte limit even though the body is 250 characters.
+		{name: "multi-byte under byte limit", body: []byte(strings.Repeat("é", 249)), wantResponseBody: true},
+		{name: "multi-byte at byte limit", body: []byte(strings.Repeat("é", 250))},
 	}
 
 	for _, tt := range bodyTests {
