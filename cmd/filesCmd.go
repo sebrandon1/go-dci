@@ -1,18 +1,18 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
 // Variables for file command flags
 var (
-	getFileIDFlag    string
+	getFileIDFlag     string
 	getFileOutputPath string
-	deleteFileIDFlag string
+	deleteFileIDFlag  string
 )
 
 var getFileCmd = &cobra.Command{
@@ -34,7 +34,6 @@ to disk.`,
 			return err
 		}
 
-
 		printStatus("Downloading file with ID: %s\n", getFileIDFlag)
 
 		content, contentType, err := dciClient.GetFile(cmd.Context(), getFileIDFlag)
@@ -53,8 +52,7 @@ to disk.`,
 				"content_type": contentType,
 				"size":         len(content),
 			}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			fmt.Printf("File ID:       %s\n", getFileIDFlag)
 			fmt.Printf("Content-Type:  %s\n", contentType)
@@ -102,8 +100,7 @@ unless --yes is set or output is JSON (automation mode).`,
 
 		if outputFormat == OutputFormatJSON {
 			result := map[string]string{"status": "deleted", "id": deleteFileIDFlag}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			printStatus("File deleted successfully!")
 		}

@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
@@ -84,15 +85,10 @@ func printJobStatesJSON(responses []lib.JobStatesResponse) error {
 		allJobStates = append(allJobStates, response.JobStates...)
 	}
 
-	jsonBytes, err := json.Marshal(map[string]any{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]any{
 		"jobstates": allJobStates,
 		"total":     len(allJobStates),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func init() {
