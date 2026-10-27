@@ -117,10 +117,19 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 		retry.WithMaxAttempts(c.MaxRetries),
 		retry.WithBaseDelay(time.Second),
 		retry.WithHTTPMaxDelay(defaultRequestTimeout),
-		// Only idempotent methods are retried, and only on server errors.
+		// Status responses are retried only for idempotent methods, matching
+		// the historical policy.
 		retry.WithRetryMethods(http.MethodGet, http.MethodDelete),
+		// Transport errors were historically retried for every method, so
+		// POST/PUT still get a retry when the connection drops.
+		retry.WithTransportRetryMethods(
+			http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+			http.MethodPatch, http.MethodDelete, http.MethodOptions,
+		),
 		retry.WithRetryStatus(func(statusCode int) bool { return statusCode >= http.StatusInternalServerError }),
 		retry.WithJitter(retryJitter),
+		// The previous loop used only local exponential backoff.
+		retry.WithoutRetryAfter(),
 	)
 	if err != nil {
 		// retry.Do turns an exhausted retryable status into a typed error.
