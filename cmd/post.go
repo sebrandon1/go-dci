@@ -1,25 +1,26 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
 // Variables for POST command flags
 var (
-	createJobTopicID     string
-	createJobComponents  string
-	createJobComment     string
-	updateJobStateJobID  string
-	updateJobStateStatus string
+	createJobTopicID      string
+	createJobComponents   string
+	createJobComment      string
+	updateJobStateJobID   string
+	updateJobStateStatus  string
 	updateJobStateComment string
-	uploadFileJobID      string
-	uploadFilePath       string
-	uploadFileMimeType   string
+	uploadFileJobID       string
+	uploadFilePath        string
+	uploadFileMimeType    string
 )
 
 var createJobCmd = &cobra.Command{
@@ -167,12 +168,7 @@ func printCreateJobStdout(response *lib.CreateJobResponse) {
 
 func printCreateJobJSON(response *lib.CreateJobResponse) error {
 	lib.RedactJob(&response.Job)
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func printJobStateStdout(response *lib.JobStateResponse) {
@@ -188,12 +184,7 @@ func printJobStateStdout(response *lib.JobStateResponse) {
 }
 
 func printJobStateJSON(response *lib.JobStateResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func printUploadFileStdout(response *lib.UploadFileResponse) {
@@ -208,12 +199,7 @@ func printUploadFileStdout(response *lib.UploadFileResponse) {
 }
 
 func printUploadFileJSON(response *lib.UploadFileResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func init() {
@@ -241,4 +227,3 @@ func init() {
 	_ = uploadFileCmd.MarkPersistentFlagRequired("file")
 	uploadFileCmd.PersistentFlags().StringVar(&uploadFileMimeType, "mime", "application/junit", "MIME type of the file (default: application/junit)")
 }
-

@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -232,8 +232,7 @@ unless --yes is set or output is JSON (automation mode).`,
 
 		if outputFormat == OutputFormatJSON {
 			result := map[string]string{"status": "deleted", "id": deleteUserIDFlag}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			printStatus("User deleted successfully!")
 		}
@@ -270,15 +269,10 @@ func printUsersJSON(responses []lib.UsersResponse) error {
 		allUsers = append(allUsers, resp.Users...)
 	}
 
-	jsonBytes, err := json.Marshal(map[string]interface{}{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]interface{}{
 		"users": allUsers,
 		"total": len(allUsers),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func printUserStdout(response *lib.UserResponse) {
@@ -294,12 +288,7 @@ func printUserStdout(response *lib.UserResponse) {
 }
 
 func printUserJSON(response *lib.UserResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func init() {

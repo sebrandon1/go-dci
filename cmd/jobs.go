@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,6 @@ var getJobCmd = &cobra.Command{
 		if err := validateResourceID(getJobIDFlag, "job"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting job with ID: %s\n", getJobIDFlag)
 
@@ -60,7 +60,6 @@ var updateJobCmd = &cobra.Command{
 		if err := validateResourceID(updateJobIDFlag, "job"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateJobRequest{}
 		if updateJobComment != "" {
@@ -134,8 +133,7 @@ unless --yes is set or output is JSON (automation mode).`,
 
 		if outputFormat == OutputFormatJSON {
 			result := map[string]string{"status": "deleted", "id": deleteJobIDFlag}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			printStatus("Job deleted successfully!")
 		}
@@ -157,7 +155,6 @@ explicitly.`,
 		if err := validateResourceID(scheduleJobTopicID, "topic"); err != nil {
 			return err
 		}
-
 
 		if dryRunFlag {
 			printStatus("[DRY RUN] Would schedule job: topic-id=%s\n", scheduleJobTopicID)
@@ -192,7 +189,6 @@ var getJobFilesCmd = &cobra.Command{
 		if err := validateResourceID(jobFilesIDFlag, "job"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting files for job ID: %s\n", jobFilesIDFlag)
 
@@ -233,12 +229,7 @@ func printJobStdout(response *lib.JobResponse) {
 
 func printJobJSON(response *lib.JobResponse) error {
 	lib.RedactJob(&response.Job)
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func printFilesStdout(response *lib.FilesResponse) {
@@ -255,12 +246,7 @@ func printFilesStdout(response *lib.FilesResponse) {
 }
 
 func printFilesJSON(response *lib.FilesResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func init() {

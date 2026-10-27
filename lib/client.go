@@ -1,3 +1,4 @@
+//nolint:bodyclose // response bodies are closed centrally by decodeResponse
 package lib
 
 import (
@@ -6,19 +7,22 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand/v2"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	signerv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/sebrandon1/go-toolbox/httpx"
+	"github.com/sebrandon1/go-toolbox/retry"
 )
 
 const (
@@ -59,109 +63,101 @@ func NewClient(accessKey, secretKey string) *Client {
 		TLSTimeout:     defaultTLSHandshakeTimeout,
 		DialTimeout:    defaultDialTimeout,
 	}
-	c.httpClient = &http.Client{
-		Timeout: c.RequestTimeout,
-		Transport: &http.Transport{
-			TLSHandshakeTimeout:   c.TLSTimeout,
-			ResponseHeaderTimeout: c.RequestTimeout,
-			DialContext: (&net.Dialer{
-				Timeout: c.DialTimeout,
-			}).DialContext,
-		},
+	c.httpClient = httpx.NewHTTPClient(httpx.Options{
+		Timeout:             c.RequestTimeout,
+		DialTimeout:         c.DialTimeout,
+		TLSHandshakeTimeout: c.TLSTimeout,
+	})
+	// httpx has no option for this one; keep the historical header timeout.
+	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
+		transport.ResponseHeaderTimeout = c.RequestTimeout
 	}
 	return c
 }
 
-func isRetryable(method string, statusCode int) bool {
-	if statusCode < 500 {
-		return false
+// retryJitter spreads a backoff interval by +/-25%, matching the historical
+// retry behavior.
+func retryJitter(delay time.Duration) time.Duration {
+	jitter := delay / 4
+	if jitter <= 0 {
+		return delay
 	}
-	return method == http.MethodGet || method == http.MethodDelete
-}
-
-func (c *Client) retryBackoff(ctx context.Context, attempt int) error {
-	backoff := time.Duration(1<<uint(attempt)) * time.Second
-	jitter := backoff / 4
 	// #nosec G404 -- randomness only spreads retries over time; it is not security-sensitive.
-	sleep := backoff + time.Duration(rand.Int64N(int64(2*jitter))) - jitter
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(sleep):
-		return nil
-	}
+	return delay + time.Duration(rand.Int64N(int64(2*jitter))) - jitter
 }
 
 func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []byte, headers map[string]string) (*http.Response, error) {
-	var lastErr error
-	var lastResp *http.Response
+	var bodyReader io.Reader
+	if body != nil {
+		bodyReader = bytes.NewReader(body)
+	}
 
-	for attempt := range c.MaxRetries {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	payloadHash := emptyStringSHA256
+	if body != nil {
+		hash := sha256.Sum256(body)
+		payloadHash = hex.EncodeToString(hash[:])
+	}
+
+	signer := signerv4.NewSigner()
+	creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
+	if err := signer.SignHTTP(ctx, creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
+		return nil, err
+	}
+
+	resp, err := retry.Do(ctx, c.httpClient, req,
+		retry.WithMaxAttempts(c.MaxRetries),
+		retry.WithBaseDelay(time.Second),
+		retry.WithHTTPMaxDelay(defaultRequestTimeout),
+		// Only idempotent methods are retried, and only on server errors.
+		retry.WithRetryMethods(http.MethodGet, http.MethodDelete),
+		retry.WithRetryStatus(func(statusCode int) bool { return statusCode >= http.StatusInternalServerError }),
+		retry.WithJitter(retryJitter),
+	)
+	if err != nil {
+		// retry.Do turns an exhausted retryable status into a typed error.
+		// Restore the last response so callers keep the DCI-formatted error.
+		var httpErr *httpx.HTTPError
+		if errors.As(err, &httpErr) {
+			return &http.Response{
+				StatusCode: httpErr.StatusCode,
+				Body:       io.NopCloser(strings.NewReader(httpErr.Body)),
+				Header:     make(http.Header),
+			}, nil
 		}
+		return nil, err
+	}
+	return resp, nil
+}
 
-		var bodyReader io.Reader
-		if body != nil {
-			bodyReader = bytes.NewReader(body)
-		}
+// decodeResponse closes resp.Body. For a status outside expected it returns a
+// DCI-formatted error; otherwise it decodes the JSON body into out. A nil out
+// discards the body.
+func decodeResponse(resp *http.Response, out any, expected ...int) error {
+	defer func() { _ = resp.Body.Close() }()
 
-		req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
-		if err != nil {
-			return nil, err
-		}
-
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
-
-		payloadHash := emptyStringSHA256
-		if body != nil {
-			hash := sha256.Sum256(body)
-			payloadHash = hex.EncodeToString(hash[:])
-		}
-
-		signer := signerv4.NewSigner()
-		creds := aws.Credentials{AccessKeyID: c.AccessKey, SecretAccessKey: c.SecretKey}
-		if err := signer.SignHTTP(ctx, creds, req, payloadHash, serviceName, awsRegion, time.Now()); err != nil {
-			return nil, err
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			lastErr = err
-			if attempt < c.MaxRetries-1 {
-				if err := c.retryBackoff(ctx, attempt); err != nil {
-					return nil, err
-				}
-				continue
+	for _, want := range expected {
+		if resp.StatusCode == want {
+			if out == nil {
+				return nil
 			}
-			return nil, lastErr
-		}
-
-		if !isRetryable(method, resp.StatusCode) {
-			return resp, nil
-		}
-
-		lastResp = resp
-		if attempt < c.MaxRetries-1 {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
-
-			if err := c.retryBackoff(ctx, attempt); err != nil {
-				return nil, err
+			if err := httpx.DecodeJSON(resp.Body, out); err != nil {
+				return fmt.Errorf("error decoding response: %w", err)
 			}
-			continue
+			return nil
 		}
 	}
 
-	// Exhausted all retries — return last response or error
-	if lastResp != nil {
-		return lastResp, nil
-	}
-
-	return nil, lastErr
+	body := httpx.ReadErrorBody(resp.Body, httpx.DefaultMaxErrorBodyBytes)
+	return formatHTTPError(resp.StatusCode, []byte(body))
 }
 
 // doJSON is a convenience method for POST/PUT requests with a JSON body.
@@ -291,16 +287,8 @@ func (c *Client) GetIdentity(ctx context.Context) (*IdentityResponse, error) {
 		return nil, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var identity IdentityResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&identity)
-	if err != nil {
+	if err := decodeResponse(httpResponse, &identity, http.StatusOK); err != nil {
 		return nil, err
 	}
 
@@ -330,11 +318,8 @@ func (c *Client) fetchComponentTypes(ctx context.Context, name string, requestLi
 		return ComponentTypesResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
 	var componentTypes ComponentTypesResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&componentTypes)
-	if err != nil {
+	if err := decodeResponse(httpResponse, &componentTypes, http.StatusOK); err != nil {
 		return ComponentTypesResponse{}, err
 	}
 
@@ -349,16 +334,9 @@ func (c *Client) GetComponentType(ctx context.Context, componentTypeID string) (
 		return nil, fmt.Errorf("error getting component type: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var componentType ComponentTypeResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&componentType); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &componentType, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &componentType, nil
@@ -381,16 +359,9 @@ func (c *Client) CreateComponentType(ctx context.Context, name string) (*Compone
 		return nil, fmt.Errorf("error creating component type: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ComponentTypeResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -409,16 +380,9 @@ func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string
 		return nil, fmt.Errorf("error updating component type: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ComponentTypeResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -432,14 +396,7 @@ func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string
 		return fmt.Errorf("error deleting component type: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 func (c *Client) GetTopics(ctx context.Context, limits ...int) ([]TopicsResponse, error) {
@@ -464,11 +421,8 @@ func (c *Client) fetchTopics(ctx context.Context, name string, requestLimit, off
 		return TopicsResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
 	var topics TopicsResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&topics)
-	if err != nil {
+	if err := decodeResponse(httpResponse, &topics, http.StatusOK); err != nil {
 		return TopicsResponse{}, err
 	}
 
@@ -483,16 +437,9 @@ func (c *Client) GetTopic(ctx context.Context, topicID string) (*TopicResponse, 
 		return nil, fmt.Errorf("error getting topic: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var topic TopicResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&topic); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &topic, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &topic, nil
@@ -516,16 +463,9 @@ func (c *Client) CreateTopic(ctx context.Context, name, productID string, compon
 		return nil, fmt.Errorf("error creating topic: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TopicResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -544,16 +484,9 @@ func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates Update
 		return nil, fmt.Errorf("error updating topic: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TopicResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -567,14 +500,7 @@ func (c *Client) DeleteTopic(ctx context.Context, topicID string) error {
 		return fmt.Errorf("error deleting topic: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // GetTopicComponents retrieves all components for a specific topic using the topic components endpoint
@@ -594,11 +520,9 @@ func (c *Client) fetchTopicComponents(ctx context.Context, topicID string, reque
 		return ComponentsResponse{}, fmt.Errorf("error getting topic components: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
 	var components ComponentsResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&components); err != nil {
-		return ComponentsResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &components, http.StatusOK); err != nil {
+		return ComponentsResponse{}, err
 	}
 
 	return components, nil
@@ -650,16 +574,9 @@ func (c *Client) GetJob(ctx context.Context, jobID string) (*JobResponse, error)
 		return nil, fmt.Errorf("error getting job: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var job JobResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&job); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &job, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &job, nil
@@ -678,16 +595,9 @@ func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobR
 		return nil, fmt.Errorf("error updating job: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response JobResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -701,14 +611,7 @@ func (c *Client) DeleteJob(ctx context.Context, jobID string) error {
 		return fmt.Errorf("error deleting job: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // ScheduleJob schedules a job with auto-selected components for a topic
@@ -728,16 +631,9 @@ func (c *Client) ScheduleJob(ctx context.Context, topicID string) (*CreateJobRes
 		return nil, fmt.Errorf("error scheduling job: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response CreateJobResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -774,16 +670,9 @@ func (c *Client) fetchJobFiles(ctx context.Context, jobID string, requestLimit, 
 		return FilesResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return FilesResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response FilesResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return FilesResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return FilesResponse{}, err
 	}
 
 	return response, nil
@@ -796,12 +685,9 @@ func (c *Client) fetchJobs(ctx context.Context, requestLimit, offset int) (JobsR
 		return JobsResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
 	// Decode the response into JobsResponse
 	var jobs JobsResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&jobs)
-	if err != nil {
+	if err := decodeResponse(httpResponse, &jobs, http.StatusOK); err != nil {
 		return JobsResponse{}, err
 	}
 
@@ -835,16 +721,9 @@ func (c *Client) GetComponent(ctx context.Context, componentID string) (*Compone
 		return nil, fmt.Errorf("error getting component: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var component ComponentResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&component); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &component, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &component, nil
@@ -870,16 +749,9 @@ func (c *Client) CreateComponent(ctx context.Context, name, componentType, topic
 		return nil, fmt.Errorf("error creating component: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ComponentResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -898,16 +770,9 @@ func (c *Client) UpdateComponent(ctx context.Context, componentID string, update
 		return nil, fmt.Errorf("error updating component: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ComponentResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -921,14 +786,7 @@ func (c *Client) DeleteComponent(ctx context.Context, componentID string) error 
 		return fmt.Errorf("error deleting component: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // fetchComponents is an internal helper to fetch components with optional filtering
@@ -945,11 +803,8 @@ func (c *Client) fetchComponents(ctx context.Context, topicID, componentType, na
 		return ComponentsResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
 	var components ComponentsResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&components)
-	if err != nil {
+	if err := decodeResponse(httpResponse, &components, http.StatusOK); err != nil {
 		return ComponentsResponse{}, err
 	}
 
@@ -974,16 +829,9 @@ func (c *Client) CreateJob(ctx context.Context, topicID string, componentIDs []s
 		return nil, fmt.Errorf("error creating job: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response CreateJobResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1008,16 +856,9 @@ func (c *Client) UpdateJobState(ctx context.Context, jobID string, status JobSta
 		return nil, fmt.Errorf("error updating job state: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response JobStateResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1037,16 +878,9 @@ func (c *Client) fetchJobStates(ctx context.Context, jobID string, requestLimit,
 		return JobStatesResponse{}, err
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return JobStatesResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response JobStatesResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return JobStatesResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return JobStatesResponse{}, err
 	}
 
 	return response, nil
@@ -1076,7 +910,7 @@ func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, er
 	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
+		body := []byte(httpx.ReadErrorBody(httpResponse.Body, httpx.DefaultMaxErrorBodyBytes))
 		return nil, "", formatHTTPError(httpResponse.StatusCode, body)
 	}
 
@@ -1097,14 +931,7 @@ func (c *Client) DeleteFile(ctx context.Context, fileID string) error {
 		return fmt.Errorf("error deleting file: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // UploadFile uploads a file (e.g., test results) to a job in DCI
@@ -1139,16 +966,9 @@ func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content [
 		return nil, fmt.Errorf("error uploading file: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response UploadFileResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1170,16 +990,9 @@ func (c *Client) fetchRemoteCIs(ctx context.Context, requestLimit, offset int) (
 		return RemoteCIsResponse{}, fmt.Errorf("error getting remote CIs: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return RemoteCIsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response RemoteCIsResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return RemoteCIsResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return RemoteCIsResponse{}, err
 	}
 
 	return response, nil
@@ -1193,16 +1006,9 @@ func (c *Client) GetRemoteCI(ctx context.Context, remoteciID string) (*RemoteCIR
 		return nil, fmt.Errorf("error getting remote CI: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response RemoteCIResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1226,16 +1032,9 @@ func (c *Client) CreateRemoteCI(ctx context.Context, name, teamID string) (*Remo
 		return nil, fmt.Errorf("error creating remote CI: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response RemoteCIResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1254,16 +1053,9 @@ func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates 
 		return nil, fmt.Errorf("error updating remote CI: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response RemoteCIResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1277,14 +1069,7 @@ func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
 		return fmt.Errorf("error deleting remote CI: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // GetTeams retrieves all teams from DCI
@@ -1310,16 +1095,9 @@ func (c *Client) fetchTeams(ctx context.Context, name string, requestLimit, offs
 		return TeamsResponse{}, fmt.Errorf("error getting teams: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return TeamsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TeamsResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return TeamsResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return TeamsResponse{}, err
 	}
 
 	return response, nil
@@ -1333,16 +1111,9 @@ func (c *Client) GetTeam(ctx context.Context, teamID string) (*TeamResponse, err
 		return nil, fmt.Errorf("error getting team: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TeamResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1365,16 +1136,9 @@ func (c *Client) CreateTeam(ctx context.Context, name string) (*TeamResponse, er
 		return nil, fmt.Errorf("error creating team: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TeamResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1393,16 +1157,9 @@ func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTe
 		return nil, fmt.Errorf("error updating team: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response TeamResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1416,14 +1173,7 @@ func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
 		return fmt.Errorf("error deleting team: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // GetUsers retrieves all users from DCI
@@ -1449,16 +1199,9 @@ func (c *Client) fetchUsers(ctx context.Context, name string, requestLimit, offs
 		return UsersResponse{}, fmt.Errorf("error getting users: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return UsersResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response UsersResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return UsersResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return UsersResponse{}, err
 	}
 
 	return response, nil
@@ -1472,16 +1215,9 @@ func (c *Client) GetUser(ctx context.Context, userID string) (*UserResponse, err
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response UserResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1508,16 +1244,9 @@ func (c *Client) CreateUser(ctx context.Context, name, email, fullname, teamID, 
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response UserResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusCreated); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1536,16 +1265,9 @@ func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUs
 		return nil, fmt.Errorf("error updating user: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response UserResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
@@ -1559,14 +1281,7 @@ func (c *Client) DeleteUser(ctx context.Context, userID string) error {
 		return fmt.Errorf("error deleting user: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusNoContent && httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return formatHTTPError(httpResponse.StatusCode, body)
-	}
-
-	return nil
+	return decodeResponse(httpResponse, nil, http.StatusNoContent, http.StatusOK)
 }
 
 // GetProducts retrieves all products from DCI
@@ -1585,16 +1300,9 @@ func (c *Client) fetchProducts(ctx context.Context, requestLimit, offset int) (P
 		return ProductsResponse{}, fmt.Errorf("error getting products: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return ProductsResponse{}, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ProductsResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return ProductsResponse{}, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return ProductsResponse{}, err
 	}
 
 	return response, nil
@@ -1608,16 +1316,9 @@ func (c *Client) GetProduct(ctx context.Context, productID string) (*ProductResp
 		return nil, fmt.Errorf("error getting product: %w", err)
 	}
 
-	defer func() { _ = httpResponse.Body.Close() }()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(httpResponse.Body)
-		return nil, formatHTTPError(httpResponse.StatusCode, body)
-	}
-
 	var response ProductResponse
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := decodeResponse(httpResponse, &response, http.StatusOK); err != nil {
+		return nil, err
 	}
 
 	return &response, nil

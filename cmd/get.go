@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
@@ -355,12 +355,7 @@ func runGeneralJobsOutput(jobsResponses []lib.JobsResponse) error {
 	}
 
 	if outputFormat == OutputFormatJSON {
-		jsonBytes, err := json.Marshal(map[string]any{"jobs": rows, "total": len(rows)})
-		if err != nil {
-			return fmt.Errorf("failed to marshal JSON output: %w", err)
-		}
-		fmt.Println(string(jsonBytes))
-		return nil
+		return cliout.PrintJSONCompact(os.Stdout, map[string]any{"jobs": rows, "total": len(rows)})
 	}
 
 	for _, r := range rows {
@@ -408,14 +403,10 @@ func runCertsuiteJobsOutput(jobsResponses []lib.JobsResponse, startRun time.Time
 		printStatus("Total DCI Jobs: %d", totalJobsCtr)
 		printStatus("Total go-dci runtime: %v", time.Since(startRun))
 	} else {
-		jsonOutputBytes, err := json.Marshal(map[string]any{
+		return cliout.PrintJSONCompact(os.Stdout, map[string]any{
 			"jobs":  jsonOutput.Jobs,
 			"total": len(jsonOutput.Jobs),
 		})
-		if err != nil {
-			return fmt.Errorf("failed to marshal JSON output: %w", err)
-		}
-		fmt.Println(string(jsonOutputBytes))
 	}
 
 	return nil
@@ -499,12 +490,7 @@ func printOcpVersionCountJSON(ocpVersionCount map[string]int) error {
 		jsonOutput.OcpVersions = append(jsonOutput.OcpVersions, jo)
 	}
 
-	jsonOutputBytes, err := json.Marshal(jsonOutput)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonOutputBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, jsonOutput)
 }
 
 func extractCommitVersion(componentName string) string {
@@ -539,15 +525,10 @@ func printComponentsJSON(componentsResponses []lib.ComponentsResponse) error {
 		allComponents = append(allComponents, cr.Components...)
 	}
 
-	jsonBytes, err := json.Marshal(map[string]any{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]any{
 		"components": allComponents,
 		"total":      len(allComponents),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func printIdentityStdout(identity *lib.IdentityResponse) {
@@ -574,12 +555,7 @@ func printIdentityStdout(identity *lib.IdentityResponse) {
 }
 
 func printIdentityJSON(identity *lib.IdentityResponse) error {
-	jsonBytes, err := json.Marshal(identity)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, identity)
 }
 
 func printComponentTypesStdout(componentTypesResponses []lib.ComponentTypesResponse) {
@@ -597,15 +573,10 @@ func printComponentTypesJSON(componentTypesResponses []lib.ComponentTypesRespons
 		allComponentTypes = append(allComponentTypes, ctr.ComponentTypes...)
 	}
 
-	jsonBytes, err := json.Marshal(map[string]any{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]any{
 		"componenttypes": allComponentTypes,
 		"total":          len(allComponentTypes),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func printTopicsStdout(topicsResponses []lib.TopicsResponse) {
@@ -646,15 +617,10 @@ func printTopicsJSON(topicsResponses []lib.TopicsResponse) error {
 		}
 	}
 
-	jsonBytes, err := json.Marshal(map[string]any{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]any{
 		"topics": allTopics,
 		"total":  len(allTopics),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func init() {

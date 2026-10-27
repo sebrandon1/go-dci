@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,6 @@ var getComponentCmd = &cobra.Command{
 		if err := validateResourceID(getComponentIDFlag, "component"); err != nil {
 			return err
 		}
-
 
 		printStatus("Getting component with ID: %s\n", getComponentIDFlag)
 
@@ -96,7 +96,6 @@ var updateComponentCmd = &cobra.Command{
 		if err := validateResourceID(updateComponentIDFlag, "component"); err != nil {
 			return err
 		}
-
 
 		updates := lib.UpdateComponentRequest{}
 		if updateComponentName != "" {
@@ -176,8 +175,7 @@ unless --yes is set or output is JSON (automation mode).`,
 
 		if outputFormat == OutputFormatJSON {
 			result := map[string]string{"status": "deleted", "id": deleteComponentIDFlag}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			printStatus("Component deleted successfully!")
 		}
@@ -205,12 +203,7 @@ func printComponentStdout(response *lib.ComponentResponse) {
 }
 
 func printComponentJSON(response *lib.ComponentResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func init() {

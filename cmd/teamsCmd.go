@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/sebrandon1/go-dci/lib"
+	"github.com/sebrandon1/go-toolbox/cliout"
 	"github.com/spf13/cobra"
 )
 
@@ -191,8 +192,7 @@ unless --yes is set or output is JSON (automation mode).`,
 
 		if outputFormat == OutputFormatJSON {
 			result := map[string]string{"status": "deleted", "id": deleteTeamIDFlag}
-			jsonBytes, _ := json.Marshal(result)
-			fmt.Println(string(jsonBytes))
+			_ = cliout.PrintJSONCompact(os.Stdout, result)
 		} else {
 			printStatus("Team deleted successfully!")
 		}
@@ -229,15 +229,10 @@ func printTeamsJSON(responses []lib.TeamsResponse) error {
 		allTeams = append(allTeams, resp.Teams...)
 	}
 
-	jsonBytes, err := json.Marshal(map[string]interface{}{
+	return cliout.PrintJSONCompact(os.Stdout, map[string]interface{}{
 		"teams": allTeams,
 		"total": len(allTeams),
 	})
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
 }
 
 func printTeamStdout(response *lib.TeamResponse) {
@@ -252,12 +247,7 @@ func printTeamStdout(response *lib.TeamResponse) {
 }
 
 func printTeamJSON(response *lib.TeamResponse) error {
-	jsonBytes, err := json.Marshal(response)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
-	}
-	fmt.Println(string(jsonBytes))
-	return nil
+	return cliout.PrintJSONCompact(os.Stdout, response)
 }
 
 func init() {
