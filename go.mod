@@ -1,6 +1,8 @@
 module github.com/sebrandon1/go-dci
 
-go 1.27.3
+go 1.27.0
+
+toolchain go1.27.3
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.5
