@@ -35,8 +35,12 @@ const (
 	// SHA-256 of empty string for unsigned GET requests
 	emptyStringSHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
+	// DefaultRequestTimeout is the HTTP request deadline used when none is set.
+	DefaultRequestTimeout = 30 * time.Second
+	// DefaultMaxRetries is the retry attempt count used when none is set.
+	DefaultMaxRetries = 3
+
 	// Default HTTP timeouts
-	defaultRequestTimeout      = 30 * time.Second
 	defaultTLSHandshakeTimeout = 5 * time.Second
 	defaultDialTimeout         = 10 * time.Second
 )
@@ -67,8 +71,8 @@ func NewClient(accessKey, secretKey string) *Client {
 		BaseURL:        DCIURL,
 		AccessKey:      accessKey,
 		SecretKey:      secretKey,
-		MaxRetries:     3,
-		RequestTimeout: defaultRequestTimeout,
+		MaxRetries:     DefaultMaxRetries,
+		RequestTimeout: DefaultRequestTimeout,
 		TLSTimeout:     defaultTLSHandshakeTimeout,
 		DialTimeout:    defaultDialTimeout,
 	}
@@ -82,6 +86,20 @@ func NewClient(accessKey, secretKey string) *Client {
 		transport.ResponseHeaderTimeout = c.RequestTimeout
 	}
 	return c
+}
+
+// SetRequestTimeout updates the per-request deadline for subsequent requests.
+// It updates the HTTP client timeout as well as the client field, because the
+// transport deadlines are otherwise baked in at construction time.
+func (c *Client) SetRequestTimeout(timeout time.Duration) {
+	c.RequestTimeout = timeout
+	if c.httpClient == nil {
+		return
+	}
+	c.httpClient.Timeout = timeout
+	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
+		transport.ResponseHeaderTimeout = timeout
+	}
 }
 
 // retryJitter spreads a backoff interval by +/-25%, matching the historical
@@ -135,7 +153,7 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 	resp, err := retry.Do(ctx, c.httpClient, req,
 		retry.WithMaxAttempts(c.MaxRetries),
 		retry.WithBaseDelay(time.Second),
-		retry.WithHTTPMaxDelay(defaultRequestTimeout),
+		retry.WithHTTPMaxDelay(DefaultRequestTimeout),
 		// Status responses are retried only for idempotent methods, matching
 		// the historical policy.
 		retry.WithRetryMethods(http.MethodGet, http.MethodDelete),

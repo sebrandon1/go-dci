@@ -7,7 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/sebrandon1/go-dci/lib"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -266,4 +269,60 @@ func TestInitConfigUnwritableConfigDir(t *testing.T) {
 	})
 
 	assert.NotPanics(t, initConfig)
+}
+
+func newTuningCommand(t *testing.T) *cobra.Command {
+	t.Helper()
+
+	parent := &cobra.Command{Use: "dci"}
+	parent.PersistentFlags().Duration("request-timeout", 30*time.Second, "")
+	parent.PersistentFlags().Int("max-retries", 3, "")
+
+	child := &cobra.Command{Use: "topics"}
+	parent.AddCommand(child)
+	return child
+}
+
+func TestApplyClientTuning(t *testing.T) {
+	tests := []struct {
+		name            string
+		args            []string
+		wantTimeout     time.Duration
+		wantRetries     int
+		wantErrContains string
+	}{
+		{"defaults untouched", nil, 30 * time.Second, 3, ""},
+		{"both applied", []string{"--request-timeout", "5s", "--max-retries", "1"}, 5 * time.Second, 1, ""},
+		{"zero retries allowed", []string{"--max-retries", "0"}, 30 * time.Second, 0, ""},
+		{"zero timeout rejected", []string{"--request-timeout", "0s"}, 0, 0, "--request-timeout must be greater than 0"},
+		{"negative timeout rejected", []string{"--request-timeout", "-1s"}, 0, 0, "--request-timeout must be greater than 0"},
+		{"negative retries rejected", []string{"--max-retries", "-2"}, 0, 0, "--max-retries must be zero or greater"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := newTuningCommand(t)
+			if err := cmd.ParseFlags(tt.args); err != nil {
+				t.Fatalf("parse flags: %v", err)
+			}
+
+			client := lib.NewClient("key", "secret")
+			err := applyClientTuning(cmd, client)
+
+			if tt.wantErrContains != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrContains)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantTimeout, client.RequestTimeout)
+			assert.Equal(t, tt.wantRetries, client.MaxRetries)
+		})
+	}
+}
+
+func TestRequestTuningFlagsArePersistent(t *testing.T) {
+	for _, name := range []string{"request-timeout", "max-retries"} {
+		assert.NotNil(t, rootCmd.PersistentFlags().Lookup(name), "missing persistent flag --%s", name)
+	}
 }

@@ -171,6 +171,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Show verbose output (HTTP requests, timing)")
 	rootCmd.PersistentFlags().BoolVar(&dryRunFlag, "dry-run", false, "Show what would happen without executing")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", OutputFormatStdout, "Output format (json) - default is stdout")
+	rootCmd.PersistentFlags().Duration("request-timeout", lib.DefaultRequestTimeout, "HTTP request timeout")
+	rootCmd.PersistentFlags().Int("max-retries", lib.DefaultMaxRetries, "Maximum retry attempts for retryable requests")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if _, err := listLimit(cmd); err != nil {
@@ -187,8 +189,36 @@ func init() {
 			return err
 		}
 		dciClient = lib.NewClient(accessKey, secretKey)
-		return nil
+		return applyClientTuning(cmd, dciClient)
 	}
+}
+
+// applyClientTuning validates --request-timeout/--max-retries and applies them
+// to the client before the first request.
+func applyClientTuning(cmd *cobra.Command, client *lib.Client) error {
+	if cmd.Flags().Changed("request-timeout") {
+		timeout, err := cmd.Flags().GetDuration("request-timeout")
+		if err != nil {
+			return err
+		}
+		if timeout <= 0 {
+			return fmt.Errorf("--request-timeout must be greater than 0")
+		}
+		client.SetRequestTimeout(timeout)
+	}
+
+	if cmd.Flags().Changed("max-retries") {
+		retries, err := cmd.Flags().GetInt("max-retries")
+		if err != nil {
+			return err
+		}
+		if retries < 0 {
+			return fmt.Errorf("--max-retries must be zero or greater")
+		}
+		client.MaxRetries = retries
+	}
+
+	return nil
 }
 
 func initConfig() {
