@@ -1,5 +1,27 @@
 # CLI Reference
 
+## Global Flags
+
+These persistent flags are accepted by every command:
+
+```
+  -y, --yes                     Skip confirmation prompts
+  -q, --quiet                   Suppress non-essential output
+  -v, --verbose                 Show verbose output (HTTP requests, timing)
+      --dry-run                 Show what would happen without executing
+  -o, --output string           Output format (json) - default is stdout (default "stdout")
+      --request-timeout duration  HTTP request timeout (default 30s)
+      --max-retries int         Maximum retry attempts for retryable requests (default 3)
+```
+
+`--request-timeout` must be greater than zero and `--max-retries` must be zero or
+greater. Both default to the library defaults, so omitting them changes nothing.
+
+```bash
+# Allow slow queries more time, and fail fast instead of retrying
+go-dci jobs -d 30 --request-timeout 2m --max-retries 1
+```
+
 ## `topics` — List Topics
 
 Get all available topics from DCI.

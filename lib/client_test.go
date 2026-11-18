@@ -2615,3 +2615,25 @@ func TestDoRequest_Exhausted429IsRateLimited(t *testing.T) {
 	assert.Contains(t, err.Error(), "Rate limited by the DCI API")
 	assert.Equal(t, 1, attempts)
 }
+
+func TestSetRequestTimeout(t *testing.T) {
+	client := NewClient("key", "secret")
+	assert.Equal(t, DefaultRequestTimeout, client.RequestTimeout)
+	assert.Equal(t, 3, client.MaxRetries)
+
+	client.SetRequestTimeout(5 * time.Second)
+	assert.Equal(t, 5*time.Second, client.RequestTimeout)
+	assert.Equal(t, 5*time.Second, client.httpClient.Timeout)
+
+	transport, ok := client.httpClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("expected *http.Transport, got %T", client.httpClient.Transport)
+	}
+	assert.Equal(t, 5*time.Second, transport.ResponseHeaderTimeout)
+}
+
+func TestSetRequestTimeoutWithoutHTTPClient(t *testing.T) {
+	client := &Client{}
+	assert.NotPanics(t, func() { client.SetRequestTimeout(time.Second) })
+	assert.Equal(t, time.Second, client.RequestTimeout)
+}
