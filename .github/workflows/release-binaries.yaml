@@ -10,10 +10,13 @@ jobs:
   build:
     name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
+    env:
+      # Windows requires the .exe suffix for the binary to run.
+      BINARY_NAME: ${{ matrix.goos == 'windows' && 'go-dci.exe' || 'go-dci' }}
     strategy:
       fail-fast: false
       matrix:
-        goos: [linux, darwin]
+        goos: [linux, darwin, windows]
         goarch: [amd64, arm64]
     steps:
       - name: Checkout
@@ -31,14 +34,12 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir -p dist
-          BINARY_NAME=go-dci
           OUTPUT="dist/${BINARY_NAME}"
           go build -trimpath -ldflags "-s -w -X github.com/sebrandon1/go-dci/cmd.Version=${GITHUB_REF_NAME}" -o "$OUTPUT" .
 
       - name: Package
         run: |
           set -euo pipefail
-          BINARY_NAME=go-dci
           TAG="${GITHUB_REF_NAME}"
           PKG_NAME="${BINARY_NAME}_${TAG}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p dist/pkg
