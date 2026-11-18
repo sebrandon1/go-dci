@@ -174,3 +174,120 @@ func TestDeleteRemoteCICmd_Success(t *testing.T) {
 	err := deleteRemoteCICmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestGetRemoteCIsCmd_Success(t *testing.T) {
+	var gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIsResponse{RemoteCIs: []lib.RemoteCI{{ID: "rci-1", Name: "runner"}}})
+	})
+
+	assert.NoError(t, runCommand(getRemoteCIsCmd))
+	assert.Equal(t, "/api/v1/remotecis", gotPath)
+}
+
+func TestGetRemoteCIsCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIsResponse{RemoteCIs: []lib.RemoteCI{{ID: "rci-1", Name: "runner"}}})
+	})
+
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getRemoteCIsCmd))
+}
+
+func TestGetRemoteCIsCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	assert.Error(t, runCommand(getRemoteCIsCmd))
+}
+
+func TestCreateRemoteCICmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "rci-1", Name: "runner"}})
+	})
+
+	createRemoteCINameFlag = "runner"
+	createRemoteCITeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { createRemoteCINameFlag, createRemoteCITeamIDFlag = "", "" })
+
+	assert.NoError(t, runCommand(createRemoteCICmd))
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/v1/remotecis", gotPath)
+}
+
+func TestCreateRemoteCICmd_JSONAndDryRun(t *testing.T) {
+	createRemoteCINameFlag = "runner"
+	createRemoteCITeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { createRemoteCINameFlag, createRemoteCITeamIDFlag = "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(createRemoteCICmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "rci-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(createRemoteCICmd))
+}
+
+func TestUpdateRemoteCICmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "rci-1", Name: "runner-2"}})
+	})
+
+	updateRemoteCIIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateRemoteCINameFlag = "runner-2"
+	updateRemoteCIStateFlag = "active"
+	t.Cleanup(func() { updateRemoteCIIDFlag, updateRemoteCINameFlag, updateRemoteCIStateFlag = "", "", "" })
+
+	assert.NoError(t, runCommand(updateRemoteCICmd))
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "/api/v1/remotecis/550e8400-e29b-41d4-a716-446655440000", gotPath)
+}
+
+func TestUpdateRemoteCICmd_JSONAndDryRun(t *testing.T) {
+	updateRemoteCIIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateRemoteCIStateFlag = "inactive"
+	t.Cleanup(func() { updateRemoteCIIDFlag, updateRemoteCIStateFlag = "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(updateRemoteCICmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIResponse{RemoteCI: lib.RemoteCI{ID: "rci-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(updateRemoteCICmd))
+}
+
+func TestUpdateRemoteCICmd_InvalidID(t *testing.T) {
+	updateRemoteCIIDFlag = "bad"
+	t.Cleanup(func() { updateRemoteCIIDFlag = "" })
+
+	err := runCommand(updateRemoteCICmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid remote CI ID format")
+}
+
+func TestDeleteRemoteCICmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteRemoteCIIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteRemoteCIIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteRemoteCICmd))
+}

@@ -239,3 +239,51 @@ func TestDeleteFileCmd_Success_RunE(t *testing.T) {
 	err := deleteFileCmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestGetFileCmd_JSONMetadata(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte("<results/>"))
+	})
+
+	getFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	getFileOutputPath = ""
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { getFileIDFlag, getFileOutputPath = "", "" })
+
+	assert.NoError(t, runCommand(getFileCmd))
+}
+
+func TestGetFileCmd_MetadataStdout(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte("<results/>"))
+	})
+
+	getFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	getFileOutputPath = ""
+	t.Cleanup(func() { getFileIDFlag, getFileOutputPath = "", "" })
+
+	assert.NoError(t, runCommand(getFileCmd))
+}
+
+func TestDeleteFileCmd_DryRunSkipsAPI(t *testing.T) {
+	deleteFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	dryRunFlag = true
+	t.Cleanup(func() { deleteFileIDFlag = ""; resetGlobalFlags() })
+
+	assert.NoError(t, runCommand(deleteFileCmd))
+}
+
+func TestDeleteFileCmd_JSONOutputRunE(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteFileIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteFileIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteFileCmd))
+}

@@ -133,3 +133,105 @@ func TestDeleteComponentCmd_Success(t *testing.T) {
 	err := deleteComponentCmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestCreateComponentCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.ComponentResponse{Component: lib.Components{ID: "comp-1", Name: "OCP 4.18", Tags: []string{"ga"}}})
+	})
+
+	createComponentName = "OCP 4.18"
+	createComponentType = "ocp"
+	createComponentTopicID = "550e8400-e29b-41d4-a716-446655440000"
+	createComponentVersion = "4.18.0"
+	t.Cleanup(func() {
+		createComponentName, createComponentType = "", ""
+		createComponentTopicID, createComponentVersion = "", ""
+	})
+
+	assert.NoError(t, runCommand(createComponentCmd))
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/v1/components", gotPath)
+}
+
+func TestCreateComponentCmd_JSONAndDryRun(t *testing.T) {
+	createComponentName = "OCP 4.18"
+	createComponentType = "ocp"
+	createComponentTopicID = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() {
+		createComponentName, createComponentType, createComponentTopicID = "", "", ""
+	})
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(createComponentCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.ComponentResponse{Component: lib.Components{ID: "comp-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(createComponentCmd))
+}
+
+func TestUpdateComponentCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.ComponentResponse{Component: lib.Components{ID: "comp-1"}})
+	})
+
+	updateComponentIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateComponentName = "OCP 4.18.1"
+	updateComponentState = "active"
+	updateComponentVersion = "4.18.1"
+	updateComponentTags = "ga, stable"
+	t.Cleanup(func() {
+		updateComponentIDFlag, updateComponentName = "", ""
+		updateComponentState, updateComponentVersion, updateComponentTags = "", "", ""
+	})
+
+	assert.NoError(t, runCommand(updateComponentCmd))
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "/api/v1/components/550e8400-e29b-41d4-a716-446655440000", gotPath)
+}
+
+func TestUpdateComponentCmd_JSONAndDryRun(t *testing.T) {
+	updateComponentIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateComponentTags = "ga"
+	t.Cleanup(func() { updateComponentIDFlag, updateComponentTags = "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(updateComponentCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.ComponentResponse{Component: lib.Components{ID: "comp-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(updateComponentCmd))
+}
+
+func TestUpdateComponentCmd_InvalidID(t *testing.T) {
+	updateComponentIDFlag = "bad"
+	t.Cleanup(func() { updateComponentIDFlag = "" })
+
+	err := runCommand(updateComponentCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid component ID format")
+}
+
+func TestDeleteComponentCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteComponentIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteComponentIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteComponentCmd))
+}
