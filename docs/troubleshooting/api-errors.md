@@ -81,4 +81,23 @@ Error: API returned 503: Service Unavailable
    - Check [DCI status page](https://www.distributed-ci.io/) for maintenance announcements
 
 3. **Automatic retry (library only):**
-   The library automatically retries 5xx errors for GET and DELETE requests up to `MaxRetries` times (default: 3).
+   The library automatically retries 5xx errors and 429 responses for GET and DELETE requests up to `MaxRetries` times (default: 3). When the server sends a `Retry-After` header, the library waits for that long (capped at the request timeout) instead of its own backoff.
+
+## Too Many Requests (429)
+
+**Symptom:**
+```
+HTTP 429: Too Many Requests
+Rate limited by the DCI API. The client already retried with backoff:
+  - Try again in a few moments
+  - Reduce the request rate or use --limit to fetch less data
+  - Check for other go-dci processes hitting the same credentials
+```
+
+**Cause:** The DCI API rate limit was exceeded and the automatic retries were exhausted.
+
+**Solutions:**
+
+1. Wait a few moments and retry — the client honors any `Retry-After` header the server sends.
+2. Reduce the request rate, or use `--limit` to fetch less data per command.
+3. Check whether other `go-dci` processes are using the same credentials.
