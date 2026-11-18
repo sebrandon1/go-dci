@@ -144,3 +144,58 @@ func TestViewConfigCmd_MasksCredentials(t *testing.T) {
 
 	assert.NoError(t, runCommand(viewCmd))
 }
+
+func TestFormatConfigValue(t *testing.T) {
+	tests := []struct {
+		name     string
+		label    string
+		value    string
+		fallback string
+		want     string
+	}{
+		{"value present", "Access Key", "mykey", "(not set)", "  Access Key:  mykey\n"},
+		{"empty value uses fallback", "Secret Key", "", "(not set)", "  Secret Key:  (not set)\n"},
+		{"short label", "ID", "abc", "-", "  ID:          abc\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, formatConfigValue(tt.label, tt.value, tt.fallback))
+		})
+	}
+}
+
+func TestWriteConfigSecure_SetsFileMode(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	path := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(path, []byte("{}\n"), 0600); err != nil {
+		t.Fatalf("write config fixture: %v", err)
+	}
+
+	viper.Reset()
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(path)
+	viper.Set(configKeyAccessKey, "myaccesskey")
+	t.Cleanup(viper.Reset)
+
+	if err := writeConfigSecure(); err != nil {
+		t.Fatalf("writeConfigSecure returned an error: %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat config file: %v", err)
+	}
+	assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
+	assert.Equal(t, "myaccesskey", viper.GetString(configKeyAccessKey))
+}
+
+func TestWriteConfigSecure_WriteError(t *testing.T) {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(filepath.Join(t.TempDir(), "absent", "config.yaml"))
+	t.Cleanup(viper.Reset)
+
+	assert.Error(t, writeConfigSecure())
+}
