@@ -31,7 +31,6 @@ const (
 	awsRegion       = "BHS3"
 	serviceName     = "api"
 	dateFormat      = "2006-01-02T15:04:05.999999"
-	maxRecords      = 50000
 	defaultPageSize = 100
 	// SHA-256 of empty string for unsigned GET requests
 	emptyStringSHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -40,6 +39,16 @@ const (
 	defaultRequestTimeout      = 30 * time.Second
 	defaultTLSHandshakeTimeout = 5 * time.Second
 	defaultDialTimeout         = 10 * time.Second
+)
+
+var (
+	// ErrRecordCapReached is returned when a paginated query stops at
+	// maxRecords while the server still has more data.
+	ErrRecordCapReached = errors.New("record cap reached")
+
+	// maxRecords caps how many records a single paginated query will fetch.
+	// It is a var so tests can lower it; do not export it.
+	maxRecords = 50000
 )
 
 type Client struct {
@@ -267,6 +276,7 @@ func paginateWithStop[T any](ctx context.Context, fetch func(limit, offset int) 
 	var collection []T
 	offset := 0
 	itemsFetched := 0
+	capReached := false
 
 	for {
 		if ctx.Err() != nil {
@@ -294,10 +304,18 @@ func paginateWithStop[T any](ctx context.Context, fetch func(limit, offset int) 
 		}
 
 		if offset >= maxRecords {
+			capReached = true
 			break
 		}
 
 		offset += pageLimit
+	}
+
+	if capReached {
+		return collection, fmt.Errorf(
+			"%w at %d records; narrow the query (filters, date range) or pass --limit",
+			ErrRecordCapReached, maxRecords,
+		)
 	}
 
 	return collection, nil

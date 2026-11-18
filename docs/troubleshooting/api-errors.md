@@ -101,3 +101,18 @@ Rate limited by the DCI API. The client already retried with backoff:
 1. Wait a few moments and retry — the client honors any `Retry-After` header the server sends.
 2. Reduce the request rate, or use `--limit` to fetch less data per command.
 3. Check whether other `go-dci` processes are using the same credentials.
+
+## Record Cap Reached (50000 records)
+
+**Symptom:**
+```
+record cap reached at 50000 records; narrow the query (filters, date range) or pass --limit
+```
+
+**Cause:** A paginated query hit the client's 50000-record safety cap. The API returned at least that many matching records, so the list would have been truncated. The command fails instead of printing a partial list as if it were complete.
+
+**Solutions:**
+
+1. Narrow the query with filters — for example `--topic`, `--type`, or `--name` for components, or `--start-date`/`--end-date` for jobs.
+2. Use `--limit` to state explicitly how many records you want. A `--limit` at or below the cap stops before the cap is reached and returns no error.
+3. Run several narrower queries and combine the results if you need the full set.
