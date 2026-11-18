@@ -32,6 +32,9 @@ go-dci topics
 
 # Output as JSON
 go-dci topics --output json
+
+# List at most 10 topics
+go-dci topics --limit 10
 ```
 
 ```
@@ -40,6 +43,7 @@ Usage:
 
 Flags:
   -h, --help            help for topics
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -96,6 +100,9 @@ go-dci jobs -d 30
 
 # Output as JSON
 go-dci jobs -d 30 --output json
+
+# List at most 50 jobs from the last 7 days
+go-dci jobs --age 7 --limit 50
 ```
 
 ```
@@ -105,6 +112,7 @@ Usage:
 Flags:
   -d, --age string      Age in days
   -h, --help            help for jobs
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -115,6 +123,11 @@ Getting all jobs from DCI that are 30 days old
 Job ID: 78ed13e1-841f-4c04-a1c6-8df9028c67cd  -  Certsuite Version: tnf-v5.1.3 (Days Since: 11.249845)
 Job ID: eb491abd-ec8b-42cc-aa8b-98adf741b236  -  Certsuite Version: tnf-v5.1.3 (Days Since: 11.305408)
 ```
+
+Queries stop at a 50000-record safety cap. If a query would exceed it, the
+command exits non-zero with `record cap reached ...; narrow the query (filters,
+date range) or pass --limit` instead of printing a truncated list. Use
+`--limit` to bound the request explicitly.
 
 ## `ocpcount` — OCP Version Statistics
 
@@ -148,6 +161,9 @@ go-dci componenttypes
 
 # Output as JSON
 go-dci componenttypes --output json
+
+# List at most 10 component types
+go-dci componenttypes --limit 10
 ```
 
 ```
@@ -156,6 +172,7 @@ Usage:
 
 Flags:
   -h, --help            help for componenttypes
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -182,6 +199,9 @@ go-dci components --topic <topic-id>
 
 # Output as JSON
 go-dci components --output json
+
+# List at most 10 components
+go-dci components --limit 10
 ```
 
 ```
@@ -190,6 +210,7 @@ Usage:
 
 Flags:
   -h, --help            help for components
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
   -t, --topic string    Filter components by topic ID
 ```
@@ -437,10 +458,13 @@ Get all components associated with a topic.
 
 ```bash
 # Get components for a topic
-go-dci topic-components --topic-id <topic-id>
+go-dci topic-components --id <topic-id>
 
 # Output as JSON
-go-dci topic-components --topic-id <topic-id> --output json
+go-dci topic-components --id <topic-id> --output json
+
+# List at most 10 components for a topic
+go-dci topic-components --id <topic-id> --limit 10
 ```
 
 ```
@@ -448,9 +472,10 @@ Usage:
   dci topic-components [flags]
 
 Flags:
-  -h, --help             help for topic-components
-  -o, --output string    Output format (json) - default is stdout (default "stdout")
-      --topic-id string  Topic ID (required)
+  -h, --help            help for topic-components
+      --id string       Topic ID
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
+  -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
 ## Components
@@ -781,6 +806,9 @@ go-dci jobstates --job-id <job-id>
 
 # Output as JSON
 go-dci jobstates --job-id <job-id> --output json
+
+# List at most 10 job states
+go-dci jobstates --job-id <job-id> --limit 10
 ```
 
 ```
@@ -789,6 +817,7 @@ Usage:
 
 Flags:
   -h, --help            help for jobstates
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
       --job-id string   Job ID (required)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
@@ -851,6 +880,9 @@ go-dci remotecis
 
 # Output as JSON
 go-dci remotecis --output json
+
+# List at most 10 remote CIs
+go-dci remotecis --limit 10
 ```
 
 ```
@@ -859,6 +891,7 @@ Usage:
 
 Flags:
   -h, --help            help for remotecis
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -968,6 +1001,9 @@ go-dci teams
 
 # Output as JSON
 go-dci teams --output json
+
+# List at most 10 teams
+go-dci teams --limit 10
 ```
 
 ```
@@ -976,6 +1012,7 @@ Usage:
 
 Flags:
   -h, --help            help for teams
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -1084,6 +1121,9 @@ go-dci users
 
 # Output as JSON
 go-dci users --output json
+
+# List at most 10 users
+go-dci users --limit 10
 ```
 
 ```
@@ -1092,6 +1132,7 @@ Usage:
 
 Flags:
   -h, --help            help for users
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
@@ -1206,6 +1247,9 @@ go-dci products
 
 # Output as JSON
 go-dci products --output json
+
+# List at most 10 products
+go-dci products --limit 10
 ```
 
 ```
@@ -1214,6 +1258,7 @@ Usage:
 
 Flags:
   -h, --help            help for products
+      --limit int       Maximum records to return (must be positive; omitted means unlimited)
   -o, --output string   Output format (json) - default is stdout (default "stdout")
 ```
 
