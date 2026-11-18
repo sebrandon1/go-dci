@@ -627,3 +627,242 @@ func TestRunCertsuiteJobsOutput_JSON(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestGetTopicsCmd_Success(t *testing.T) {
+	var gotQuery string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		_ = json.NewEncoder(w).Encode(lib.TopicsResponse{Topics: []lib.Topic{{ID: "topic-1", Name: "OCP-4.18"}}})
+	})
+
+	nameFilter = "OCP-4.18"
+	t.Cleanup(func() { nameFilter = "" })
+
+	assert.NoError(t, runCommand(getTopicsCmd))
+	assert.Contains(t, gotQuery, "OCP-4.18")
+}
+
+func TestGetTopicsCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.TopicsResponse{Topics: []lib.Topic{{ID: "topic-1", Name: "OCP-4.18"}}})
+	})
+
+	nameFilter = ""
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getTopicsCmd))
+}
+
+func TestGetTopicsCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	assert.Error(t, runCommand(getTopicsCmd))
+}
+
+func TestGetComponentTypesCmd_Success(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.ComponentTypesResponse{ComponentTypes: []lib.ComponentType{{ID: "ct-1", Name: "ocp"}}})
+	})
+
+	nameFilter = "ocp"
+	t.Cleanup(func() { nameFilter = "" })
+
+	assert.NoError(t, runCommand(getComponentTypesCmd))
+}
+
+func TestGetComponentTypesCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.ComponentTypesResponse{ComponentTypes: []lib.ComponentType{{ID: "ct-1"}}})
+	})
+
+	nameFilter = ""
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getComponentTypesCmd))
+}
+
+func TestGetComponentsCmd_Filters(t *testing.T) {
+	var gotQuery string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		_ = json.NewEncoder(w).Encode(lib.ComponentsResponse{Components: []lib.Components{{ID: "comp-1", Name: "OCP 4.18"}}})
+	})
+
+	topicID = "550e8400-e29b-41d4-a716-446655440000"
+	typeFilter = "ocp"
+	nameFilter = "4.18"
+	t.Cleanup(func() { topicID, typeFilter, nameFilter = "", "", "" })
+
+	assert.NoError(t, runCommand(getComponentsCmd))
+	assert.Contains(t, gotQuery, "topic_id")
+	assert.Contains(t, gotQuery, "type")
+}
+
+func TestGetComponentsCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.ComponentsResponse{Components: []lib.Components{{ID: "comp-1"}}})
+	})
+
+	topicID, typeFilter, nameFilter = "", "", ""
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getComponentsCmd))
+}
+
+func TestGetComponentsCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	assert.Error(t, runCommand(getComponentsCmd))
+}
+
+func jobsFixture() []lib.JobsResponse {
+	return []lib.JobsResponse{{Jobs: []lib.Job{
+		{ID: "job-1", Name: "j1", Status: "success", State: "active", TopicID: "topic-1", CreatedAt: "2024-01-01T00:00:00.000000"},
+	}}}
+}
+
+func TestGetJobsCmd_ByAge(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(jobsFixture()[0])
+	})
+
+	ageInDays = "7"
+	startDate, endDate = "", ""
+	certsuiteFilter = false
+	t.Cleanup(func() { ageInDays = "" })
+
+	assert.NoError(t, runCommand(getJobsCmd))
+}
+
+func TestGetJobsCmd_ByDateRange(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(jobsFixture()[0])
+	})
+
+	ageInDays = ""
+	startDate, endDate = "2024-01-01", "2024-01-31"
+	certsuiteFilter = false
+	t.Cleanup(func() { startDate, endDate = "", "" })
+
+	assert.NoError(t, runCommand(getJobsCmd))
+}
+
+func TestGetJobsCmd_Certsuite(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.JobsResponse{Jobs: []lib.Job{{
+			ID:        "job-1",
+			CreatedAt: "2024-01-01T00:00:00.000000",
+			Components: []lib.Components{
+				{Name: "cnf-certification-test 1.0.0"},
+				{Name: "OpenShift 4.18"},
+			},
+		}}})
+	})
+
+	ageInDays = "7"
+	startDate, endDate = "", ""
+	certsuiteFilter = true
+	t.Cleanup(func() { ageInDays = ""; certsuiteFilter = false })
+
+	assert.NoError(t, runCommand(getJobsCmd))
+}
+
+func TestGetJobsCmd_ValidationErrors(t *testing.T) {
+	tests := []struct {
+		name            string
+		age, start, end string
+		wantContains    string
+	}{
+		{"age and dates", "7", "2024-01-01", "2024-01-31", "mutually exclusive"},
+		{"nothing", "", "", "", "either --age or --start-date"},
+		{"only start", "", "2024-01-01", "", "both --start-date and --end-date"},
+		{"only end", "", "", "2024-01-31", "both --start-date and --end-date"},
+		{"bad age", "seven", "", "", "invalid age value"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ageInDays, startDate, endDate = tt.age, tt.start, tt.end
+			certsuiteFilter = false
+			t.Cleanup(func() { ageInDays, startDate, endDate = "", "", "" })
+
+			err := runCommand(getJobsCmd)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantContains)
+		})
+	}
+}
+
+func TestGetJobsCmd_InvalidDates(t *testing.T) {
+	startDate, endDate = "01-01-2024", "2024-01-31"
+	certsuiteFilter = false
+	t.Cleanup(func() { startDate, endDate = "", "" })
+
+	err := runCommand(getJobsCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid start-date")
+}
+
+func TestGetJobsCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	ageInDays = "7"
+	startDate, endDate = "", ""
+	certsuiteFilter = false
+	t.Cleanup(func() { ageInDays = "" })
+
+	assert.Error(t, runCommand(getJobsCmd))
+}
+
+func TestGetOcpCountCmd_Success(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.JobsResponse{Jobs: []lib.Job{{
+			ID:        "job-1",
+			CreatedAt: "2024-01-01T00:00:00.000000",
+			Components: []lib.Components{
+				{Name: "cnf-certification-test 1.0.0"},
+				{Name: "OpenShift 4.18"},
+			},
+		}}})
+	})
+
+	ageInDays = "7"
+	t.Cleanup(func() { ageInDays = "" })
+
+	assert.NoError(t, runCommand(getOcpCountCmd))
+}
+
+func TestGetOcpCountCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(jobsFixture()[0])
+	})
+
+	ageInDays = "7"
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { ageInDays = "" })
+
+	assert.NoError(t, runCommand(getOcpCountCmd))
+}
+
+func TestGetOcpCountCmd_InvalidAge(t *testing.T) {
+	ageInDays = "yesterday"
+	t.Cleanup(func() { ageInDays = "" })
+
+	err := runCommand(getOcpCountCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid age value")
+}
+
+func TestGetOcpCountCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	ageInDays = "7"
+	t.Cleanup(func() { ageInDays = "" })
+
+	assert.Error(t, runCommand(getOcpCountCmd))
+}

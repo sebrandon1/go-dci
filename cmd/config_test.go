@@ -81,3 +81,66 @@ func TestMaskCredential(t *testing.T) {
 	assert.Equal(t, "****cdef", maskCredential("abcdef"))
 }
 
+func TestSetConfigCmd_Success(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+
+	if err := setCmd.ParseFlags([]string{"--accesskey", "myaccesskey", "--secretkey", "mysecretkey"}); err != nil {
+		t.Fatalf("parse set flags: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = setCmd.Flags().Set(configKeyAccessKey, "")
+		_ = setCmd.Flags().Set(configKeySecretKey, "")
+	})
+
+	assert.NoError(t, runCommand(setCmd))
+	assert.Equal(t, "myaccesskey", viper.GetString(configKeyAccessKey))
+	assert.Equal(t, "mysecretkey", viper.GetString(configKeySecretKey))
+}
+
+func TestSetConfigCmd_WriteError(t *testing.T) {
+	viper.Reset()
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(filepath.Join(t.TempDir(), "absent", "config.yaml"))
+	t.Cleanup(viper.Reset)
+
+	if err := setCmd.ParseFlags([]string{"--accesskey", "myaccesskey"}); err != nil {
+		t.Fatalf("parse set flags: %v", err)
+	}
+	t.Cleanup(func() { _ = setCmd.Flags().Set(configKeyAccessKey, "") })
+
+	err := runCommand(setCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "setting accesskey")
+}
+
+func TestUnsetConfigCmd_Success(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+	viper.Set(configKeyAccessKey, "myaccesskey")
+
+	if err := unsetCmd.ParseFlags([]string{"--key", configKeyAccessKey}); err != nil {
+		t.Fatalf("parse unset flags: %v", err)
+	}
+	t.Cleanup(func() { _ = unsetCmd.Flags().Set("key", "") })
+
+	assert.NoError(t, runCommand(unsetCmd))
+	assert.False(t, viper.IsSet(configKeyAccessKey))
+}
+
+func TestUnsetConfigCmd_MissingKey(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+
+	if err := unsetCmd.ParseFlags([]string{"--key", "notpresent"}); err != nil {
+		t.Fatalf("parse unset flags: %v", err)
+	}
+	t.Cleanup(func() { _ = unsetCmd.Flags().Set("key", "") })
+
+	assert.NoError(t, runCommand(unsetCmd))
+}
+
+func TestViewConfigCmd_MasksCredentials(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+	viper.Set(configKeyAccessKey, "abcdefghij")
+	viper.Set(configKeySecretKey, "secretvalue")
+
+	assert.NoError(t, runCommand(viewCmd))
+}

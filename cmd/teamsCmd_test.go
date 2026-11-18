@@ -170,3 +170,129 @@ func TestDeleteTeamCmd_Success(t *testing.T) {
 	err := deleteTeamCmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestGetTeamsCmd_Success(t *testing.T) {
+	var gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.TeamsResponse{Teams: []lib.Team{{ID: "team-1", Name: "acme"}}})
+	})
+
+	teamsNameFilter = "acme"
+	t.Cleanup(func() { teamsNameFilter = "" })
+
+	assert.NoError(t, runCommand(getTeamsCmd))
+	assert.Equal(t, "/api/v1/teams", gotPath)
+}
+
+func TestGetTeamsCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.TeamsResponse{Teams: []lib.Team{{ID: "team-1"}}})
+	})
+
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getTeamsCmd))
+}
+
+func TestGetTeamsCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	assert.Error(t, runCommand(getTeamsCmd))
+}
+
+func TestCreateTeamCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "team-1", Name: "acme"}})
+	})
+
+	createTeamNameFlag = "acme"
+	t.Cleanup(func() { createTeamNameFlag = "" })
+
+	assert.NoError(t, runCommand(createTeamCmd))
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/v1/teams", gotPath)
+}
+
+func TestCreateTeamCmd_JSONAndDryRun(t *testing.T) {
+	createTeamNameFlag = "acme"
+	t.Cleanup(func() { createTeamNameFlag = "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(createTeamCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "team-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(createTeamCmd))
+}
+
+func TestUpdateTeamCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "team-1", Name: "acme-v2"}})
+	})
+
+	updateTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateTeamNameFlag = "acme-v2"
+	updateTeamStateFlag = "active"
+	t.Cleanup(func() { updateTeamIDFlag, updateTeamNameFlag, updateTeamStateFlag = "", "", "" })
+
+	assert.NoError(t, runCommand(updateTeamCmd))
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "/api/v1/teams/550e8400-e29b-41d4-a716-446655440000", gotPath)
+}
+
+func TestUpdateTeamCmd_JSONAndDryRun(t *testing.T) {
+	updateTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateTeamStateFlag = "inactive"
+	t.Cleanup(func() { updateTeamIDFlag, updateTeamStateFlag = "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(updateTeamCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.TeamResponse{Team: lib.Team{ID: "team-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(updateTeamCmd))
+}
+
+func TestUpdateTeamCmd_InvalidID(t *testing.T) {
+	updateTeamIDFlag = "bad"
+	t.Cleanup(func() { updateTeamIDFlag = "" })
+
+	err := runCommand(updateTeamCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid team ID format")
+}
+
+func TestDeleteTeamCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteTeamIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteTeamCmd))
+}
+
+func TestDeleteTeamCmd_DryRunSkipsAPI(t *testing.T) {
+	deleteTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	dryRunFlag = true
+	t.Cleanup(func() { deleteTeamIDFlag = ""; resetGlobalFlags() })
+
+	assert.NoError(t, runCommand(deleteTeamCmd))
+}

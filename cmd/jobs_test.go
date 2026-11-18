@@ -192,3 +192,143 @@ func TestDeleteJobCmd_Success(t *testing.T) {
 	err := deleteJobCmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestUpdateJobCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.JobResponse{Job: lib.Job{ID: "job-1", Comment: "retry", Tags: []string{"ocp"}}})
+	})
+
+	updateJobIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateJobComment = "retry"
+	updateJobTags = "ocp, certsuite"
+	t.Cleanup(func() { updateJobIDFlag, updateJobComment, updateJobTags = "", "", "" })
+
+	assert.NoError(t, runCommand(updateJobCmd))
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000", gotPath)
+}
+
+func TestUpdateJobCmd_JSONAndDryRun(t *testing.T) {
+	updateJobIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateJobTags = "ocp"
+	t.Cleanup(func() { updateJobIDFlag, updateJobTags = "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(updateJobCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.JobResponse{Job: lib.Job{ID: "job-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(updateJobCmd))
+}
+
+func TestUpdateJobCmd_InvalidID(t *testing.T) {
+	updateJobIDFlag = "bad-id"
+	t.Cleanup(func() { updateJobIDFlag = "" })
+
+	err := runCommand(updateJobCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid job ID format")
+}
+
+func TestScheduleJobCmd_Success(t *testing.T) {
+	var gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.CreateJobResponse{Job: lib.Job{ID: "job-1", TopicID: "topic-1"}})
+	})
+
+	scheduleJobTopicID = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { scheduleJobTopicID = "" })
+
+	assert.NoError(t, runCommand(scheduleJobCmd))
+	assert.Equal(t, "/api/v1/jobs/schedule", gotPath)
+}
+
+func TestScheduleJobCmd_JSONAndDryRun(t *testing.T) {
+	scheduleJobTopicID = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { scheduleJobTopicID = "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(scheduleJobCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.CreateJobResponse{Job: lib.Job{ID: "job-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(scheduleJobCmd))
+}
+
+func TestScheduleJobCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	})
+
+	scheduleJobTopicID = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { scheduleJobTopicID = "" })
+
+	assert.Error(t, runCommand(scheduleJobCmd))
+}
+
+func TestGetJobFilesCmd_Success(t *testing.T) {
+	var gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.FilesResponse{Files: []lib.File{{ID: "file-1", Name: "results.xml"}}})
+	})
+
+	jobFilesIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	t.Cleanup(func() { jobFilesIDFlag = "" })
+
+	assert.NoError(t, runCommand(getJobFilesCmd))
+	assert.Equal(t, "/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000/files", gotPath)
+}
+
+func TestGetJobFilesCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.FilesResponse{Files: []lib.File{{ID: "file-1"}}})
+	})
+
+	jobFilesIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { jobFilesIDFlag = "" })
+
+	assert.NoError(t, runCommand(getJobFilesCmd))
+}
+
+func TestDeleteJobCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteJobIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteJobIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteJobCmd))
+}
+
+func TestDeleteJobCmd_DryRunSkipsAPI(t *testing.T) {
+	deleteJobIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	dryRunFlag = true
+	t.Cleanup(func() { deleteJobIDFlag = ""; resetGlobalFlags() })
+
+	assert.NoError(t, runCommand(deleteJobCmd))
+}
+
+func TestDeleteJobCmd_InvalidID(t *testing.T) {
+	deleteJobIDFlag = "nope"
+	t.Cleanup(func() { deleteJobIDFlag = "" })
+
+	err := runCommand(deleteJobCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid job ID format")
+}

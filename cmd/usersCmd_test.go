@@ -176,3 +176,171 @@ func TestDeleteUserCmd_Success(t *testing.T) {
 	err := deleteUserCmd.RunE(cmd, []string{})
 	assert.NoError(t, err)
 }
+
+func TestGetUsersCmd_Success(t *testing.T) {
+	var gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.UsersResponse{Users: []lib.User{{ID: "user-1", Name: "alice"}}})
+	})
+
+	usersNameFilter = "alice"
+	t.Cleanup(func() { usersNameFilter = "" })
+
+	assert.NoError(t, runCommand(getUsersCmd))
+	assert.Equal(t, "/api/v1/users", gotPath)
+}
+
+func TestGetUsersCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.UsersResponse{Users: []lib.User{{ID: "user-1"}}})
+	})
+
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(getUsersCmd))
+}
+
+func TestGetUsersCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	assert.Error(t, runCommand(getUsersCmd))
+}
+
+func TestCreateUserCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "user-1", Name: "alice"}})
+	})
+
+	createUserNameFlag = "alice"
+	createUserEmailFlag = "alice@example.com"
+	createUserTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	createUserPasswordFlag = "s3cr3t"
+	t.Cleanup(func() {
+		createUserNameFlag, createUserEmailFlag = "", ""
+		createUserTeamIDFlag, createUserPasswordFlag = "", ""
+	})
+
+	assert.NoError(t, runCommand(createUserCmd))
+	assert.Equal(t, http.MethodPost, gotMethod)
+	assert.Equal(t, "/api/v1/users", gotPath)
+}
+
+func TestCreateUserCmd_JSONAndDryRun(t *testing.T) {
+	createUserNameFlag = "alice"
+	createUserEmailFlag = "alice@example.com"
+	createUserTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	createUserPasswordFlag = "s3cr3t"
+	t.Cleanup(func() {
+		createUserNameFlag, createUserEmailFlag = "", ""
+		createUserTeamIDFlag, createUserPasswordFlag = "", ""
+	})
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(createUserCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "user-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(createUserCmd))
+}
+
+func TestCreateUserCmd_RequiresPasswordWhenNotInteractive(t *testing.T) {
+	createUserNameFlag = "alice"
+	createUserPasswordFlag = ""
+	t.Cleanup(func() { createUserNameFlag, createUserPasswordFlag = "", "" })
+
+	err := runCommand(createUserCmd)
+	if err == nil {
+		t.Skip("stdin is a terminal in this environment")
+	}
+	assert.Contains(t, err.Error(), "password is required")
+}
+
+func TestCreateUserCmd_ServerError(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+	})
+
+	createUserNameFlag = "alice"
+	createUserEmailFlag = "alice@example.com"
+	createUserTeamIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	createUserPasswordFlag = "s3cr3t"
+	t.Cleanup(func() {
+		createUserNameFlag, createUserEmailFlag = "", ""
+		createUserTeamIDFlag, createUserPasswordFlag = "", ""
+	})
+
+	assert.Error(t, runCommand(createUserCmd))
+}
+
+func TestUpdateUserCmd_Success(t *testing.T) {
+	var gotMethod, gotPath string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "user-1", Email: "new@example.com"}})
+	})
+
+	updateUserIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateUserEmailFlag = "new@example.com"
+	updateUserStateFlag = "active"
+	t.Cleanup(func() { updateUserIDFlag, updateUserEmailFlag, updateUserStateFlag = "", "", "" })
+
+	assert.NoError(t, runCommand(updateUserCmd))
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "/api/v1/users/550e8400-e29b-41d4-a716-446655440000", gotPath)
+}
+
+func TestUpdateUserCmd_JSONAndDryRun(t *testing.T) {
+	updateUserIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	updateUserNameFlag = "alice2"
+	updateUserFullnameFlag = "Alice Smith"
+	t.Cleanup(func() { updateUserIDFlag, updateUserNameFlag, updateUserFullnameFlag = "", "", "" })
+
+	dryRunFlag = true
+	assert.NoError(t, runCommand(updateUserCmd))
+
+	dryRunFlag = false
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(lib.UserResponse{User: lib.User{ID: "user-1"}})
+	})
+	outputFormat = OutputFormatJSON
+	assert.NoError(t, runCommand(updateUserCmd))
+}
+
+func TestUpdateUserCmd_InvalidID(t *testing.T) {
+	updateUserIDFlag = "nope"
+	t.Cleanup(func() { updateUserIDFlag = "" })
+
+	err := runCommand(updateUserCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid user ID format")
+}
+
+func TestDeleteUserCmd_JSONOutput(t *testing.T) {
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	deleteUserIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	yesFlag = true
+	outputFormat = OutputFormatJSON
+	t.Cleanup(func() { deleteUserIDFlag = "" })
+
+	assert.NoError(t, runCommand(deleteUserCmd))
+}
+
+func TestDeleteUserCmd_DryRunSkipsAPI(t *testing.T) {
+	deleteUserIDFlag = "550e8400-e29b-41d4-a716-446655440000"
+	dryRunFlag = true
+	t.Cleanup(func() { deleteUserIDFlag = ""; resetGlobalFlags() })
+
+	assert.NoError(t, runCommand(deleteUserCmd))
+}
