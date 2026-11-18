@@ -140,6 +140,34 @@ func responseWithStatus(statusCode int, body string) *http.Response {
 	}
 }
 
+// RequestOption customizes a single request.
+type RequestOption func(*requestOptions)
+
+type requestOptions struct {
+	headers map[string]string
+}
+
+// WithIfMatch sets the If-Match header, enabling optimistic concurrency
+// control for update and delete requests. Pass the etag from the resource
+// response; the API rejects the request when the resource has changed.
+func WithIfMatch(etag string) RequestOption {
+	return func(o *requestOptions) {
+		if o.headers == nil {
+			o.headers = make(map[string]string)
+		}
+		o.headers["If-Match"] = etag
+	}
+}
+
+// requestHeaders applies opts and returns the headers they set.
+func requestHeaders(opts []RequestOption) map[string]string {
+	o := requestOptions{}
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o.headers
+}
+
 func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []byte, headers map[string]string) (*http.Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
@@ -235,8 +263,12 @@ func decodeResponse(resp *http.Response, out any, expected ...int) error {
 }
 
 // doJSON is a convenience method for POST/PUT requests with a JSON body.
-func (c *Client) doJSON(ctx context.Context, method, reqURL string, jsonBody []byte) (*http.Response, error) {
-	return c.doRequest(ctx, method, reqURL, jsonBody, map[string]string{"Content-Type": "application/json"})
+func (c *Client) doJSON(ctx context.Context, method, reqURL string, jsonBody []byte, opts ...RequestOption) (*http.Response, error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+	for k, v := range requestHeaders(opts) {
+		headers[k] = v
+	}
+	return c.doRequest(ctx, method, reqURL, jsonBody, headers)
 }
 
 // buildFilter creates a DCI API where clause filter for a single field.
@@ -451,14 +483,14 @@ func (c *Client) CreateComponentType(ctx context.Context, name string) (*Compone
 }
 
 // UpdateComponentType updates an existing component type in DCI
-func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string, updates UpdateComponentTypeRequest) (*ComponentTypeResponse, error) {
+func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string, updates UpdateComponentTypeRequest, opts ...RequestOption) (*ComponentTypeResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "componenttypes", componentTypeID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component type: %w", err)
 	}
@@ -472,9 +504,9 @@ func (c *Client) UpdateComponentType(ctx context.Context, componentTypeID string
 }
 
 // DeleteComponentType deletes a component type from DCI
-func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string) error {
+func (c *Client) DeleteComponentType(ctx context.Context, componentTypeID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "componenttypes", componentTypeID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting component type: %w", err)
 	}
@@ -555,14 +587,14 @@ func (c *Client) CreateTopic(ctx context.Context, name, productID string, compon
 }
 
 // UpdateTopic updates an existing topic in DCI
-func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates UpdateTopicRequest) (*TopicResponse, error) {
+func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates UpdateTopicRequest, opts ...RequestOption) (*TopicResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "topics", topicID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating topic: %w", err)
 	}
@@ -576,9 +608,9 @@ func (c *Client) UpdateTopic(ctx context.Context, topicID string, updates Update
 }
 
 // DeleteTopic deletes a topic from DCI
-func (c *Client) DeleteTopic(ctx context.Context, topicID string) error {
+func (c *Client) DeleteTopic(ctx context.Context, topicID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "topics", topicID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting topic: %w", err)
 	}
@@ -666,14 +698,14 @@ func (c *Client) GetJob(ctx context.Context, jobID string) (*JobResponse, error)
 }
 
 // UpdateJob updates an existing job in DCI
-func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobRequest) (*JobResponse, error) {
+func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobRequest, opts ...RequestOption) (*JobResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "jobs", jobID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating job: %w", err)
 	}
@@ -687,9 +719,9 @@ func (c *Client) UpdateJob(ctx context.Context, jobID string, updates UpdateJobR
 }
 
 // DeleteJob deletes a job from DCI
-func (c *Client) DeleteJob(ctx context.Context, jobID string) error {
+func (c *Client) DeleteJob(ctx context.Context, jobID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "jobs", jobID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting job: %w", err)
 	}
@@ -841,14 +873,14 @@ func (c *Client) CreateComponent(ctx context.Context, name, componentType, topic
 }
 
 // UpdateComponent updates an existing component in DCI
-func (c *Client) UpdateComponent(ctx context.Context, componentID string, updates UpdateComponentRequest) (*ComponentResponse, error) {
+func (c *Client) UpdateComponent(ctx context.Context, componentID string, updates UpdateComponentRequest, opts ...RequestOption) (*ComponentResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "components", componentID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating component: %w", err)
 	}
@@ -862,9 +894,9 @@ func (c *Client) UpdateComponent(ctx context.Context, componentID string, update
 }
 
 // DeleteComponent deletes a component from DCI
-func (c *Client) DeleteComponent(ctx context.Context, componentID string) error {
+func (c *Client) DeleteComponent(ctx context.Context, componentID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "components", componentID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting component: %w", err)
 	}
@@ -1007,9 +1039,9 @@ func (c *Client) GetFile(ctx context.Context, fileID string) ([]byte, string, er
 }
 
 // DeleteFile deletes a file from DCI
-func (c *Client) DeleteFile(ctx context.Context, fileID string) error {
+func (c *Client) DeleteFile(ctx context.Context, fileID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "files", fileID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting file: %w", err)
 	}
@@ -1129,14 +1161,14 @@ func (c *Client) CreateRemoteCI(ctx context.Context, name, teamID string) (*Remo
 }
 
 // UpdateRemoteCI updates an existing remote CI in DCI
-func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates UpdateRemoteCIRequest) (*RemoteCIResponse, error) {
+func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates UpdateRemoteCIRequest, opts ...RequestOption) (*RemoteCIResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "remotecis", remoteciID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating remote CI: %w", err)
 	}
@@ -1150,9 +1182,9 @@ func (c *Client) UpdateRemoteCI(ctx context.Context, remoteciID string, updates 
 }
 
 // DeleteRemoteCI deletes a remote CI from DCI
-func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string) error {
+func (c *Client) DeleteRemoteCI(ctx context.Context, remoteciID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "remotecis", remoteciID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting remote CI: %w", err)
 	}
@@ -1233,14 +1265,14 @@ func (c *Client) CreateTeam(ctx context.Context, name string) (*TeamResponse, er
 }
 
 // UpdateTeam updates an existing team in DCI
-func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTeamRequest) (*TeamResponse, error) {
+func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTeamRequest, opts ...RequestOption) (*TeamResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "teams", teamID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating team: %w", err)
 	}
@@ -1254,9 +1286,9 @@ func (c *Client) UpdateTeam(ctx context.Context, teamID string, updates UpdateTe
 }
 
 // DeleteTeam deletes a team from DCI
-func (c *Client) DeleteTeam(ctx context.Context, teamID string) error {
+func (c *Client) DeleteTeam(ctx context.Context, teamID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "teams", teamID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting team: %w", err)
 	}
@@ -1341,14 +1373,14 @@ func (c *Client) CreateUser(ctx context.Context, name, email, fullname, teamID, 
 }
 
 // UpdateUser updates an existing user in DCI
-func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUserRequest) (*UserResponse, error) {
+func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUserRequest, opts ...RequestOption) (*UserResponse, error) {
 	jsonBody, err := json.Marshal(updates)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
 	reqURL := resourceURL(c.BaseURL, "users", userID)
-	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody)
+	httpResponse, err := c.doJSON(ctx, http.MethodPut, reqURL, jsonBody, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error updating user: %w", err)
 	}
@@ -1362,9 +1394,9 @@ func (c *Client) UpdateUser(ctx context.Context, userID string, updates UpdateUs
 }
 
 // DeleteUser deletes a user from DCI
-func (c *Client) DeleteUser(ctx context.Context, userID string) error {
+func (c *Client) DeleteUser(ctx context.Context, userID string, opts ...RequestOption) error {
 	reqURL := resourceURL(c.BaseURL, "users", userID)
-	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, nil)
+	httpResponse, err := c.doRequest(ctx, http.MethodDelete, reqURL, nil, requestHeaders(opts))
 	if err != nil {
 		return fmt.Errorf("error deleting user: %w", err)
 	}

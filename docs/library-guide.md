@@ -299,6 +299,30 @@ if err != nil {
 }
 ```
 
+## Optimistic Concurrency (If-Match)
+
+Resource responses include an `etag`. Pass it to an update or delete call with
+`WithIfMatch` so the API rejects the change if the resource was modified since
+you read it:
+
+```go
+topic, err := client.GetTopic(ctx, topicID)
+if err != nil {
+    return err
+}
+
+updated, err := client.UpdateTopic(ctx, topicID, updates, lib.WithIfMatch(topic.Topic.Etag))
+if err != nil {
+    // A stale etag is rejected; re-read the resource and retry.
+    return err
+}
+
+err = client.DeleteTopic(ctx, topicID, lib.WithIfMatch(topic.Topic.Etag))
+```
+
+Without `WithIfMatch`, requests behave as before (last write wins). Every
+`Update*` and `Delete*` method accepts the option.
+
 ## Retry Logic
 
 Implement retries for transient failures:
