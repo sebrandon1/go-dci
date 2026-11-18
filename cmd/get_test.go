@@ -866,3 +866,52 @@ func TestGetOcpCountCmd_ServerError(t *testing.T) {
 
 	assert.Error(t, runCommand(getOcpCountCmd))
 }
+func TestGetOCPVersions(t *testing.T) {
+	t.Run("defaults when unset", func(t *testing.T) {
+		t.Setenv("OCP_VERSIONS_TO_TRACK", "")
+		assert.Equal(t, []string{"4.12", "4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20"}, getOCPVersions())
+	})
+
+	t.Run("parses and trims comma separated list", func(t *testing.T) {
+		t.Setenv("OCP_VERSIONS_TO_TRACK", "4.16, 4.18 ,4.20")
+		assert.Equal(t, []string{"4.16", "4.18", "4.20"}, getOCPVersions())
+	})
+
+	t.Run("single value", func(t *testing.T) {
+		t.Setenv("OCP_VERSIONS_TO_TRACK", "4.18")
+		assert.Equal(t, []string{"4.18"}, getOCPVersions())
+	})
+}
+
+func TestPrintOcpVersionCount(t *testing.T) {
+	first := ocpVersionsToLookFor[0]
+	last := ocpVersionsToLookFor[len(ocpVersionsToLookFor)-1]
+
+	out := captureStdout(t, func() {
+		printOcpVersionCount(map[string]int{first: 3})
+	})
+
+	assert.Contains(t, out, "OCP Version: "+first+" - Run Count: 3")
+	assert.NotContains(t, out, "OCP Version: "+last)
+}
+
+func TestPrintOcpVersionCountJSON(t *testing.T) {
+	first := ocpVersionsToLookFor[0]
+
+	out := captureStdout(t, func() {
+		if err := printOcpVersionCountJSON(map[string]int{first: 3}); err != nil {
+			t.Fatalf("printOcpVersionCountJSON returned an error: %v", err)
+		}
+	})
+
+	var got lib.OcpJsonOutput
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal ocp count JSON: %v\n%s", err, out)
+	}
+	if len(got.OcpVersions) != len(ocpVersionsToLookFor) {
+		t.Fatalf("got %d versions, want %d", len(got.OcpVersions), len(ocpVersionsToLookFor))
+	}
+	assert.Equal(t, first, got.OcpVersions[0].OcpVersion)
+	assert.Equal(t, 3, got.OcpVersions[0].RunCount)
+	assert.Equal(t, 0, got.OcpVersions[1].RunCount)
+}
