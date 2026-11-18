@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -165,4 +166,59 @@ func TestGetJobsRecordLimitPreservesAgeCutoff(t *testing.T) {
 	assert.Equal(t, 1, requests, "the age cutoff should stop pagination after the old page")
 	assert.Len(t, responses, 1)
 	assert.Len(t, responses[0].Jobs, defaultPageSize)
+}
+
+func TestPaginateRecordCapReturnsError(t *testing.T) {
+	originalMax := maxRecords
+	maxRecords = 3
+	t.Cleanup(func() { maxRecords = originalMax })
+
+	var offsets []int
+	fetch := func(pageLimit, offset int) ([]int, int, error) {
+		offsets = append(offsets, offset)
+		return []int{offset}, pageLimit, nil
+	}
+
+	pages, err := paginate(context.Background(), fetch)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrRecordCapReached), "error should wrap ErrRecordCapReached: %v", err)
+	assert.Contains(t, err.Error(), "3 records")
+	assert.Contains(t, err.Error(), "--limit")
+	assert.NotEmpty(t, pages, "partial results should be returned with the error")
+	assert.Equal(t, []int{0, defaultPageSize}, offsets)
+}
+
+func TestPaginateShortPageDoesNotTripRecordCap(t *testing.T) {
+	originalMax := maxRecords
+	maxRecords = 3
+	t.Cleanup(func() { maxRecords = originalMax })
+
+	fetch := func(pageLimit, offset int) ([]int, int, error) {
+		return []int{offset}, 1, nil
+	}
+
+	pages, err := paginate(context.Background(), fetch)
+	require.NoError(t, err)
+	require.Len(t, pages, 1)
+}
+
+func TestGetTopicsPropagatesRecordCap(t *testing.T) {
+	originalMax := maxRecords
+	maxRecords = 1
+	t.Cleanup(func() { maxRecords = originalMax })
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		topics := make([]Topic, defaultPageSize)
+		for i := range topics {
+			topics[i].ID = strconv.Itoa(i)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TopicsResponse{Topics: topics})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	_, err := client.GetTopics(context.Background())
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrRecordCapReached), "getter should propagate the cap error: %v", err)
 }
