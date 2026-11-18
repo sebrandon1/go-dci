@@ -2534,3 +2534,84 @@ func TestDoRequest_NoRetryOn4xx(t *testing.T) {
 	assert.Equal(t, 1, attempts)
 	defer func() { _ = resp.Body.Close() }()
 }
+
+func TestDoRequest_RetriesGETOn429(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 3}
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 2, attempts)
+	defer func() { _ = resp.Body.Close() }()
+}
+
+func TestDoRequest_DoesNotRetryPOSTOn429(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.Header().Set("Retry-After", "0")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 3}
+	_, err := client.CreateTopic(context.Background(), "topic", "550e8400-e29b-41d4-a716-446655440000", nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTP 429")
+	assert.Contains(t, err.Error(), "Rate limited by the DCI API")
+	assert.Equal(t, 1, attempts)
+}
+
+func TestDoRequest_HonorsRetryAfterOn503(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 3}
+	start := time.Now()
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	elapsed := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 2, attempts)
+	// Retry-After: 0 overrides the ~1s local backoff.
+	assert.Less(t, elapsed, 500*time.Millisecond)
+	defer func() { _ = resp.Body.Close() }()
+}
+
+func TestDoRequest_Exhausted429IsRateLimited(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.Header().Set("Retry-After", "0")
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	client := &Client{BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret", httpClient: &http.Client{}, MaxRetries: 1}
+	_, err := client.GetIdentity(context.Background())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTP 429")
+	assert.Contains(t, err.Error(), "Rate limited by the DCI API")
+	assert.Equal(t, 1, attempts)
+}

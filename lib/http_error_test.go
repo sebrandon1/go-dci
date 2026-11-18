@@ -53,6 +53,12 @@ func TestFormatHTTPError(t *testing.T) {
 			guidancePhrase: "DCI server error.",
 		},
 		{
+			name:           "too many requests",
+			status:         429,
+			statusText:     "Too Many Requests",
+			guidancePhrase: "Rate limited by the DCI API.",
+		},
+		{
 			name:           "generic fallback",
 			status:         418,
 			statusText:     "I'm a teapot",

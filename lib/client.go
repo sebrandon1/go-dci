@@ -86,6 +86,16 @@ func retryJitter(delay time.Duration) time.Duration {
 	return delay + time.Duration(rand.Int64N(int64(2*jitter))) - jitter
 }
 
+// responseWithStatus rebuilds a minimal response from a retry error so that
+// decodeResponse can format the DCI error for the caller.
+func responseWithStatus(statusCode int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: statusCode,
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Header:     make(http.Header),
+	}
+}
+
 func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []byte, headers map[string]string) (*http.Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
@@ -126,21 +136,25 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 			http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
 			http.MethodPatch, http.MethodDelete, http.MethodOptions,
 		),
-		retry.WithRetryStatus(func(statusCode int) bool { return statusCode >= http.StatusInternalServerError }),
+		retry.WithRetryStatus(func(statusCode int) bool {
+			return statusCode >= http.StatusInternalServerError || statusCode == http.StatusTooManyRequests
+		}),
 		retry.WithJitter(retryJitter),
-		// The previous loop used only local exponential backoff.
-		retry.WithoutRetryAfter(),
 	)
 	if err != nil {
 		// retry.Do turns an exhausted retryable status into a typed error.
 		// Restore the last response so callers keep the DCI-formatted error.
 		var httpErr *httpx.HTTPError
 		if errors.As(err, &httpErr) {
-			return &http.Response{
-				StatusCode: httpErr.StatusCode,
-				Body:       io.NopCloser(strings.NewReader(httpErr.Body)),
-				Header:     make(http.Header),
-			}, nil
+			return responseWithStatus(httpErr.StatusCode, httpErr.Body), nil
+		}
+
+		// An exhausted 429 surfaces as RateLimitError, which carries no
+		// status code or body. Synthesize the response so decodeResponse
+		// formats the rate-limit guidance.
+		var rateLimitErr *httpx.RateLimitError
+		if errors.As(err, &rateLimitErr) {
+			return responseWithStatus(http.StatusTooManyRequests, ""), nil
 		}
 		return nil, err
 	}

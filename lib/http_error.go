@@ -31,6 +31,11 @@ func formatHTTPError(statusCode int, body []byte) error {
 			"  - Try again in a few moments\n" +
 			"  - Check DCI service status\n" +
 			"  - Contact support if the issue persists"
+	case http.StatusTooManyRequests:
+		guidance = "Rate limited by the DCI API. The client already retried with backoff:\n" +
+			"  - Try again in a few moments\n" +
+			"  - Reduce the request rate or use --limit to fetch less data\n" +
+			"  - Check for other go-dci processes hitting the same credentials"
 	default:
 		guidance = "An unexpected error occurred"
 	}
