@@ -2637,3 +2637,34 @@ func TestSetRequestTimeoutWithoutHTTPClient(t *testing.T) {
 	assert.NotPanics(t, func() { client.SetRequestTimeout(time.Second) })
 	assert.Equal(t, time.Second, client.RequestTimeout)
 }
+func TestGetRemoteCIsByNameSendsFilter(t *testing.T) {
+	var where string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		where = r.URL.Query().Get("where")
+		_ = json.NewEncoder(w).Encode(RemoteCIsResponse{RemoteCIs: []RemoteCI{{ID: "rci-1", Name: "runner"}}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	responses, err := client.GetRemoteCIsByName(context.Background(), "runner")
+	assert.NoError(t, err)
+	assert.Equal(t, "name:runner", where)
+	assert.Len(t, responses, 1)
+	assert.Equal(t, "runner", responses[0].RemoteCIs[0].Name)
+}
+
+func TestGetProductsByNameSendsFilter(t *testing.T) {
+	var where string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		where = r.URL.Query().Get("where")
+		_ = json.NewEncoder(w).Encode(ProductsResponse{Products: []Product{{ID: "p-1", Name: "OpenShift"}}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	responses, err := client.GetProductsByName(context.Background(), "OpenShift")
+	assert.NoError(t, err)
+	assert.Equal(t, "name:OpenShift", where)
+	assert.Len(t, responses, 1)
+	assert.Equal(t, "OpenShift", responses[0].Products[0].Name)
+}

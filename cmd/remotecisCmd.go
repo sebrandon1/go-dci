@@ -18,6 +18,7 @@ var (
 	updateRemoteCINameFlag   string
 	updateRemoteCIStateFlag  string
 	deleteRemoteCIIDFlag     string
+	remoteCIsNameFilter      string
 )
 
 var getRemoteCIsCmd = &cobra.Command{
@@ -34,9 +35,13 @@ API credentials are redacted from JSON output.`,
 			return err
 		}
 
-		printStatus("Getting remote CIs...")
+		if remoteCIsNameFilter != "" {
+			printStatus("Getting remote CIs matching name: %s\n", remoteCIsNameFilter)
+		} else {
+			printStatus("Getting remote CIs...")
+		}
 
-		responses, err := dciClient.GetRemoteCIs(cmd.Context(), limits...)
+		responses, err := dciClient.GetRemoteCIsByName(cmd.Context(), remoteCIsNameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get remote CIs: %w", err)
 		}
@@ -253,6 +258,7 @@ func init() {
 	rootCmd.AddCommand(deleteRemoteCICmd)
 
 	// get remote CIs flags
+	getRemoteCIsCmd.PersistentFlags().StringVarP(&remoteCIsNameFilter, "name", "n", "", "Filter remote CIs by name")
 	addListLimitFlag(getRemoteCIsCmd)
 
 	// get remote CI flags

@@ -1035,15 +1035,20 @@ func (c *Client) uploadFileContent(ctx context.Context, reqURL string, content [
 
 // GetRemoteCIs retrieves all remote CIs from DCI
 func (c *Client) GetRemoteCIs(ctx context.Context, limits ...int) ([]RemoteCIsResponse, error) {
+	return c.GetRemoteCIsByName(ctx, "", limits...)
+}
+
+// GetRemoteCIsByName retrieves remote CIs filtered by name (empty string for all)
+func (c *Client) GetRemoteCIsByName(ctx context.Context, name string, limits ...int) ([]RemoteCIsResponse, error) {
 	return paginate(ctx, func(pageLimit, offset int) (RemoteCIsResponse, int, error) {
-		resp, err := c.fetchRemoteCIs(ctx, pageLimit, offset)
+		resp, err := c.fetchRemoteCIs(ctx, name, pageLimit, offset)
 		resp.RemoteCIs = limitPage(resp.RemoteCIs, pageLimit)
 		return resp, len(resp.RemoteCIs), err
 	}, limits...)
 }
 
-func (c *Client) fetchRemoteCIs(ctx context.Context, requestLimit, offset int) (RemoteCIsResponse, error) {
-	reqURL := paginatedURL(c.BaseURL+"/remotecis", requestLimit, offset)
+func (c *Client) fetchRemoteCIs(ctx context.Context, name string, requestLimit, offset int) (RemoteCIsResponse, error) {
+	reqURL := paginatedURL(c.BaseURL+"/remotecis", requestLimit, offset, buildFilter("name", name))
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return RemoteCIsResponse{}, fmt.Errorf("error getting remote CIs: %w", err)
@@ -1345,15 +1350,20 @@ func (c *Client) DeleteUser(ctx context.Context, userID string) error {
 
 // GetProducts retrieves all products from DCI
 func (c *Client) GetProducts(ctx context.Context, limits ...int) ([]ProductsResponse, error) {
+	return c.GetProductsByName(ctx, "", limits...)
+}
+
+// GetProductsByName retrieves products filtered by name (empty string for all)
+func (c *Client) GetProductsByName(ctx context.Context, name string, limits ...int) ([]ProductsResponse, error) {
 	return paginate(ctx, func(pageLimit, offset int) (ProductsResponse, int, error) {
-		resp, err := c.fetchProducts(ctx, pageLimit, offset)
+		resp, err := c.fetchProducts(ctx, name, pageLimit, offset)
 		resp.Products = limitPage(resp.Products, pageLimit)
 		return resp, len(resp.Products), err
 	}, limits...)
 }
 
-func (c *Client) fetchProducts(ctx context.Context, requestLimit, offset int) (ProductsResponse, error) {
-	reqURL := paginatedURL(c.BaseURL+"/products", requestLimit, offset)
+func (c *Client) fetchProducts(ctx context.Context, name string, requestLimit, offset int) (ProductsResponse, error) {
+	reqURL := paginatedURL(c.BaseURL+"/products", requestLimit, offset, buildFilter("name", name))
 	httpResponse, err := c.doRequest(ctx, http.MethodGet, reqURL, nil, nil)
 	if err != nil {
 		return ProductsResponse{}, fmt.Errorf("error getting products: %w", err)

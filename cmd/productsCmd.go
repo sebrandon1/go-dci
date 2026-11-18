@@ -11,15 +11,18 @@ import (
 
 // Variables for product command flags
 var (
-	getProductIDFlag string
+	getProductIDFlag   string
+	productsNameFilter string
 )
 
 var getProductsCmd = &cobra.Command{
 	Use:   "products",
 	Short: "Get all products from DCI",
 	Long: `Retrieve all products registered in DCI. Products are top-level groupings
-(e.g., OpenShift) under which topics and components are organized.`,
+(e.g., OpenShift) under which topics and components are organized. Use --name to
+filter by substring match.`,
 	Example: `  dci products
+  dci products --name OpenShift
   dci products -o json | jq '.products[].name'`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		limits, err := listLimit(cmd)
@@ -27,9 +30,13 @@ var getProductsCmd = &cobra.Command{
 			return err
 		}
 
-		printStatus("Getting products...")
+		if productsNameFilter != "" {
+			printStatus("Getting products matching name: %s\n", productsNameFilter)
+		} else {
+			printStatus("Getting products...")
+		}
 
-		responses, err := dciClient.GetProducts(cmd.Context(), limits...)
+		responses, err := dciClient.GetProductsByName(cmd.Context(), productsNameFilter, limits...)
 		if err != nil {
 			return fmt.Errorf("failed to get products: %w", err)
 		}
@@ -123,6 +130,7 @@ func init() {
 	addListLimitFlag(getProductsCmd)
 
 	// get products flags
+	getProductsCmd.PersistentFlags().StringVarP(&productsNameFilter, "name", "n", "", "Filter products by name")
 
 	// get product flags
 	getProductCmd.PersistentFlags().StringVar(&getProductIDFlag, "id", "", "Product ID")

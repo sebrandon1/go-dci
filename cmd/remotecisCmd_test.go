@@ -291,3 +291,17 @@ func TestDeleteRemoteCICmd_JSONOutput(t *testing.T) {
 
 	assert.NoError(t, runCommand(deleteRemoteCICmd))
 }
+
+func TestGetRemoteCIsCmd_NameFilter(t *testing.T) {
+	var where string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		where = r.URL.Query().Get("where")
+		_ = json.NewEncoder(w).Encode(lib.RemoteCIsResponse{RemoteCIs: []lib.RemoteCI{{ID: "rci-1", Name: "runner"}}})
+	})
+
+	remoteCIsNameFilter = "runner"
+	t.Cleanup(func() { remoteCIsNameFilter = "" })
+
+	assert.NoError(t, runCommand(getRemoteCIsCmd))
+	assert.Equal(t, "name:runner", where)
+}

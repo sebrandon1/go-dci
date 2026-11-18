@@ -157,3 +157,17 @@ func TestGetProductCmd_ServerError(t *testing.T) {
 	err := getProductCmd.RunE(cmd, []string{})
 	assert.Error(t, err)
 }
+
+func TestGetProductsCmd_NameFilter(t *testing.T) {
+	var where string
+	newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		where = r.URL.Query().Get("where")
+		_ = json.NewEncoder(w).Encode(lib.ProductsResponse{Products: []lib.Product{{ID: "p-1", Name: "OpenShift"}}})
+	})
+
+	productsNameFilter = "OpenShift"
+	t.Cleanup(func() { productsNameFilter = "" })
+
+	assert.NoError(t, runCommand(getProductsCmd))
+	assert.Equal(t, "name:OpenShift", where)
+}
