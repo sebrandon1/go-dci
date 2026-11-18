@@ -326,3 +326,20 @@ func TestRequestTuningFlagsArePersistent(t *testing.T) {
 		assert.NotNil(t, rootCmd.PersistentFlags().Lookup(name), "missing persistent flag --%s", name)
 	}
 }
+
+func TestVerboseFlagConfiguresClient(t *testing.T) {
+	viper.Set("accesskey", "key")
+	viper.Set("secretkey", "secret")
+	verboseFlag = true
+	t.Cleanup(func() {
+		verboseFlag = false
+		dciClient = nil
+		viper.Reset()
+	})
+
+	assert.NoError(t, rootCmd.PersistentPreRunE(rootCmd, nil))
+	if !assert.NotNil(t, dciClient) {
+		return
+	}
+	assert.True(t, dciClient.Verbose)
+}

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -2667,4 +2668,94 @@ func TestGetProductsByNameSendsFilter(t *testing.T) {
 	assert.Equal(t, "name:OpenShift", where)
 	assert.Len(t, responses, 1)
 	assert.Equal(t, "OpenShift", responses[0].Products[0].Name)
+}
+
+func TestDoRequestVerboseLogging(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var buf bytes.Buffer
+	client := &Client{
+		BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret",
+		httpClient: &http.Client{}, MaxRetries: 1, Verbose: true, LogWriter: &buf,
+	}
+
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Contains(t, buf.String(), "[VERBOSE] GET "+server.URL+"/test")
+	assert.Contains(t, buf.String(), "-> 200")
+}
+
+func TestDoRequestVerboseLogsRetries(t *testing.T) {
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if attempts == 1 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var buf bytes.Buffer
+	client := &Client{
+		BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret",
+		httpClient: &http.Client{}, MaxRetries: 2, Verbose: true, LogWriter: &buf,
+	}
+
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Contains(t, buf.String(), "retry 1 for GET")
+}
+
+func TestDoRequestVerboseLogsErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	var buf bytes.Buffer
+	client := &Client{
+		BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret",
+		httpClient: &http.Client{}, MaxRetries: 1, Verbose: true, LogWriter: &buf,
+	}
+
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	transportErrClient := &Client{
+		BaseURL: "http://127.0.0.1:0", AccessKey: "testKey", SecretKey: "testSecret",
+		httpClient: &http.Client{}, MaxRetries: 1, Verbose: true, LogWriter: &buf,
+	}
+	_, err = transportErrClient.doRequest(context.Background(), http.MethodGet, "http://127.0.0.1:0/test", nil, nil) //nolint:bodyclose // response is nil on transport error
+	assert.Error(t, err)
+	assert.Contains(t, buf.String(), "-> error after")
+}
+
+func TestDoRequestQuietByDefault(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	var buf bytes.Buffer
+	client := &Client{
+		BaseURL: server.URL, AccessKey: "testKey", SecretKey: "testSecret",
+		httpClient: &http.Client{}, MaxRetries: 1, LogWriter: &buf,
+	}
+
+	resp, err := client.doRequest(context.Background(), http.MethodGet, server.URL+"/test", nil, nil)
+	assert.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+	assert.Empty(t, buf.String())
 }
