@@ -64,6 +64,11 @@ type Client struct {
 	RequestTimeout time.Duration
 	TLSTimeout     time.Duration
 	DialTimeout    time.Duration
+
+	// Verbose enables per-request debug logging.
+	Verbose bool
+	// LogWriter receives verbose logs; it defaults to os.Stderr.
+	LogWriter io.Writer
 }
 
 func NewClient(accessKey, secretKey string) *Client {
@@ -100,6 +105,18 @@ func (c *Client) SetRequestTimeout(timeout time.Duration) {
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.ResponseHeaderTimeout = timeout
 	}
+}
+
+// logf writes a verbose log line when Verbose is enabled.
+func (c *Client) logf(format string, args ...any) {
+	if !c.Verbose {
+		return
+	}
+	w := c.LogWriter
+	if w == nil {
+		w = os.Stderr
+	}
+	_, _ = fmt.Fprintf(w, "[VERBOSE] "+format+"\n", args...)
 }
 
 // retryJitter spreads a backoff interval by +/-25%, matching the historical
@@ -150,6 +167,7 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 		return nil, err
 	}
 
+	start := time.Now()
 	resp, err := retry.Do(ctx, c.httpClient, req,
 		retry.WithMaxAttempts(c.MaxRetries),
 		retry.WithBaseDelay(time.Second),
@@ -167,8 +185,13 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 			return statusCode >= http.StatusInternalServerError || statusCode == http.StatusTooManyRequests
 		}),
 		retry.WithJitter(retryJitter),
+		retry.WithHTTPOnRetry(func(attempt int, retryErr error, delay time.Duration) {
+			c.logf("retry %d for %s %s in %s: %v",
+				attempt+1, method, reqURL, delay.Round(time.Millisecond), retryErr)
+		}),
 	)
 	if err != nil {
+		c.logf("%s %s -> error after %s: %v", method, reqURL, time.Since(start).Round(time.Millisecond), err)
 		// retry.Do turns an exhausted retryable status into a typed error.
 		// Restore the last response so callers keep the DCI-formatted error.
 		var httpErr *httpx.HTTPError
@@ -185,6 +208,7 @@ func (c *Client) doRequest(ctx context.Context, method, reqURL string, body []by
 		}
 		return nil, err
 	}
+	c.logf("%s %s -> %d (%s)", method, reqURL, resp.StatusCode, time.Since(start).Round(time.Millisecond))
 	return resp, nil
 }
 

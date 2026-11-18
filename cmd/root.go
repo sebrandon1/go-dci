@@ -59,16 +59,6 @@ func printStatus(format string, args ...any) {
 	}
 }
 
-// printVerbose prints a verbose debug message if --verbose is enabled.
-// Reserved for future use (HTTP request logging, timing information).
-//
-//nolint:unused
-func printVerbose(message string) {
-	if verboseFlag {
-		fmt.Printf("[VERBOSE] %s\n", message)
-	}
-}
-
 // validateResourceID validates that a resource ID is non-empty and matches the UUID format used by DCI.
 // Returns an error if validation fails.
 func validateResourceID(id, resourceType string) error {
@@ -189,6 +179,7 @@ func init() {
 			return err
 		}
 		dciClient = lib.NewClient(accessKey, secretKey)
+		dciClient.Verbose = verboseFlag
 		return applyClientTuning(cmd, dciClient)
 	}
 }
