@@ -2759,3 +2759,52 @@ func TestDoRequestQuietByDefault(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 	assert.Empty(t, buf.String())
 }
+
+const testUUID = "550e8400-e29b-41d4-a716-446655440000"
+
+func TestUpdateAndDeleteSendIfMatch(t *testing.T) {
+	var gotMethod, gotIfMatch, gotContentType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotIfMatch, gotContentType = r.Method, r.Header.Get("If-Match"), r.Header.Get("Content-Type")
+		switch r.Method {
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			_ = json.NewEncoder(w).Encode(TopicResponse{Topic: Topic{ID: "topic-1"}})
+		}
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+
+	_, err := client.UpdateTopic(context.Background(), testUUID, UpdateTopicRequest{Name: "renamed"}, WithIfMatch("etag-123"))
+	assert.NoError(t, err)
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "etag-123", gotIfMatch)
+	assert.Equal(t, "application/json", gotContentType, "Content-Type must survive request options")
+
+	assert.NoError(t, client.DeleteTopic(context.Background(), testUUID, WithIfMatch("etag-456")))
+	assert.Equal(t, http.MethodDelete, gotMethod)
+	assert.Equal(t, "etag-456", gotIfMatch)
+
+	// Without options no If-Match header is sent.
+	assert.NoError(t, client.DeleteTopic(context.Background(), testUUID))
+	assert.Empty(t, gotIfMatch)
+}
+
+func TestDeleteComponentSendsIfMatch(t *testing.T) {
+	var gotIfMatch string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotIfMatch = r.Header.Get("If-Match")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	assert.NoError(t, client.DeleteComponent(context.Background(), testUUID, WithIfMatch("etag-comp")))
+	assert.Equal(t, "etag-comp", gotIfMatch)
+}
+
+func TestRequestHeadersWithoutOptions(t *testing.T) {
+	assert.Empty(t, requestHeaders(nil))
+}
