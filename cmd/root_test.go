@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,6 +44,73 @@ func captureStdout(t *testing.T, fn func()) string {
 	_ = r.Close()
 
 	return buf.String()
+}
+
+// captureOutput runs fn with os.Stdout and os.Stderr redirected and returns both streams.
+func captureOutput(t *testing.T, fn func()) (string, string) {
+	t.Helper()
+
+	outR, outW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("create stdout pipe: %v", err)
+	}
+
+	errR, errW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("create stderr pipe: %v", err)
+	}
+
+	oldOut, oldErr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = outW, errW
+	t.Cleanup(func() { os.Stdout, os.Stderr = oldOut, oldErr })
+
+	var outBuf, errBuf bytes.Buffer
+	done := make(chan struct{}, 2)
+	go func() {
+		_, _ = io.Copy(&outBuf, outR)
+		done <- struct{}{}
+	}()
+	go func() {
+		_, _ = io.Copy(&errBuf, errR)
+		done <- struct{}{}
+	}()
+
+	fn()
+	if err := outW.Close(); err != nil {
+		t.Fatalf("close stdout pipe: %v", err)
+	}
+	if err := errW.Close(); err != nil {
+		t.Fatalf("close stderr pipe: %v", err)
+	}
+	<-done
+	<-done
+	_ = outR.Close()
+	_ = errR.Close()
+
+	return outBuf.String(), errBuf.String()
+}
+
+func TestExecuteWritesErrorToStderr(t *testing.T) {
+	oldRoot := rootCmd
+	oldExit := exitFunc
+	t.Cleanup(func() {
+		rootCmd = oldRoot
+		exitFunc = oldExit
+	})
+
+	rootCmd = &cobra.Command{
+		Use:  "test",
+		RunE: func(*cobra.Command, []string) error { return errors.New("boom") },
+	}
+
+	exitCode := -1
+	exitFunc = func(code int) { exitCode = code }
+
+	stdout, stderr := captureOutput(t, Execute)
+
+	assert.NotContains(t, stdout, "boom", "errors must not go to stdout")
+	assert.Contains(t, stderr, "boom")
+	assert.Equal(t, 1, exitCode)
 }
 
 // withStdin replaces os.Stdin with a file containing contents for the test.
