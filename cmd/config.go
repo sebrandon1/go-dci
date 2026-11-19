@@ -70,11 +70,16 @@ Credentials can also be provided via environment variables:
 var setCmd = &cobra.Command{
 	Use:   "set",
 	Short: "Set a key value pair to the configuration",
-	Long:  `Store DCI API credentials in the go-dci config file.`,
+	Long: `Store DCI API credentials in the go-dci config file.
+At least one of --accesskey or --secretkey is required.`,
 	Example: `  dci config set --accesskey myaccesskey --secretkey mysecretkey`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accesskey, _ := cmd.Flags().GetString(configKeyAccessKey)
 		secretkey, _ := cmd.Flags().GetString(configKeySecretKey)
+
+		if accesskey == "" && secretkey == "" {
+			return fmt.Errorf("no credentials provided: pass --accesskey and/or --secretkey")
+		}
 
 		if accesskey != "" {
 			if err := UpdateConfigValue(configKeyAccessKey, accesskey); err != nil {
