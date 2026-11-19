@@ -30,6 +30,67 @@ func TestFindOcpVersionFromComponents(t *testing.T) {
 			testComponents:     []lib.Components{},
 			expectedOcpVersion: "",
 		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name: "OpenShift-4.19.0",
+				},
+			},
+			expectedOcpVersion: "4.19.0",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name: "OpenShift",
+				},
+			},
+			expectedOcpVersion: "",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name: "OpenShift Container Platform 4.20.1",
+				},
+			},
+			expectedOcpVersion: "4.20.1",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name: "some-other 4.1",
+				},
+			},
+			expectedOcpVersion: "",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name:    "OpenShift",
+					Version: "4.21.0",
+				},
+			},
+			expectedOcpVersion: "4.21.0",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name: "OpenShift",
+				},
+				{
+					Name: "OpenShift 4.22.0",
+				},
+			},
+			expectedOcpVersion: "4.22.0",
+		},
+		{
+			testComponents: []lib.Components{
+				{
+					Name:    "OpenShift",
+					Version: "not-a-version",
+				},
+			},
+			expectedOcpVersion: "",
+		},
 	}
 
 	for _, testCase := range testCases {
