@@ -97,6 +97,34 @@ func TestSetConfigCmd_Success(t *testing.T) {
 	assert.Equal(t, "mysecretkey", viper.GetString(configKeySecretKey))
 }
 
+func TestSetConfigCmd_RequiresAtLeastOneFlag(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+
+	if err := setCmd.ParseFlags([]string{}); err != nil {
+		t.Fatalf("parse set flags: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = setCmd.Flags().Set(configKeyAccessKey, "")
+		_ = setCmd.Flags().Set(configKeySecretKey, "")
+	})
+
+	err := runCommand(setCmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no credentials provided")
+}
+
+func TestSetConfigCmd_AccessKeyOnlySucceeds(t *testing.T) {
+	t.Cleanup(setupTestConfig(t))
+
+	if err := setCmd.ParseFlags([]string{"--accesskey", "myaccesskey"}); err != nil {
+		t.Fatalf("parse set flags: %v", err)
+	}
+	t.Cleanup(func() { _ = setCmd.Flags().Set(configKeyAccessKey, "") })
+
+	assert.NoError(t, runCommand(setCmd))
+	assert.Equal(t, "myaccesskey", viper.GetString(configKeyAccessKey))
+}
+
 func TestSetConfigCmd_WriteError(t *testing.T) {
 	viper.Reset()
 	viper.SetConfigType("yaml")
