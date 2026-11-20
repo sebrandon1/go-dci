@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,9 @@ const (
 
 var (
 	ocpVersionsToLookFor = getOCPVersions()
+
+	// ocpVersionRegex matches the MAJOR.MINOR[.PATCH] token in an OCP component name.
+	ocpVersionRegex = regexp.MustCompile(`\b\d+\.\d+(?:\.\d+)?\b`)
 )
 
 var getTopicsCmd = &cobra.Command{
@@ -424,8 +428,19 @@ func isCertsuiteJob(components []lib.Components) bool {
 
 func findOcpVersionFromComponents(components []lib.Components) string {
 	for _, c := range components {
-		if strings.Contains(c.Name, "OpenShift") {
-			return strings.Split(c.Name, " ")[1]
+		if !strings.Contains(c.Name, "OpenShift") {
+			continue
+		}
+
+		// Names vary ("OpenShift 4.14.2", "OpenShift-4.19.0", "OpenShift Container
+		// Platform 4.20.1"), so extract the version token instead of splitting on
+		// spaces. Fall back to the component Version field only when the name has none.
+		if version := ocpVersionRegex.FindString(c.Name); version != "" {
+			return version
+		}
+
+		if version := ocpVersionRegex.FindString(c.Version); version != "" {
+			return version
 		}
 	}
 
