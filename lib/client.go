@@ -663,11 +663,14 @@ func (c *Client) GetJobs(ctx context.Context, daysBackLimit int, limits ...int) 
 }
 
 func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time, limits ...int) ([]JobsResponse, error) {
-	return paginateUntil(ctx, func(pageLimit, offset int) (JobsResponse, int, error) {
+	responses, err := paginateUntil(ctx, func(pageLimit, offset int) (JobsResponse, int, error) {
 		resp, err := c.fetchJobs(ctx, pageLimit, offset)
 		resp.Jobs = limitPage(resp.Jobs, pageLimit)
 		return resp, len(resp.Jobs), err
 	}, func(page JobsResponse) bool {
+		// Jobs are sorted -created_at, so the first page holding a job older than
+		// startDate marks the end of the requested window. The unfiltered page is
+		// what this predicate must see, so range filtering happens afterwards.
 		for _, job := range page.Jobs {
 			createdAt, err := time.Parse(dateFormat, job.CreatedAt)
 			if err != nil {
@@ -679,6 +682,23 @@ func (c *Client) GetJobsByDate(ctx context.Context, startDate, endDate time.Time
 		}
 		return true
 	}, limits...)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range responses {
+		inRange := make([]Job, 0, len(responses[i].Jobs))
+		for _, job := range responses[i].Jobs {
+			createdAt, parseErr := time.Parse(dateFormat, job.CreatedAt)
+			// Keep jobs whose timestamp cannot be parsed rather than silently dropping them.
+			if parseErr != nil || (!createdAt.Before(startDate) && createdAt.Before(endDate)) {
+				inRange = append(inRange, job)
+			}
+		}
+		responses[i].Jobs = inRange
+	}
+
+	return responses, nil
 }
 
 // GetJob retrieves a single job by ID from the DCI API

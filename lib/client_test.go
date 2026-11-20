@@ -2808,3 +2808,70 @@ func TestDeleteComponentSendsIfMatch(t *testing.T) {
 func TestRequestHeadersWithoutOptions(t *testing.T) {
 	assert.Empty(t, requestHeaders(nil))
 }
+
+func TestGetJobsByDateFiltersEndDate(t *testing.T) {
+	startDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jobs := []Job{
+			{ID: "before-start", CreatedAt: startDate.Add(-time.Hour).Format(dateFormat)},
+			{ID: "in-range", CreatedAt: startDate.Add(time.Hour).Format(dateFormat)},
+			{ID: "after-end", CreatedAt: endDate.Add(time.Hour).Format(dateFormat)},
+			{ID: "unparseable", CreatedAt: "not-a-timestamp"},
+			{ID: "at-start", CreatedAt: startDate.Format(dateFormat)},
+			{ID: "at-end", CreatedAt: endDate.Format(dateFormat)},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(JobsResponse{Jobs: jobs})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	responses, err := client.GetJobsByDate(context.Background(), startDate, endDate)
+	assert.NoError(t, err)
+	assert.Len(t, responses, 1)
+
+	var ids []string
+	for _, job := range responses[0].Jobs {
+		ids = append(ids, job.ID)
+	}
+	assert.Equal(t, []string{"in-range", "unparseable", "at-start"}, ids,
+		"the window is [startDate, endDate); unparseable timestamps are kept")
+}
+
+func TestGetJobsByDateStopsBeforeStart(t *testing.T) {
+	startDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := startDate.AddDate(0, 1, 0)
+
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		jobs := make([]Job, defaultPageSize)
+		if requests == 1 {
+			for i := range jobs {
+				jobs[i] = Job{ID: fmt.Sprintf("new-%d", i), CreatedAt: startDate.Add(time.Hour).Format(dateFormat)}
+			}
+		} else {
+			// Entirely older than startDate: the scan must stop here and drop the page.
+			for i := range jobs {
+				jobs[i] = Job{ID: fmt.Sprintf("old-%d", i), CreatedAt: startDate.Add(-time.Hour).Format(dateFormat)}
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(JobsResponse{Jobs: jobs})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server.URL)
+	responses, err := client.GetJobsByDate(context.Background(), startDate, endDate)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, requests, "pagination should stop after the page older than startDate")
+	assert.Len(t, responses, 2)
+
+	total := 0
+	for _, response := range responses {
+		total += len(response.Jobs)
+	}
+	assert.Equal(t, defaultPageSize, total, "only the in-range page should be returned")
+}
