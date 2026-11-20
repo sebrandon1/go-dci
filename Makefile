@@ -8,13 +8,13 @@ build:
 	go build -ldflags "-X github.com/sebrandon1/go-dci/cmd.Version=$(VERSION)" -o $(APP_NAME)
 
 lint:
-	golangci-lint run ./cmd ./lib
+	golangci-lint run ./...
 
 test:
-	go test -v ./cmd ./lib
+	go test -v ./...
 
 coverage:
-	go test -coverprofile=coverage.out ./cmd ./lib
+	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
 clean:
