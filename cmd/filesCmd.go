@@ -57,7 +57,7 @@ to disk.`,
 			fmt.Printf("File ID:       %s\n", getFileIDFlag)
 			fmt.Printf("Content-Type:  %s\n", contentType)
 			fmt.Printf("Size:          %d bytes\n", len(content))
-			fmt.Println("Use --output <path> to save the file content")
+			fmt.Println("Use --output-path <path> to save the file content")
 		}
 
 		return nil

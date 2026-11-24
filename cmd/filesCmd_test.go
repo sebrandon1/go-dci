@@ -264,7 +264,14 @@ func TestGetFileCmd_MetadataStdout(t *testing.T) {
 	getFileOutputPath = ""
 	t.Cleanup(func() { getFileIDFlag, getFileOutputPath = "", "" })
 
-	assert.NoError(t, runCommand(getFileCmd))
+	stdout, _ := captureOutput(t, func() {
+		assert.NoError(t, runCommand(getFileCmd))
+	})
+
+	// The hint must name the flag that actually saves the file; --output is the
+	// global format flag and would print metadata instead of writing anything.
+	assert.Contains(t, stdout, "Use --output-path <path> to save the file content")
+	assert.NotContains(t, stdout, "Use --output <path>")
 }
 
 func TestDeleteFileCmd_DryRunSkipsAPI(t *testing.T) {
